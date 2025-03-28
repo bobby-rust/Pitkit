@@ -27,8 +27,17 @@
  */
 
 import "./index.css";
+import "./main";
 
 console.log(
 	'👋 This message is being logged by "renderer.js", included via webpack'
 );
-import "./app";
+document.getElementById("drag1").ondragstart = (event) => {
+	event.preventDefault();
+	window.electron.startDrag("drag-and-drop-1.md");
+};
+
+document.getElementById("drag2").ondragstart = (event) => {
+	event.preventDefault();
+	window.electron.startDrag("drag-and-drop-2.md");
+};
