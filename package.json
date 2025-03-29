@@ -27,6 +27,7 @@
     "@electron-forge/plugin-fuses": "^7.8.0",
     "@electron-forge/plugin-webpack": "^7.8.0",
     "@electron/fuses": "^1.8.0",
+    "@types/ini": "^4.1.1",
     "@types/mkdirp": "^1.0.2",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
@@ -47,6 +48,7 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "ini": "^5.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "yauzl": "^3.2.0"

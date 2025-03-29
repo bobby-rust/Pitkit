@@ -64,6 +64,9 @@ app.on("activate", () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 import yauzl from "yauzl";
+import ini from "ini";
+
+const config = ini.parse(fs.readFileSync("config.ini", "utf-8"));
 
 // Basic test handler
 ipcMain.handle("hello", async () => {
@@ -87,18 +90,12 @@ ipcMain.handle("install-mod", async (event: IpcMainInvokeEvent) => {
 
 	await unzipWithProgress(
 		modPath,
-		"D:\\Games\\MX Bikes\\mods\\PiBoSo\\MX Bikes",
+		path.normalize(config.mods_path),
 		(progress) => {
 			event.sender.send("extract-progress", progress);
 		}
 	);
 });
-
-// Load config.ini
-const config = fs.readFileSync(
-	"D:\\Code\\apps\\MXBModManager\\src\\config.ini"
-);
-console.log(config.toString());
 
 // Zip extraction with progress
 export function unzipWithProgress(
