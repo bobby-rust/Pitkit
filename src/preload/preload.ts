@@ -3,6 +3,8 @@
 
 import { contextBridge, ipcRenderer } from "electron";
 
-contextBridge.exposeInMainWorld("electron", {
-	startDrag: (filename: string) => ipcRenderer.send("ondragstart", filename),
+contextBridge.exposeInMainWorld("modManagerAPI", {
+	installMod: () => ipcRenderer.invoke("install-mod"),
+	onProgress: (callback: any) =>
+		ipcRenderer.on("extract-progress", (_, progress) => callback(progress)),
 });
