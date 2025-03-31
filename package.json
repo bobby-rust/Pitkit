@@ -3,7 +3,7 @@
   "productName": "mxbmodmanager",
   "version": "1.0.0",
   "description": "My Electron application description",
-  "main": ".webpack/main",
+  "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
@@ -17,6 +17,11 @@
     "email": "bobby.rust121@gmail.com"
   },
   "license": "MIT",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
+  },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.0",
     "@electron-forge/maker-deb": "^7.8.0",
@@ -25,32 +30,29 @@
     "@electron-forge/maker-zip": "^7.8.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.8.0",
     "@electron-forge/plugin-fuses": "^7.8.0",
-    "@electron-forge/plugin-webpack": "^7.8.0",
+    "@electron-forge/plugin-vite": "^7.8.0",
     "@electron/fuses": "^1.8.0",
+    "@types/electron-squirrel-startup": "^1.0.2",
     "@types/ini": "^4.1.1",
-    "@types/mkdirp": "^1.0.2",
+    "@types/mkdirp": "^2.0.0",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
     "@types/yauzl": "^2.10.3",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
-    "@vercel/webpack-asset-relocator-loader": "^1.7.3",
-    "css-loader": "^6.11.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
     "electron": "35.1.2",
-    "eslint": "^8.57.1",
-    "eslint-plugin-import": "^2.31.0",
-    "fork-ts-checker-webpack-plugin": "^7.3.0",
-    "node-loader": "^2.1.0",
-    "style-loader": "^3.3.4",
-    "ts-loader": "^9.5.2",
-    "ts-node": "^10.9.2",
-    "typescript": "~4.5.4"
+    "eslint": "^8.0.1",
+    "eslint-plugin-import": "^2.25.0",
+    "ts-node": "^10.0.0",
+    "typescript": "~4.5.4",
+    "vite": "^5.0.12"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
     "ini": "^5.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "mkdirp": "^3.0.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "yauzl": "^3.2.0"
   }
 }
