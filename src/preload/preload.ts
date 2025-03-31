@@ -5,6 +5,6 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("modManagerAPI", {
 	installMod: () => ipcRenderer.invoke("install-mod"),
-	onProgress: (callback: any) =>
+	onProgress: (callback: (progress: number) => void) =>
 		ipcRenderer.on("extract-progress", (_, progress) => callback(progress)),
 });
