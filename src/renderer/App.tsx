@@ -1,5 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
+import Sidebar from "./components/sidebar/Sidebar";
+import "./App.css";
 
 export default function App() {
 	const [progress, setProgress] = useState(null);
@@ -16,16 +18,15 @@ export default function App() {
 		});
 	}, []);
 	return (
-		<div>
-			<h1>App</h1>
-			<button onClick={handleInstallMod}>Install Mod</button>
-			{progress}
-			{progress &&
-				(parseInt(progress) !== 100 ? (
-					<p>Progress: {progress}%</p>
-				) : (
-					<p>Complete!</p>
-				))}
+		<div className="app-container">
+			<Sidebar />
+			<div className="app">
+				<h1>MX Bikes Mod Manager</h1>
+				<button className="install-button" onClick={handleInstallMod}>
+					Install Mod
+				</button>
+				{progress && <progress value={progress} max={100}></progress>}
+			</div>
 		</div>
 	);
 }

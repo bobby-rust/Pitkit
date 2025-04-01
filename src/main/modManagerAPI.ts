@@ -78,32 +78,7 @@ export default class ModManagerAPI {
 		return messageResult.response;
 	}
 
-	/**
-	 * Will prompt the user for the base game directory repeatedly until
-	 * they select a valid base game file path. This function will never
-	 * return if the user does not select a folder containing mxbikes.exe
-	 * AND mxbikes.ini
-	 *
-	 * @returns {string} The base game directory for MX Bikes
-	 */
-	private async getBaseGameDirectory() {
-		const choice = await this.showGetBaseGameDirectoryPrompt();
-		switch (choice) {
-			case 1:
-				app.quit();
-		}
-		const result = await dialog.showOpenDialog({
-			properties: ["openDirectory"],
-			title: "Select base game folder",
-		});
-
-		if (result.canceled || result.filePaths.length === 0) {
-			console.error("No folder selected");
-			app.quit();
-		}
-
-		const baseGameDir = result.filePaths[0];
-
+	private async verifyBaseGameDirectory(baseGameDir: string) {
 		const mxbConfigPath = path.join(baseGameDir, "mxbikes.ini");
 		const mxbPath = path.join(baseGameDir, "mxbikes.exe");
 
@@ -133,6 +108,37 @@ export default class ModManagerAPI {
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Will prompt the user for the base game directory repeatedly until
+	 * they select a valid base game file path. This function will never
+	 * return if the user does not select a folder containing mxbikes.exe
+	 * AND mxbikes.ini
+	 *
+	 * @returns {string} The base game directory for MX Bikes
+	 */
+	private async getBaseGameDirectory() {
+		const choice = await this.showGetBaseGameDirectoryPrompt();
+		switch (choice) {
+			case 1:
+				app.quit();
+		}
+		const result = await dialog.showOpenDialog({
+			properties: ["openDirectory"],
+			title: "Select base game folder",
+		});
+
+		if (result.canceled || result.filePaths.length === 0) {
+			console.error("No folder selected");
+			app.quit();
+		}
+
+		const baseGameDir = result.filePaths[0];
+
+		// This will prompt the user to try again if it's not a valid base game directory,
+		// execution will never pass this line until a valid base game directory exists
+		this.verifyBaseGameDirectory(baseGameDir);
 
 		dialog.showMessageBox(mainWindow, {
 			type: "none",
