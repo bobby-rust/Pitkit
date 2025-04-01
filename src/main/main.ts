@@ -47,6 +47,21 @@ async function init() {
 app.on("ready", async () => {
 	createWindow();
 	await init();
+
+	const root: FolderStructure = await parseZipFile(
+		path.normalize("D:/Downloads/Rider+.zip")
+	);
+
+	const mods: ModsData = new Map<string, FolderStructure>();
+	mods.set("Rider+", root);
+
+	fs.writeFileSync(
+		"data/mods.json",
+		JSON.stringify(Object.fromEntries(mods))
+	);
+
+	const modsData = loadMods();
+	console.log(modsData);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -70,6 +85,10 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 import ModManagerAPI from "./modManagerAPI";
 import { ipcMain } from "electron";
+import { parseZipFile } from "./utils/zipParser";
+import fs from "fs";
+import { loadMods } from "./utils/loadMods";
+import { FolderStructure, ModsData } from "src/types/types";
 
 let modManagerAPI: ModManagerAPI;
 

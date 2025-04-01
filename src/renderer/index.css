@@ -368,6 +368,7 @@ template {
 	--background: #f3f4f7;
 	--foreground: #333;
 	--border: rgba(0.9, 0.9, 0.9, 0.2);
+	--hover: rgba(0.6, 0.6, 0.6, 0.1);
 }
 
 /** Remove default button styling */

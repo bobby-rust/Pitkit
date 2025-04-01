@@ -26,7 +26,7 @@ li {
 }
 
 .sidebar-button:hover {
-	background-color: var(--border);
+	background-color: var(--hover);
 }
 
 .divider {
