@@ -1,11 +1,28 @@
 .app-container {
 	display: flex;
+	width: 100%;
+	height: 100vh; /* Ensure full viewport height */
 }
-.app {
-	padding: 1rem;
+
+#app {
+	/* padding: 1rem; */
 	display: flex;
 	align-items: center;
 	flex-direction: column;
+	width: 100%;
+	gap: 1rem;
+	height: calc(100vh - 32px); /* Set to full height minus titlebar */
+	margin-top: 32px; /* Match titlebar height */
+	overflow-y: auto; /* Enable vertical scrolling */
+	overflow-x: hidden;
+	box-sizing: border-box; /* Include padding in the height calculation */
+}
+
+.app-header {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
 	width: 100%;
 }
 
@@ -13,8 +30,227 @@
 	padding: 1rem;
 	border: 1px solid var(--border);
 	border-radius: 0.5rem;
+	min-width: 10rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.5rem;
+	text-align: center;
+}
+.install-button span {
+	text-align: center;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	transform: translateY(2px);
 }
 
 .install-button:hover {
 	box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+	background-color: var(--foreground);
+	color: var(--background);
+}
+
+#mods-container {
+	display: grid; /* 1. Use CSS Grid */
+	width: calc(100% - 6rem);
+	max-height: calc(100vh - 256px);
+	padding-bottom: 1rem;
+	margin-bottom: 1rem;
+	box-sizing: border-box;
+
+	/* 2. Define dynamic columns */
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	/*
+       - repeat(): Function to repeat a pattern for columns/rows.
+       - auto-fit: Creates as many columns as will fit within the container width.
+                   If columns are empty (because items wrapped), it collapses them.
+                   (Use 'auto-fill' if you want to preserve empty columns).
+       - minmax(150px, 1fr): Defines the size range for each column.
+           - 150px: The minimum width a column can be. Items won't get smaller than this.
+           - 1fr: The maximum size. '1fr' means 1 fraction of the available space.
+                  This allows columns to grow and fill any remaining space equally.
+    */
+
+	/* 3. Add spacing between grid items */
+	gap: 1rem; /* Sets both row-gap and column-gap */
+	/* You can also set them individually: */
+	/* column-gap: 1rem; */
+	/* row-gap: 1rem; */
+}
+
+/* Style the overall scrollbar */
+#app::-webkit-scrollbar {
+	width: 12px; /* Width of the vertical scrollbar */
+	height: 12px; /* Height of the horizontal scrollbar */
+}
+
+/* Style the track (the bar the thumb slides along) */
+#app::-webkit-scrollbar-track {
+	background: var(--background);
+	border-radius: 10px; /* Make the track rounded */
+	/* Add slight margin so track doesn't touch edge */
+	margin: 2px;
+}
+
+/* Style the thumb (the draggable part) */
+#app::-webkit-scrollbar-thumb {
+	background-color: var(--foreground);
+	border-radius: 10px; /* Make the thumb rounded */
+
+	/* Create the "smaller initial size" effect using a border that matches the track */
+	/* The border effectively shrinks the visible colored part of the thumb */
+	border: 3px solid var(--background);
+	background-clip: content-box; /* Ensure border is outside the background */
+
+	/* Add transition for smooth hover effect */
+	transition: background-color 0.2s ease-in-out, border-width 0.2s ease-in-out;
+}
+
+/* Style the thumb on hover */
+#app::-webkit-scrollbar-thumb:hover {
+	/* Alternative: Use filter if you don't define a specific hover variable */
+	filter: brightness(1.2);
+
+	/* Make the thumb appear larger by reducing the border size */
+	border-width: 2px;
+}
+
+/* Optional: Style the corner when both scrollbars are visible */
+#app::-webkit-scrollbar-corner {
+	background: transparent; /* Hide the corner */
+}
+
+body {
+	margin: 0; /* Remove default margin */
+	overflow: hidden; /* Prevent body scrolling */
+	height: 100vh; /* Full viewport height */
+}
+
+#titlebar {
+	display: block;
+	position: fixed;
+	height: 32px;
+	width: 100%;
+	background: var(--foreground);
+	color: var(--background);
+	z-index: 1000;
+}
+
+.sidebar-container {
+	height: calc(100% - 32px);
+	margin-top: 32px;
+	overflow-y: hidden;
+	overflow-x: hidden;
+}
+
+#titlebar #drag-region {
+	display: grid;
+	grid-template-columns: auto 138px;
+}
+
+#window-title {
+	grid-column: 1;
+	display: flex;
+	align-items: center;
+	margin-left: 8px;
+	overflow: hidden;
+	font-family: "Segoe UI", sans-serif;
+	font-size: 12px;
+}
+
+#window-title span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	line-height: 1.5;
+}
+
+#titlebar #drag-region {
+	width: 100%;
+	height: 100%;
+	-webkit-app-region: drag;
+}
+
+#window-controls {
+	display: grid;
+	grid-template-columns: repeat(3, 46px);
+	position: absolute;
+	top: 0;
+	right: 0;
+	height: 100%;
+}
+
+#window-controls .button {
+	grid-row: 1 / span 1;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
+	height: 100%;
+}
+#min-button {
+	grid-column: 1;
+}
+#max-button,
+#restore-button {
+	grid-column: 2;
+}
+#close-button {
+	grid-column: 3;
+}
+@media (-webkit-device-pixel-ratio: 1.5),
+	(device-pixel-ratio: 1.5),
+	(-webkit-device-pixel-ratio: 2),
+	(device-pixel-ratio: 2),
+	(-webkit-device-pixel-ratio: 3),
+	(device-pixel-ratio: 3) {
+	#window-controls .icon {
+		width: 10px;
+		height: 10px;
+	}
+}
+#window-controls {
+	-webkit-app-region: no-drag;
+}
+
+#window-controls .button {
+	user-select: none;
+}
+#window-controls .button:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+#window-controls .button:active {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+#close-button:hover {
+	background: #e81123 !important;
+}
+#close-button:active {
+	background: #f1707a !important;
+}
+#close-button:active .icon {
+	filter: invert(1);
+}
+
+#restore-button {
+	display: none !important;
+}
+.maximized #titlebar {
+	width: 100%;
+	padding: 0;
+}
+
+.maximized #window-title {
+	margin-left: 12px;
+}
+
+.maximized #restore-button {
+	display: flex !important;
+}
+
+.maximized #max-button {
+	display: none;
 }

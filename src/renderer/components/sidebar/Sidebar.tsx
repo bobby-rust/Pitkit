@@ -1,22 +1,26 @@
 import React from "react";
 import "./Sidebar.css";
-import Folder from "../../icons/Folder";
-import Settings from "../../icons/Settings";
-import AppIcon from "../../icons/AppIcon";
+import Logo from "../../Logo";
+import { Folder } from "lucide-react";
+import { Settings } from "lucide-react";
 
 export default function Sidebar() {
 	return (
 		<div className="sidebar-container">
 			<ul>
 				<li className="logo">
-					<AppIcon /> MXB Mod Manager
+					<Logo /> MXB Mod Manager
 				</li>
 				<div className="divider"></div>
-				<li className="sidebar-button">
-					<Folder /> Mods
+				<li>
+					<button className="sidebar-button">
+						<Folder /> Mods
+					</button>
 				</li>
-				<li className="sidebar-button">
-					<Settings /> Settings
+				<li>
+					<button className="sidebar-button">
+						<Settings /> Settings
+					</button>
 				</li>
 			</ul>
 		</div>

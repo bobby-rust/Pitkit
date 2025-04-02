@@ -2,22 +2,28 @@ import ini from "ini";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import unzip from "./utils/unzip";
 import { dialog, app } from "electron";
 import { mainWindow } from "./main";
+import { ModsData } from "src/types/types";
+import { loadMods } from "./utils/loadMods";
+import ModInstaller from "./modInstaller";
 
 interface Config {
 	modsFolder: string;
 	baseGameFolder: string;
 }
 
-export default class ModManagerAPI {
+export default class ModManager {
 	private config: Config = {
 		modsFolder: "",
 		baseGameFolder: "",
 	};
+	private mods: ModsData;
+	private installer: ModInstaller;
 
-	constructor() {}
+	constructor() {
+		this.installer = new ModInstaller();
+	}
 
 	public async loadConfig() {
 		if (!fs.existsSync("config.ini")) {
@@ -47,32 +53,16 @@ export default class ModManagerAPI {
 		console.log("Loaded config: ", this.config);
 	}
 
-	public async installMod(sendProgress: (progress: number) => void) {
-		const modPath = await this.selectMod();
-		if (!modPath) {
-			console.error("Cancelled mod install");
-			return;
-		}
-		await this.extractZip(modPath, this.config.modsFolder, sendProgress);
-		console.log("Installing mod");
+	public loadMods() {
+		this.mods = loadMods();
 	}
 
-	private async selectMod() {
-		console.log("Selecting mod");
-		const result = await dialog.showOpenDialog({
-			properties: ["openFile"],
-			filters: [
-				{ name: "Mod Files", extensions: ["zip"] },
-				{ name: "Pkz Files", extensions: ["pkz"] },
-			],
-			title: "Select mod to install",
-		});
+	public getMods() {
+		return this.mods;
+	}
 
-		if (result.canceled || result.filePaths.length === 0) {
-			return null;
-		}
-
-		return result.filePaths[0];
+	public async installMod(sendProgress: (progress: number) => void) {
+		await this.installer.installMod(this.config.modsFolder, sendProgress);
 	}
 
 	private async showGetBaseGameDirectoryPrompt(): Promise<number> {
@@ -181,17 +171,4 @@ export default class ModManagerAPI {
 		}
 		return baseGameConfig.mods.folder;
 	}
-
-	private async extractZip(
-		source: string,
-		destination: string,
-		sendProgress: (progress: number) => void
-	) {
-		const result = await unzip(source, destination, sendProgress);
-		console.log(result);
-	}
-
-	private installModFolder() {}
-
-	private installModFile() {}
 }

@@ -1,5 +1,6 @@
 import React from "react";
-export default function AppIcon() {
+
+export default function Logo() {
 	return (
 		<svg
 			version="1.0"

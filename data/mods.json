@@ -1,1 +1,70 @@
-{"Rider+":{"files":[],"subfolders":{"mods":{"files":[],"subfolders":{"rider":{"files":[],"subfolders":{"riders":{"files":[],"subfolders":{"Rider+":{"files":["c_rider.edf","gfx.cfg","rider+.ini","rider.edf","rider.hrc","rider_s.edf"],"subfolders":{"gloves":{"files":["Put_Gloves_In_This_Folder.txt"],"subfolders":{}},"paints":{"files":["Put_Gear_In_This_Folder.txt"],"subfolders":{}}}},"Rider+RolledUp":{"files":["c_rider.edf","gfx.cfg","rider+rolledup.ini","rider.edf","rider.hrc","rider_s.edf"],"subfolders":{"gloves":{"files":["Put_Gloves_In_This_Folder.txt"],"subfolders":{}},"paints":{"files":["Put_Gear_In_This_Folder.txt"],"subfolders":{}}}}}}}}}}}}}
+{
+	"Rider+": {
+		"name": "Rider+",
+		"files": {
+			"files": [],
+			"subfolders": {
+				"rider": {
+					"files": [],
+					"subfolders": {
+						"riders": {
+							"files": [],
+							"subfolders": {
+								"Rider+": {
+									"files": [
+										"c_rider.edf",
+										"gfx.cfg",
+										"rider+.ini",
+										"rider.edf",
+										"rider.hrc",
+										"rider_s.edf"
+									],
+									"subfolders": {
+										"gloves": {
+											"files": [
+												"Put_Gloves_In_This_Folder.txt"
+											],
+											"subfolders": {}
+										},
+										"paints": {
+											"files": [
+												"Put_Gear_In_This_Folder.txt"
+											],
+											"subfolders": {}
+										}
+									}
+								},
+								"Rider+RolledUp": {
+									"files": [
+										"c_rider.edf",
+										"gfx.cfg",
+										"rider+rolledup.ini",
+										"rider.edf",
+										"rider.hrc",
+										"rider_s.edf"
+									],
+									"subfolders": {
+										"gloves": {
+											"files": [
+												"Put_Gloves_In_This_Folder.txt"
+											],
+											"subfolders": {}
+										},
+										"paints": {
+											"files": [
+												"Put_Gear_In_This_Folder.txt"
+											],
+											"subfolders": {}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"type": "rider",
+		"installDate": "4/1/2025, 12:58:26 PM"
+	}
+}

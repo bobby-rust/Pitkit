@@ -1,9 +1,21 @@
 import yauzl from "yauzl";
-import { FolderStructure } from "../../types/types";
+import { FolderStructure, Mod } from "../../types/types";
+import path from "path";
 
-async function parseZipFile(zipPath: string): Promise<FolderStructure> {
+function getModName(filePath: string) {
+	return path.basename(filePath, path.extname(filePath));
+}
+
+async function parseZipFile(zipPath: string): Promise<Mod> {
 	return new Promise((resolve, reject) => {
-		const root: FolderStructure = { files: [], subfolders: {} };
+		const modName = getModName(zipPath);
+
+		const root: Mod = {
+			name: modName,
+			files: { files: [], subfolders: {} },
+			type: "rider",
+			installDate: new Date().toLocaleString(),
+		};
 
 		yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
 			if (err || !zipfile)
@@ -27,15 +39,11 @@ async function parseZipFile(zipPath: string): Promise<FolderStructure> {
 	});
 }
 
-function addPathToFolderStructure(
-	root: FolderStructure,
-	path: string,
-	isDir: boolean
-) {
+function addPathToFolderStructure(root: Mod, path: string, isDir: boolean) {
 	if (isDir) {
-		addDirToFolderStructure(root, path);
+		addDirToFolderStructure(root.files, path);
 	} else {
-		addFileToFolderStructure(root, path);
+		addFileToFolderStructure(root.files, path);
 	}
 }
 
@@ -51,6 +59,7 @@ function addDirToFolderStructure(root: FolderStructure, dir: string) {
 	let current = root;
 
 	for (const subdir of dirs) {
+		if (subdir === "mods") continue;
 		if (!(subdir in current.subfolders)) {
 			current.subfolders[subdir] = {
 				files: [],
@@ -62,10 +71,11 @@ function addDirToFolderStructure(root: FolderStructure, dir: string) {
 }
 
 function addFileToFolderStructure(root: FolderStructure, filePath: string) {
-	console.log("Adding file to folder structure: ", filePath);
 	const paths = filePath.split("/");
 	let current = root;
 	for (let i = 0; i < paths.length - 1; ++i) {
+		if (paths[i] === "mods") continue;
+
 		current = current.subfolders[paths[i]];
 	}
 	current.files.push(paths[paths.length - 1]);

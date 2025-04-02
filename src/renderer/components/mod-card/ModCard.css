@@ -1,0 +1,50 @@
+.mod-card-container {
+	padding: 0.7rem;
+	border: 1px solid var(--border);
+	border-radius: 0.5rem;
+	min-width: 10rem;
+	height: 5rem;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.delete-button {
+	padding: 0.5rem;
+	background-color: var(--foreground);
+	color: var(--background);
+	border-radius: 0.3rem;
+	text-align: center;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: small;
+}
+
+.delete-button:hover {
+	background-color: #db6060;
+	box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+}
+.mod-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.mod-card-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: end;
+	font-size: x-small;
+}
+
+.mod-card-type {
+	font-size: small;
+}
+
+p {
+	padding-right: 0.5rem;
+}
+
+.mod-card-wrapper {
+	padding-bottom: 0.5rem;
+}
