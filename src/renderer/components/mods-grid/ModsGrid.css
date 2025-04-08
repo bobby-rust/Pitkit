@@ -1,0 +1,27 @@
+#mods-container {
+  display: grid; /* 1. Use CSS Grid */
+  width: calc(100% - 6rem);
+  max-height: calc(100vh - 256px);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+
+  /* 2. Define dynamic columns */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /*
+       - repeat(): Function to repeat a pattern for columns/rows.
+       - auto-fit: Creates as many columns as will fit within the container width.
+                   If columns are empty (because items wrapped), it collapses them.
+                   (Use 'auto-fill' if you want to preserve empty columns).
+       - minmax(150px, 1fr): Defines the size range for each column.
+           - 150px: The minimum width a column can be. Items won't get smaller than this.
+           - 1fr: The maximum size. '1fr' means 1 fraction of the available space.
+                  This allows columns to grow and fill any remaining space equally.
+    */
+
+  /* 3. Add spacing between grid items */
+  gap: 1rem; /* Sets both row-gap and column-gap */
+  /* You can also set them individually: */
+  /* column-gap: 1rem; */
+  /* row-gap: 1rem; */
+}
