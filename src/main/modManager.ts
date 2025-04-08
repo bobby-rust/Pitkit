@@ -9,180 +9,193 @@ import { loadMods } from "./utils/loadMods";
 import ModInstaller from "./modInstaller";
 
 interface Config {
-  modsFolder: string;
-  baseGameFolder: string;
+	modsFolder: string;
+	baseGameFolder: string;
 }
 
 export default class ModManager {
-  private config: Config = {
-    modsFolder: "",
-    baseGameFolder: "",
-  };
-  private mods: ModsData;
-  private installer: ModInstaller;
+	private config: Config = {
+		modsFolder: "",
+		baseGameFolder: "",
+	};
+	private mods: ModsData;
+	private installer: ModInstaller;
 
-  constructor() {
-    this.installer = new ModInstaller();
-  }
+	constructor() {
+		this.installer = new ModInstaller();
+	}
 
-  public async loadConfig() {
-    if (!fs.existsSync("config.ini")) {
-      fs.writeFileSync("config.ini", "mods_folder=\nbase_game_folder=");
-    }
-    const cfgFile = fs.readFileSync("config.ini", "utf-8");
+	public async loadConfig() {
+		if (!fs.existsSync("config.ini")) {
+			fs.writeFileSync("config.ini", "mods_folder=\nbase_game_folder=");
+		}
+		const cfgFile = fs.readFileSync("config.ini", "utf-8");
 
-    const cfgContents = ini.parse(cfgFile);
+		const cfgContents = ini.parse(cfgFile);
 
-    // No base game directory set, get base game directory from user
-    if (
-      !cfgContents.base_game_folder ||
-      !this.verifyBaseGameDirectory(cfgContents.base_game_folder)
-    ) {
-      cfgContents.base_game_folder = await this.getBaseGameDirectory();
-    }
-    this.config.baseGameFolder = cfgContents.base_game_folder;
-    const modsPath = this.getModsPathFromBaseGameConfig();
-    cfgContents.mods_folder = modsPath;
-    fs.writeFileSync("config.ini", ini.encode(cfgContents));
+		// No base game directory set, get base game directory from user
+		if (
+			!cfgContents.base_game_folder ||
+			!this.verifyBaseGameDirectory(cfgContents.base_game_folder)
+		) {
+			cfgContents.base_game_folder = await this.getBaseGameDirectory();
+		}
+		this.config.baseGameFolder = cfgContents.base_game_folder;
+		const modsPath = this.getModsPathFromBaseGameConfig();
+		cfgContents.mods_folder = modsPath;
+		fs.writeFileSync("config.ini", ini.encode(cfgContents));
 
-    this.config = {
-      modsFolder: cfgContents.mods_folder,
-      baseGameFolder: cfgContents.base_game_folder,
-    };
+		this.config = {
+			modsFolder: cfgContents.mods_folder,
+			baseGameFolder: cfgContents.base_game_folder,
+		};
 
-    console.log("Loaded config: ", this.config);
-  }
+		console.log("Loaded config: ", this.config);
+	}
 
-  public loadMods() {
-    this.mods = loadMods();
-  }
+	public loadMods() {
+		this.mods = loadMods();
+	}
 
-  public getMods() {
-    return this.mods;
-  }
+	public getMods() {
+		return this.mods;
+	}
 
-  public async installMod(sendProgress: (progress: number) => void) {
-    const mod = await this.installer.installMod(
-      this.config.modsFolder,
-      sendProgress
-    );
+	public async installMod(sendProgress: (progress: number) => void) {
+		let mod;
+		try {
+			mod = await this.installer.installMod(
+				this.config.modsFolder,
+				sendProgress
+			);
+		} catch (err) {
+			console.error(err);
+		}
 
-    this.addModToModsData(mod);
-    this.writeModsToDisk();
-  }
+		if (!mod) {
+			console.error("Unable to install mod");
+			return;
+		}
 
-  private addModToModsData(mod: Mod) {
-    this.mods.set(mod.name, mod);
-  }
+		this.addModToModsData(mod);
+		this.writeModsToDisk();
+	}
 
-  private writeModsToDisk() {
-    fs.writeFileSync(
-      "data/mods.json",
-      JSON.stringify(Object.fromEntries(this.mods))
-    );
-  }
+	private addModToModsData(mod: Mod) {
+		this.mods.set(mod.name, mod);
+	}
 
-  private async showGetBaseGameDirectoryPrompt(): Promise<number> {
-    const messageResult = await dialog.showMessageBox(mainWindow, {
-      type: "info",
-      title: "Select base game folder",
-      message:
-        "You must select the base game folder for MX Bikes to use the mod manager",
-      buttons: ["OK", "Cancel"],
+	private writeModsToDisk() {
+		fs.writeFileSync(
+			path.join("data", "mods.json"),
+			JSON.stringify(Object.fromEntries(this.mods))
+		);
+	}
 
-      defaultId: 0,
-      cancelId: 1,
-    });
+	private async showGetBaseGameDirectoryPrompt(): Promise<number> {
+		const messageResult = await dialog.showMessageBox(mainWindow, {
+			type: "info",
+			title: "Select base game folder",
+			message:
+				"You must select the base game folder for MX Bikes to use the mod manager",
+			buttons: ["OK", "Cancel"],
 
-    return messageResult.response;
-  }
+			defaultId: 0,
+			cancelId: 1,
+		});
 
-  private verifyBaseGameDirectory(baseGameDir: string) {
-    const mxbConfigPath = path.join(baseGameDir, "mxbikes.ini");
-    const mxbPath = path.join(baseGameDir, "mxbikes.exe");
+		return messageResult.response;
+	}
 
-    const mxbExists = fs.existsSync(mxbPath);
-    const mxbConfigExists = fs.existsSync(mxbConfigPath);
+	private verifyBaseGameDirectory(baseGameDir: string) {
+		const mxbConfigPath = path.join(baseGameDir, "mxbikes.ini");
+		const mxbPath = path.join(baseGameDir, "mxbikes.exe");
 
-    return mxbExists && mxbConfigExists;
-  }
+		const mxbExists = fs.existsSync(mxbPath);
+		const mxbConfigExists = fs.existsSync(mxbConfigPath);
 
-  /**
-   * Will prompt the user for the base game directory repeatedly until
-   * they select a valid base game file path. This function will never
-   * return if the user does not select a folder containing mxbikes.exe
-   * AND mxbikes.ini
-   *
-   * @returns {string} The base game directory for MX Bikes
-   */
-  private async getBaseGameDirectory() {
-    // If they fail after 100 attempts, that's on them :)
-    for (let i = 0; i < 100; ++i) {
-      if (i !== 0) {
-        const choice = await dialog.showMessageBox({
-          type: "question",
-          title: "Invalid base game folder",
-          message: "Could not find MX Bikes. Try again?",
-          buttons: ["Yes", "No"],
-        });
-        if (choice.response === 1) {
-          app.quit();
-        }
-      }
+		return mxbExists && mxbConfigExists;
+	}
 
-      const choice = await this.showGetBaseGameDirectoryPrompt();
-      switch (choice) {
-        case 1:
-          app.quit();
-      }
-      const result = await dialog.showOpenDialog({
-        properties: ["openDirectory"],
-        title: "Select base game folder",
-      });
+	/**
+	 * Will prompt the user for the base game directory repeatedly until
+	 * they select a valid base game file path. This function will never
+	 * return if the user does not select a folder containing mxbikes.exe
+	 * AND mxbikes.ini
+	 *
+	 * @returns {string} The base game directory for MX Bikes
+	 */
+	private async getBaseGameDirectory(): Promise<string> {
+		// If they fail after 100 attempts, that's on them :)
+		for (let i = 0; i < 100; ++i) {
+			if (i !== 0) {
+				const choice = await dialog.showMessageBox({
+					type: "question",
+					title: "Invalid base game folder",
+					message: "Could not find MX Bikes. Try again?",
+					buttons: ["Yes", "No"],
+				});
+				if (choice.response === 1) {
+					app.quit();
+				}
+			}
 
-      if (result.canceled || result.filePaths.length === 0) {
-        console.error("No folder selected");
-        app.quit();
-      }
+			const choice = await this.showGetBaseGameDirectoryPrompt();
+			switch (choice) {
+				case 1:
+					app.quit();
+			}
+			const result = await dialog.showOpenDialog({
+				properties: ["openDirectory"],
+				title: "Select base game folder",
+			});
 
-      const baseGameDir = result.filePaths[0];
+			if (result.canceled || result.filePaths.length === 0) {
+				console.error("No folder selected");
+				app.quit();
+			}
 
-      const validBaseGameDir = this.verifyBaseGameDirectory(baseGameDir);
+			const baseGameDir = result.filePaths[0];
 
-      if (validBaseGameDir) {
-        dialog.showMessageBox(mainWindow, {
-          type: "none",
-          message: "Success! Found base game directory",
-          buttons: ["OK"],
-        });
+			const validBaseGameDir = this.verifyBaseGameDirectory(baseGameDir);
 
-        return path.normalize(result.filePaths[0]);
-      }
-    }
+			if (validBaseGameDir) {
+				dialog.showMessageBox(mainWindow, {
+					type: "none",
+					message: "Success! Found base game directory",
+					buttons: ["OK"],
+				});
 
-    // If they fail 100 times just close the damn program
-    app.quit();
-  }
+				return path.normalize(result.filePaths[0]);
+			}
+		}
 
-  private getModsPathFromBaseGameConfig() {
-    const baseGameConfigPath = path.join(
-      this.config.baseGameFolder,
-      "mxbikes.ini"
-    );
+		// If they fail 100 times just close the damn program
+		app.quit();
+	}
 
-    if (!fs.existsSync(baseGameConfigPath)) {
-      return null;
-    }
+	private getModsPathFromBaseGameConfig() {
+		const baseGameConfigPath = path.join(
+			this.config.baseGameFolder,
+			"mxbikes.ini"
+		);
 
-    const baseGameConfigContents = fs.readFileSync(baseGameConfigPath, "utf-8");
+		if (!fs.existsSync(baseGameConfigPath)) {
+			return null;
+		}
 
-    const baseGameConfig = ini.parse(baseGameConfigContents);
-    if (!baseGameConfig.mods.folder) {
-      return path.join(
-        os.homedir(),
-        path.normalize("Documents/PiBoSo/MX Bikes/mods")
-      );
-    }
-    return baseGameConfig.mods.folder;
-  }
+		const baseGameConfigContents = fs.readFileSync(
+			baseGameConfigPath,
+			"utf-8"
+		);
+
+		const baseGameConfig = ini.parse(baseGameConfigContents);
+		if (!baseGameConfig.mods.folder) {
+			return path.join(
+				os.homedir(),
+				path.normalize("Documents/PiBoSo/MX Bikes/mods")
+			);
+		}
+		return baseGameConfig.mods.folder;
+	}
 }
