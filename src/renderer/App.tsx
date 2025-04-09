@@ -16,8 +16,12 @@ export default function App() {
 		setIsInstalling(true);
 		setInstallComplete(false);
 		setProgress(0);
-		const result = await window.modManagerAPI.installMod(filePaths);
-		console.log("Mod install result : ", result);
+		try {
+			await window.modManagerAPI.installMod(filePaths);
+		} catch (err) {
+			console.error(err);
+			setIsInstalling(false);
+		}
 	}
 
 	async function fetchModsData() {
@@ -102,6 +106,7 @@ export default function App() {
 				<div className="app-heading">
 					<h1>MX Bikes Mod Manager</h1>
 					<button
+						disabled={isInstalling}
 						className="install-button"
 						onClick={() => handleInstallMod()}
 					>
