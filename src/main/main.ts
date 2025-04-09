@@ -1,4 +1,4 @@
-import { app, BrowserWindow, IpcMainInvokeEvent } from "electron";
+import { app, BrowserWindow, IpcMain, IpcMainInvokeEvent } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 
@@ -19,7 +19,6 @@ const createWindow = () => {
 			preload: path.join(__dirname, "preload.js"),
 			contextIsolation: true,
 			nodeIntegration: false,
-			navigateOnDragDrop: false,
 		},
 		autoHideMenuBar: true,
 	});
@@ -93,11 +92,6 @@ async function init() {
 	console.log("Mods: ", modManager.getMods());
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
-		mainWindow.webContents.executeJavaScript(`
-			// Disable default drag-and-drop behavior
-			document.body.addEventListener('dragover', (e) => e.preventDefault());
-			document.body.addEventListener('drop', (e) => e.preventDefault());
-		`);
 	});
 }
 
@@ -133,71 +127,26 @@ import { ipcMain } from "electron";
 
 let modManager: ModManager;
 
-ipcMain.handle("install-mod", async (event, filePaths?: string[]) => {
-	try {
-		const progressCallback = (progress: number) => {
-			if (
-				mainWindow.webContents &&
-				!mainWindow.webContents.isDestroyed()
-			) {
-				mainWindow.webContents.send("extraction-progress", progress); // ✅ Target main window
-			}
-		};
-
-		const result = await modManager.installMod(
-			filePaths || [],
-			progressCallback
-		);
-
-		if (mainWindow && !mainWindow.isDestroyed()) {
-			mainWindow.webContents.send("mod-installation-complete", result);
-		}
-
-		return result;
-	} catch (error) {
-		if (mainWindow && !mainWindow.isDestroyed()) {
-			mainWindow.webContents.send(
-				"mod-installation-error",
-				error.message
-			);
-		}
-		throw error;
+ipcMain.handle(
+	"install-mod",
+	async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
+		await modManager.installMod(filePaths || null);
 	}
-});
+);
 
 ipcMain.handle(
 	"uninstall-mod",
-	async (event: IpcMainInvokeEvent, modName: string) => {
+	async (_event: IpcMainInvokeEvent, modName: string) => {
 		modManager.uninstallMod(modName);
 	}
 );
 
-ipcMain.handle("request-mods-data", (event: IpcMainInvokeEvent) => {
+ipcMain.handle("request-mods-data", (_event: IpcMainInvokeEvent) => {
 	return modManager.getMods();
 });
 
-// Listen for dropped files
-ipcMain.on("file-dropped", (event, filePaths) => {
-	console.log("Received dropped file path:", filePaths);
-	// Example: trigger mod install
-	// modInstaller.install(filePaths[0]);
-});
-
-ipcMain.handle("handle-dropped-files", async (event, filePaths) => {
-	try {
-		// Now the main process manages the entire flow
-		const result = await modManager.installMod(filePaths, (progress) => {
-			// Send progress to ALL windows, not just the sender
-			mainWindow.webContents.send("extraction-progress", progress);
-		});
-
-		// When complete, notify renderer to refresh
-		mainWindow.webContents.send("mod-installation-complete", result);
-		return { success: true };
-	} catch (error) {
-		console.error("Error installing dropped files:", error);
-		return { success: false, error: error.message };
-	}
+ipcMain.handle("request-extraction-progress", (_event: IpcMainInvokeEvent) => {
+	return modManager.getExtractionProgress();
 });
 
 export { mainWindow };

@@ -20,9 +20,18 @@ export default class ModManager {
 	};
 	private mods: ModsData;
 	private installer: ModInstaller;
+	private extractionProgress: number;
 
 	constructor() {
 		this.installer = new ModInstaller();
+		this.extractionProgress = 0;
+
+		// Bind the function to ensure correct context when calling from other classes
+		this.setExtractionProgress = this.setExtractionProgress.bind(this);
+	}
+
+	public getExtractionProgress() {
+		return this.extractionProgress;
 	}
 
 	public async loadConfig() {
@@ -61,18 +70,16 @@ export default class ModManager {
 		return this.mods;
 	}
 
-	public async installMod(
-		filePaths: string[] | null,
-		sendProgress: (progress: number) => void
-	) {
+	public async installMod(filePaths: string[] | null) {
 		let mod;
 		if (!filePaths) {
 			const mod = await this.installer.installMod(
 				this.config.modsFolder,
-				sendProgress
+				this.setExtractionProgress
 			);
 			if (!mod) {
 				console.error("Unable to install mod");
+				this.setExtractionProgress(0);
 				return;
 			}
 			this.addModToModsData(mod);
@@ -81,22 +88,29 @@ export default class ModManager {
 				for (const source of filePaths) {
 					mod = await this.installer.installMod(
 						this.config.modsFolder,
-						sendProgress,
+						this.setExtractionProgress,
 						source
 					);
 					if (!mod) {
 						console.error("Unable to install mod");
+						this.setExtractionProgress(0);
 						return;
 					}
 					console.log("Installed mod: ", mod);
 					this.addModToModsData(mod);
 				}
 			} catch (err) {
+				this.setExtractionProgress(0);
 				console.error(err);
 			}
 		}
 
+		this.setExtractionProgress(0);
 		this.writeModsToDisk();
+	}
+
+	private setExtractionProgress(progress: number) {
+		this.extractionProgress = progress;
 	}
 
 	public async uninstallMod(modName: string) {

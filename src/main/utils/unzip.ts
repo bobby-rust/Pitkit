@@ -5,7 +5,7 @@ import fs, { mkdirSync } from "fs";
 export default async function extractZip(
 	source: string,
 	destination: string,
-	sendProgress: (progress: number) => void
+	setExtractionProgress: (progress: number) => void
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
 		yauzl.open(source, { lazyEntries: true }, (openErr, zipfile) => {
@@ -14,9 +14,6 @@ export default async function extractZip(
 				return;
 			}
 
-			// Track progress throttling state
-			let lastUpdate = 0;
-			let pendingUpdate: NodeJS.Timeout | null = null;
 			let totalBytes = 0;
 			let extractedBytes = 0;
 
@@ -60,24 +57,7 @@ export default async function extractZip(
 										extractedBytes += chunk.length;
 										const progress =
 											(extractedBytes / totalBytes) * 100;
-										const now = Date.now();
-
-										// Throttle progress updates
-										if (now - lastUpdate >= 1000) {
-											sendProgress(progress);
-											lastUpdate = now;
-											if (pendingUpdate) {
-												clearTimeout(pendingUpdate);
-												pendingUpdate = null;
-											}
-										} else if (!pendingUpdate) {
-											pendingUpdate = setTimeout(() => {
-												sendProgress(progress);
-												lastUpdate = Date.now();
-												pendingUpdate = null;
-											}, 10 - (now - lastUpdate));
-											// <ms> - (now - lastUpdate)
-										}
+										setExtractionProgress(progress);
 									});
 
 									readStream.pipe(writeStream);
@@ -91,9 +71,8 @@ export default async function extractZip(
 					});
 
 					innerZip.on("end", () => {
-						// Ensure final update and cleanup
-						if (pendingUpdate) clearTimeout(pendingUpdate);
-						sendProgress(100);
+						console.log("inner zip end");
+						setExtractionProgress(100);
 						resolve();
 					});
 

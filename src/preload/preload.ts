@@ -9,22 +9,12 @@ contextBridge.exposeInMainWorld("modManagerAPI", {
 	uninstallMod: (modName: string) => {
 		ipcRenderer.invoke("uninstall-mod", modName);
 	},
-	onProgress: (callback: (progress: number) => void) =>
-		ipcRenderer.on("extraction-progress", (_, progress) =>
-			callback(progress)
-		),
+
 	requestModsData: (): Promise<ModsData> =>
 		ipcRenderer.invoke("request-mods-data"),
-	handleDroppedFiles: (filePaths: string[]) =>
-		ipcRenderer.invoke("handle-dropped-files", filePaths),
-	onInstallComplete: (callback: any) => {
-		ipcRenderer.on("mod-installation-complete", (_, result) =>
-			callback(result)
-		);
-	},
-	removeInstallCompleteListener: (callback: any) => {
-		ipcRenderer.removeListener("mod-installation-complete", callback);
-	},
+
+	requestExtractionProgress: (): Promise<number> =>
+		ipcRenderer.invoke("request-extraction-progress"),
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -68,9 +58,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		console.log("File paths array:", filePaths);
 		return filePaths;
 	},
-	notifyDrop: (filePath: string) =>
-		ipcRenderer.send("file-dropped", filePath),
-
 	// Function to remove all listeners (e.g., on unload)
 	removeAllListeners: () =>
 		ipcRenderer.removeAllListeners("window-state-changed"),

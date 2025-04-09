@@ -19,19 +19,12 @@ export interface ModManagerAPI {
 	uninstallMod: (modName: string) => Promise<any>;
 
 	/**
-	 * Registers a callback to receive progress updates during extraction
-	 * @param callback Function that will be called with the progress percentage
-	 * @returns The IPC event handler subscription
-	 */
-	onProgress: (callback: (progress: number) => void) => IpcRendererEvent;
-	handleDroppedFiles: any;
-	onInstallComplete: any;
-	removeInstallCompleteListener: any;
-	/**
 	 * Requests the current mods data from the main process
 	 * @returns A promise that resolves with the mods data
 	 */
 	requestModsData: () => Promise<ModsData>;
+
+	requestExtractionProgress: () => Promise<number>;
 }
 interface ElectronAPI {
 	minimizeWindow: () => void;

@@ -13,7 +13,7 @@ export default class ModInstaller {
 	 */
 	public async installMod(
 		modsFolder: string,
-		sendProgress: (progress: number) => void,
+		setExtractionProgress: (progress: number) => void,
 		source?: string
 	): Promise<Mod | void> {
 		if (!source) {
@@ -31,11 +31,11 @@ export default class ModInstaller {
 		}
 
 		if (path.extname(source).toLowerCase() === ".zip") {
-			await this.installModZip(source, dest, sendProgress);
+			await this.installModZip(source, dest, setExtractionProgress);
 			const mod = await parseZipFile(source);
 			return mod;
 		} else if (path.extname(source).toLowerCase() === ".pkz") {
-			await this.installModFile(source, dest, sendProgress);
+			await this.installModFile(source, dest);
 			const mod: Mod = {
 				name: path.basename(source).split(".")[0],
 				type: "track",
@@ -116,28 +116,16 @@ export default class ModInstaller {
 		return false;
 	}
 
-	private async extractZip(
-		source: string,
-		dest: string,
-		sendProgress: (progress: number) => void
-	) {
-		await unzip(source, dest, sendProgress);
-	}
-
 	private async installModZip(
 		source: string,
 		dest: string,
-		sendProgress: (progress: number) => void
+		setExtractionProgress: (progress: number) => void
 	) {
 		console.log("installing mod zip");
-		await this.extractZip(source, dest, sendProgress);
+		await unzip(source, dest, setExtractionProgress);
 	}
 
-	private async installModFile(
-		source: string,
-		dest: string,
-		sendProgress: (progress: number) => void
-	) {
+	private async installModFile(source: string, dest: string) {
 		const dirname = path.dirname(dest);
 		if (!fs.existsSync(dirname)) {
 			fs.mkdirSync(dirname, { recursive: true });
