@@ -3,7 +3,7 @@ import unzip from "./utils/unzip";
 import path from "path";
 import fs from "fs";
 import { parseZipFile, zipHasModsSubdir } from "./utils/zipParser";
-import { Mod, ModsData } from "src/types/types";
+import { FolderStructure, Mod, ModsData } from "src/types/types";
 
 export default class ModInstaller {
 	/**
@@ -60,9 +60,45 @@ export default class ModInstaller {
 		}
 	}
 
-	public async uninstallMod(modsFolder: string, modToRemove: Mod) {
+	public async uninstallMod(
+		modsFolder: string,
+		mods: ModsData,
+		modName: string
+	) {
 		// TODO: implement uninstallMod
-		console.log("Removing mod: ", modToRemove);
+		console.log("mods folder: ", modsFolder);
+
+		const modToRemove = mods.get(modName);
+		this.deleteFolderStructure(modToRemove.files, modsFolder);
+	}
+
+	private deleteFolderStructure(
+		folderStructure: FolderStructure,
+		currentDirectory: string
+	) {
+		for (const file of folderStructure.files) {
+			fs.rmSync(path.join(currentDirectory, file));
+		}
+		if (this.isDirEmpty(currentDirectory)) {
+			fs.rmdirSync(currentDirectory);
+		}
+		for (const [k, v] of Object.entries(folderStructure.subfolders)) {
+			currentDirectory = path.join(currentDirectory, k);
+			console.log("Current directory: ", currentDirectory);
+			console.log("K: ", k);
+			console.log("V: ", v);
+			this.deleteFolderStructure(v, currentDirectory);
+			currentDirectory = path.dirname(currentDirectory);
+		}
+	}
+
+	private isDirEmpty(dirname: string) {
+		const files = fs.readdirSync(dirname);
+		console.log("Files in ", dirname, ": ", files);
+		if (!files.length) {
+			return true;
+		}
+		return false;
 	}
 
 	private async extractZip(
@@ -104,12 +140,6 @@ export default class ModInstaller {
 			console.error("Unable to install mod: ", err);
 		}
 	}
-
-	private async installTrack(
-		source: string,
-		dest: string,
-		trackType: string
-	) {}
 
 	private async selectTrackType(trackName: string) {
 		const trackTypes = ["supercross", "motocross", "supermoto", "enduro"];

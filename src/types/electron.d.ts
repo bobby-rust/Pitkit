@@ -16,6 +16,8 @@ export interface ModManagerAPI {
 	 */
 	installMod: (filePaths?: string[]) => Promise<any>;
 
+	uninstallMod: (modName: string) => Promise<any>;
+
 	/**
 	 * Registers a callback to receive progress updates during extraction
 	 * @param callback Function that will be called with the progress percentage

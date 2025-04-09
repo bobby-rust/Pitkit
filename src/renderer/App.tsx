@@ -24,6 +24,12 @@ export default function App() {
 		}
 	}
 
+	async function handleUninstallMod(modName: string) {
+		console.log("Uninstalling mod in App.tsx: ", modName);
+		await window.modManagerAPI.uninstallMod(modName);
+		await fetchModsData();
+	}
+
 	async function fetchModsData() {
 		const mods = await window.modManagerAPI.requestModsData();
 		setModsData(mods);
@@ -32,15 +38,17 @@ export default function App() {
 	// Effect to handle completion of installation
 	useEffect(() => {
 		// Only refresh data when both conditions are met
-		if (progress === 100 && installComplete && isInstalling) {
-			console.log(
-				"Both progress complete and installation complete, refreshing data"
-			);
-			setIsInstalling(false);
-			setProgress(null);
-			setInstallComplete(false);
-			fetchModsData();
-		}
+		(async () => {
+			if (progress === 100 && installComplete && isInstalling) {
+				console.log(
+					"Both progress complete and installation complete, refreshing data"
+				);
+				setIsInstalling(false);
+				setProgress(null);
+				setInstallComplete(false);
+				await fetchModsData();
+			}
+		})();
 	}, [progress, installComplete, isInstalling]);
 
 	const handleDrop = useCallback((event: React.DragEvent) => {
@@ -79,7 +87,7 @@ export default function App() {
 		window.modManagerAPI.onInstallComplete(handleInstallComplete);
 
 		// Initial data fetch only when component mounts
-		fetchModsData();
+		(async () => await fetchModsData())();
 
 		return () => {
 			window.modManagerAPI.removeInstallCompleteListener(
@@ -122,7 +130,12 @@ export default function App() {
 						</div>
 					)}
 				</div>
-				{modsData !== null && <ModsGrid modsData={modsData} />}
+				{modsData !== null && (
+					<ModsGrid
+						modsData={modsData}
+						uninstall={handleUninstallMod}
+					/>
+				)}
 			</div>
 		</div>
 	);

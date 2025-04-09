@@ -6,6 +6,9 @@ import { ModsData } from "src/types/types";
 contextBridge.exposeInMainWorld("modManagerAPI", {
 	installMod: (filePaths?: string[]) =>
 		ipcRenderer.invoke("install-mod", filePaths),
+	uninstallMod: (modName: string) => {
+		ipcRenderer.invoke("uninstall-mod", modName);
+	},
 	onProgress: (callback: (progress: number) => void) =>
 		ipcRenderer.on("extraction-progress", (_, progress) =>
 			callback(progress)
@@ -23,6 +26,7 @@ contextBridge.exposeInMainWorld("modManagerAPI", {
 		ipcRenderer.removeListener("mod-installation-complete", callback);
 	},
 });
+
 contextBridge.exposeInMainWorld("electronAPI", {
 	// Functions callable from Renderer -> Main
 	minimizeWindow: () => ipcRenderer.send("minimize-window"),
