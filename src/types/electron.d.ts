@@ -14,7 +14,7 @@ export interface ModManagerAPI {
 	 * Installs a mod
 	 * @returns A promise that resolves with the result of the installation
 	 */
-	installMod: () => Promise<any>;
+	installMod: (filePaths?: string[]) => Promise<any>;
 
 	/**
 	 * Registers a callback to receive progress updates during extraction
@@ -22,7 +22,9 @@ export interface ModManagerAPI {
 	 * @returns The IPC event handler subscription
 	 */
 	onProgress: (callback: (progress: number) => void) => IpcRendererEvent;
-
+	handleDroppedFiles: any;
+	onInstallComplete: any;
+	removeInstallCompleteListener: any;
 	/**
 	 * Requests the current mods data from the main process
 	 * @returns A promise that resolves with the mods data
@@ -38,6 +40,8 @@ interface ElectronAPI {
 	onWindowStateChange: (
 		callback: (isMaximized: boolean) => void
 	) => () => void; // Returns cleanup function
+	getFilePaths: (filePaths: FileList) => string[];
+	notifyDrop: (filePaths: string[]) => void;
 	removeAllListeners: () => void; // Optional alternative cleanup
 }
 declare global {

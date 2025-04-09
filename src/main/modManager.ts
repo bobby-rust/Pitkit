@@ -61,23 +61,41 @@ export default class ModManager {
 		return this.mods;
 	}
 
-	public async installMod(sendProgress: (progress: number) => void) {
+	public async installMod(
+		filePaths: string[] | null,
+		sendProgress: (progress: number) => void
+	) {
 		let mod;
-		try {
-			mod = await this.installer.installMod(
+		if (!filePaths) {
+			const mod = await this.installer.installMod(
 				this.config.modsFolder,
 				sendProgress
 			);
-		} catch (err) {
-			console.error(err);
+			if (!mod) {
+				console.error("Unable to install mod");
+				return;
+			}
+			this.addModToModsData(mod);
+		} else {
+			try {
+				for (const source of filePaths) {
+					mod = await this.installer.installMod(
+						this.config.modsFolder,
+						sendProgress,
+						source
+					);
+					if (!mod) {
+						console.error("Unable to install mod");
+						return;
+					}
+					console.log("Installed mod: ", mod);
+					this.addModToModsData(mod);
+				}
+			} catch (err) {
+				console.error(err);
+			}
 		}
 
-		if (!mod) {
-			console.error("Unable to install mod");
-			return;
-		}
-
-		this.addModToModsData(mod);
 		this.writeModsToDisk();
 	}
 
@@ -86,6 +104,7 @@ export default class ModManager {
 	}
 
 	private writeModsToDisk() {
+		console.log("Writing mods to disk: ", this.mods);
 		fs.writeFileSync(
 			path.join("data", "mods.json"),
 			JSON.stringify(Object.fromEntries(this.mods))

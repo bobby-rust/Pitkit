@@ -11,18 +11,21 @@ export default function ModsGrid({ modsData }: ModsGridProps) {
 	console.log("Rendering mods data: ", modsData);
 	return (
 		<div id="mods-container" className="mods-container">
-			{Array.from(modsData.entries()).map(([id, mod]) => {
-				return (
-					<div className="mod-item">
-						<ModCard
-							key={id}
-							name={mod.name}
-							type={mod.type}
-							installDate={mod.installDate}
-						/>
-					</div>
-				);
-			})}
+			{modsData.size ? (
+				Array.from(modsData.entries()).map(([id, mod]) => {
+					return (
+						<div key={id} className="mod-item">
+							<ModCard
+								name={mod.name}
+								type={mod.type}
+								installDate={mod.installDate}
+							/>
+						</div>
+					);
+				})
+			) : (
+				<h2 className="mods-grid-heading">No mods installed.</h2>
+			)}
 		</div>
 	);
 }
