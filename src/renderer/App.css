@@ -1,106 +1,110 @@
 .app-container {
-  width: 100%;
+	width: 100%;
 }
 
 #app {
-  /* padding: 1rem; */
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  width: 100%;
-  gap: 1rem;
-  height: calc(100vh - 32px); /* Set to full height minus titlebar */
-  margin-top: 32px; /* Match titlebar height */
-  overflow-y: auto; /* Enable vertical scrolling */
-  overflow-x: hidden;
-  box-sizing: border-box; /* Include padding in the height calculation */
+	/* padding: 1rem; */
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	width: 100%;
+	gap: 1rem;
+	height: calc(100vh - 32px); /* Set to full height minus titlebar */
+	margin-top: 32px; /* Match titlebar height */
+	overflow-y: auto; /* Enable vertical scrolling */
+	overflow-x: hidden;
+	box-sizing: border-box; /* Include padding in the height calculation */
 }
 
 .app-heading {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
 }
 
 .install-button {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  min-width: 10rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  text-align: center;
+	padding: 1rem;
+	border: 1px solid var(--border);
+	border-radius: 0.5rem;
+	min-width: 10rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.5rem;
+	text-align: center;
 }
 .install-button span {
-  text-align: center;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transform: translateY(2px);
+	text-align: center;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	transform: translateY(2px);
 }
 
 .install-button:hover {
-  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
-  background-color: var(--foreground);
-  color: var(--background);
+	box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+	background-color: var(--foreground);
+	color: var(--background);
+}
+
+.progress-percent {
+	text-align: center;
 }
 
 /* Style the overall scrollbar */
 #app::-webkit-scrollbar {
-  width: 12px; /* Width of the vertical scrollbar */
-  height: 12px; /* Height of the horizontal scrollbar */
+	width: 12px; /* Width of the vertical scrollbar */
+	height: 12px; /* Height of the horizontal scrollbar */
 }
 
 /* Style the track (the bar the thumb slides along) */
 #app::-webkit-scrollbar-track {
-  background: var(--background);
-  border-radius: 10px; /* Make the track rounded */
-  /* Add slight margin so track doesn't touch edge */
-  margin: 2px;
+	background: var(--background);
+	border-radius: 10px; /* Make the track rounded */
+	/* Add slight margin so track doesn't touch edge */
+	margin: 2px;
 }
 
 /* Style the thumb (the draggable part) */
 #app::-webkit-scrollbar-thumb {
-  background-color: var(--foreground);
-  border-radius: 10px; /* Make the thumb rounded */
+	background-color: var(--foreground);
+	border-radius: 10px; /* Make the thumb rounded */
 
-  /* Create the "smaller initial size" effect using a border that matches the track */
-  /* The border effectively shrinks the visible colored part of the thumb */
-  border: 3px solid var(--background);
-  background-clip: content-box; /* Ensure border is outside the background */
+	/* Create the "smaller initial size" effect using a border that matches the track */
+	/* The border effectively shrinks the visible colored part of the thumb */
+	border: 3px solid var(--background);
+	background-clip: content-box; /* Ensure border is outside the background */
 
-  /* Add transition for smooth hover effect */
-  transition: background-color 0.2s ease-in-out, border-width 0.2s ease-in-out;
+	/* Add transition for smooth hover effect */
+	transition: background-color 0.2s ease-in-out, border-width 0.2s ease-in-out;
 }
 
 /* Style the thumb on hover */
 #app::-webkit-scrollbar-thumb:hover {
-  /* Alternative: Use filter if you don't define a specific hover variable */
-  filter: brightness(1.2);
+	/* Alternative: Use filter if you don't define a specific hover variable */
+	filter: brightness(1.2);
 
-  /* Make the thumb appear larger by reducing the border size */
-  border-width: 2px;
+	/* Make the thumb appear larger by reducing the border size */
+	border-width: 2px;
 }
 
 /* Optional: Style the corner when both scrollbars are visible */
 #app::-webkit-scrollbar-corner {
-  background: transparent; /* Hide the corner */
+	background: transparent; /* Hide the corner */
 }
 
 body {
-  margin: 0; /* Remove default margin */
-  overflow: hidden; /* Prevent body scrolling */
-  height: 100vh; /* Full viewport height */
+	margin: 0; /* Remove default margin */
+	overflow: hidden; /* Prevent body scrolling */
+	height: 100vh; /* Full viewport height */
 }
 
 .sidebar-container {
-  height: calc(100% - 32px);
-  margin-top: 32px;
-  overflow-y: hidden;
-  overflow-x: hidden;
+	height: calc(100% - 32px);
+	margin-top: 32px;
+	overflow-y: hidden;
+	overflow-x: hidden;
 }

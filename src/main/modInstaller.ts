@@ -3,7 +3,7 @@ import unzip from "./utils/unzip";
 import path from "path";
 import fs from "fs";
 import { parseZipFile, zipHasModsSubdir } from "./utils/zipParser";
-import { Mod, ModsData } from "src/types/types";
+import { Mod } from "src/types/types";
 
 export default class ModInstaller {
 	private async extractZip(
@@ -46,7 +46,14 @@ export default class ModInstaller {
 		}
 	}
 
-	private async selectTrackType() {
+	private async installTrack(
+		source: string,
+		dest: string,
+		trackType: string
+	) {}
+
+	private async selectTrackType(trackName: string) {
+		const trackTypes = ["supercross", "motocross", "supermoto", "enduro"];
 		const result = await dialog.showMessageBox({
 			type: "question",
 			buttons: [
@@ -54,26 +61,20 @@ export default class ModInstaller {
 				"Motocross",
 				"Supermoto",
 				"Enduro",
-				"Straight Rhythm",
 				"Cancel",
 			],
 			title: "Select Track Type",
-			message: "What type of track are you installing?",
-			cancelId: 5, // If the user presses ESC or closes, it selects "Cancel"
+			message: `What type of track is ${trackName}?`,
+			cancelId: 4, // If the user presses ESC or closes, it selects "Cancel"
 		});
 
-		if (result.response === 5) {
+		console.log("Response: ", result.response, trackTypes[result.response]);
+
+		if (result.response === 4) {
 			console.log("User canceled track selection.");
 			return null;
 		}
 
-		const trackTypes = [
-			"supercross",
-			"motocross",
-			"supermoto",
-			"enduro",
-			"straight rhythm",
-		];
 		const selectedTrackType = trackTypes[result.response];
 
 		console.log("User selected track type:", selectedTrackType);
@@ -88,15 +89,11 @@ export default class ModInstaller {
 		const ext = path.extname(modPath).toLowerCase();
 		console.log(ext);
 		if (ext === ".pkz") {
-			// Todo: Figure out what type of track it is
-			const trackType = await this.selectTrackType();
+			const trackName = path.basename(modPath);
+			console.log("Got pkz");
+			const trackType = await this.selectTrackType(trackName);
 			console.log("Track type: ", trackType);
-			return path.join(
-				modsFolder,
-				"tracks",
-				"motocross",
-				path.basename(modPath)
-			);
+			return path.join(modsFolder, "tracks", trackType, trackName);
 		} else if (ext === ".zip") {
 			console.log("Got zip file...");
 			const hasModsSubdir = await zipHasModsSubdir(modPath);
@@ -104,6 +101,9 @@ export default class ModInstaller {
 				// path.dirname will return the parent directory of the argument
 				return path.dirname(modsFolder);
 			}
+		} else {
+			console.log(ext);
+			return "";
 		}
 
 		return "";
@@ -116,9 +116,12 @@ export default class ModInstaller {
 	 */
 	public async installMod(
 		modsFolder: string,
-		sendProgress: (progress: number) => void
+		sendProgress: (progress: number) => void,
+		source?: string
 	): Promise<Mod | void> {
-		const source = await this.selectMod();
+		if (!source) {
+			source = await this.selectMod();
+		}
 		if (!source) {
 			throw new Error("Cancelled mod install");
 		}
@@ -126,18 +129,32 @@ export default class ModInstaller {
 		const dest = await this.determineInstallDest(modsFolder, source);
 		console.log("Installing to : ", dest);
 
+		if (dest === "") {
+			return;
+		}
+
 		if (path.extname(source).toLowerCase() === ".zip") {
 			this.installModZip(source, dest, sendProgress);
 			const mod = await parseZipFile(source);
 			return mod;
-		} else {
-			this.installModFile(source, dest, sendProgress);
+		} else if (path.extname(source).toLowerCase() === ".pkz") {
+			await this.installModFile(source, dest, sendProgress);
 			const mod: Mod = {
-				name: path.basename(source),
-				type: "bike",
+				name: path.basename(source).split(".")[0],
+				type: "track",
 				files: {
 					files: [] as any,
-					subfolders: {},
+					subfolders: {
+						tracks: {
+							files: [] as any,
+							subfolders: {
+								[path.basename(path.dirname(dest))]: {
+									files: [path.basename(source)],
+									subfolders: {},
+								},
+							},
+						},
+					},
 				},
 				installDate: new Date().toLocaleDateString(),
 			};
