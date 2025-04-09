@@ -18,24 +18,19 @@ export default function App() {
 			try {
 				const progress =
 					await window.modManagerAPI.requestExtractionProgress();
-				// Update your UI with the latest progress
 				console.log("Current progress:", progress);
 				setProgress(progress);
-				// For example: updateProgressBar(progress);
 			} catch (error) {
 				console.error("Error getting extraction progress:", error);
 			}
 		}, pollingInterval);
 
 		try {
-			// Await the async installation function
-			// This could be an IPC call that triggers handleInstallMod in the main process
 			await window.modManagerAPI.installMod(filePaths);
 			console.log("Installation complete");
 		} catch (error) {
 			console.error("Installation failed:", error);
 		} finally {
-			// Stop the polling loop once the installation is complete (or has errored out)
 			clearInterval(progressTimer);
 		}
 	}
