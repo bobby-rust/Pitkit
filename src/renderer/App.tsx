@@ -12,17 +12,29 @@ export default function App() {
 	const [isInstalling, setIsInstalling] = useState(false);
 	const [installComplete, setInstallComplete] = useState(false);
 
-	async function handleInstallMod(filePaths?: string[]) {
-		setIsInstalling(true);
+	// async function handleInstallMod(filePaths?: string[]) {
+	// 	setIsInstalling(true);
+	// 	setInstallComplete(false);
+	// 	setProgress(0);
+	// 	try {
+	// 		await window.modManagerAPI.installMod(filePaths);
+	// 	} catch (err) {
+	// 		console.error(err);
+	// 		setIsInstalling(false);
+	// 	}
+	// }
+
+	const handleInstallMod = async (filePaths?: string[]) => {
+		setIsInstalling(true); // ✅ Block UI interactions
 		setInstallComplete(false);
 		setProgress(0);
 		try {
 			await window.modManagerAPI.installMod(filePaths);
-		} catch (err) {
-			console.error(err);
-			setIsInstalling(false);
+		} finally {
+			setIsInstalling(false); // ✅ Re-enable UI
+			setInstallComplete(true);
 		}
-	}
+	};
 
 	async function handleUninstallMod(modName: string) {
 		console.log("Uninstalling mod in App.tsx: ", modName);
@@ -31,6 +43,7 @@ export default function App() {
 	}
 
 	async function fetchModsData() {
+		console.log("Fetching mods data...");
 		const mods = await window.modManagerAPI.requestModsData();
 		setModsData(mods);
 	}
@@ -53,16 +66,14 @@ export default function App() {
 
 	const handleDrop = useCallback((event: React.DragEvent) => {
 		event.preventDefault();
-		try {
-			const files = event.dataTransfer.files;
-			if (files.length === 0) return;
-			const filePaths = window.electronAPI.getFilePaths(files);
-			console.log("Dropped file paths: ", filePaths);
-			if (filePaths && filePaths.length > 0) {
-				handleInstallMod(filePaths);
-			}
-		} catch (error) {
-			console.error("Error handling drop:", error);
+		const files = event.dataTransfer.files;
+		if (files.length === 0) return;
+
+		// Use preload API to get validated paths
+		const filePaths = window.electronAPI.getFilePaths(files);
+		console.log("Got dropped file paths: ", filePaths);
+		if (filePaths.length > 0) {
+			handleInstallMod(filePaths);
 		}
 	}, []);
 
@@ -78,9 +89,10 @@ export default function App() {
 		};
 
 		// Add listener for installation complete
-		const handleInstallComplete = (result: any) => {
+		const handleInstallComplete = async (result: any) => {
 			console.log("Installation complete signal received", result);
 			setInstallComplete(true);
+			await fetchModsData();
 		};
 
 		window.modManagerAPI.onProgress(progressHandler);

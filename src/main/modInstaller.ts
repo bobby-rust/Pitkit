@@ -31,7 +31,7 @@ export default class ModInstaller {
 		}
 
 		if (path.extname(source).toLowerCase() === ".zip") {
-			this.installModZip(source, dest, sendProgress);
+			await this.installModZip(source, dest, sendProgress);
 			const mod = await parseZipFile(source);
 			return mod;
 		} else if (path.extname(source).toLowerCase() === ".pkz") {
@@ -77,11 +77,20 @@ export default class ModInstaller {
 		currentDirectory: string
 	) {
 		for (const file of folderStructure.files) {
-			fs.rmSync(path.join(currentDirectory, file));
+			try {
+				fs.rmSync(path.join(currentDirectory, file));
+			} catch (err) {
+				console.error(err);
+			}
 		}
-		if (this.isDirEmpty(currentDirectory)) {
-			fs.rmdirSync(currentDirectory);
+		try {
+			if (this.isDirEmpty(currentDirectory)) {
+				fs.rmdirSync(currentDirectory);
+			}
+		} catch (err) {
+			console.error(err);
 		}
+
 		for (const [k, v] of Object.entries(folderStructure.subfolders)) {
 			currentDirectory = path.join(currentDirectory, k);
 			console.log("Current directory: ", currentDirectory);
@@ -93,7 +102,13 @@ export default class ModInstaller {
 	}
 
 	private isDirEmpty(dirname: string) {
-		const files = fs.readdirSync(dirname);
+		let files;
+		try {
+			files = fs.readdirSync(dirname);
+		} catch (err) {
+			console.error(err);
+			return false;
+		}
 		console.log("Files in ", dirname, ": ", files);
 		if (!files.length) {
 			return true;

@@ -8,75 +8,100 @@ export default async function extractZip(
 	sendProgress: (progress: number) => void
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
-		yauzl.open(source, { lazyEntries: true }, (err, zipfile) => {
-			if (err || !zipfile) {
-				reject(err || new Error("Failed to open zip file"));
+		yauzl.open(source, { lazyEntries: true }, (openErr, zipfile) => {
+			if (openErr || !zipfile) {
+				reject(openErr || new Error("Failed to open zip file"));
 				return;
 			}
 
+			// Track progress throttling state
+			let lastUpdate = 0;
+			let pendingUpdate: NodeJS.Timeout | null = null;
 			let totalBytes = 0;
 			let extractedBytes = 0;
-			const entries: yauzl.Entry[] = [];
 
-			zipfile.readEntry();
-
+			// First pass: Calculate total bytes
 			zipfile.on("entry", (entry) => {
-				entries.push(entry);
 				totalBytes += entry.uncompressedSize;
 				zipfile.readEntry();
 			});
 
 			zipfile.on("end", () => {
-				yauzl.open(source, { lazyEntries: true }, (err, zipfile) => {
-					if (err || !zipfile) return reject(err);
+				// Second pass: Actual extraction
+				yauzl.open(source, { lazyEntries: true }, (err, innerZip) => {
+					if (err || !innerZip) return reject(err);
 
-					zipfile.readEntry();
+					innerZip.readEntry();
 
-					zipfile.on("entry", (entry) => {
+					innerZip.on("entry", (entry) => {
 						const entryPath = path.join(
 							destination,
 							entry.fileName
 						);
+
 						if (/\/$/.test(entry.fileName)) {
 							mkdirSync(entryPath, { recursive: true });
-							zipfile.readEntry();
+							innerZip.readEntry();
 						} else {
 							mkdirSync(path.dirname(entryPath), {
 								recursive: true,
 							});
 
-							zipfile.openReadStream(entry, (err, readStream) => {
-								if (err || !readStream) return reject(err);
+							innerZip.openReadStream(
+								entry,
+								(readErr, readStream) => {
+									if (readErr || !readStream)
+										return reject(readErr);
 
-								const writeStream =
-									fs.createWriteStream(entryPath);
+									const writeStream =
+										fs.createWriteStream(entryPath);
 
-								readStream.on("data", (chunk) => {
-									extractedBytes += chunk.length;
-									const progress =
-										(extractedBytes / totalBytes) * 100;
-									sendProgress(progress);
-								});
+									readStream.on("data", (chunk) => {
+										extractedBytes += chunk.length;
+										const progress =
+											(extractedBytes / totalBytes) * 100;
+										const now = Date.now();
 
-								readStream.pipe(writeStream);
+										// Throttle progress updates
+										if (now - lastUpdate >= 1000) {
+											sendProgress(progress);
+											lastUpdate = now;
+											if (pendingUpdate) {
+												clearTimeout(pendingUpdate);
+												pendingUpdate = null;
+											}
+										} else if (!pendingUpdate) {
+											pendingUpdate = setTimeout(() => {
+												sendProgress(progress);
+												lastUpdate = Date.now();
+												pendingUpdate = null;
+											}, 10 - (now - lastUpdate));
+											// <ms> - (now - lastUpdate)
+										}
+									});
 
-								writeStream.on("close", () => {
-									zipfile.readEntry();
-								});
-
-								writeStream.on("error", reject);
-							});
+									readStream.pipe(writeStream);
+									writeStream.on("close", () =>
+										innerZip.readEntry()
+									);
+									writeStream.on("error", reject);
+								}
+							);
 						}
 					});
-				});
 
-				zipfile.on("end", () => {
-					sendProgress(100);
-					resolve();
+					innerZip.on("end", () => {
+						// Ensure final update and cleanup
+						if (pendingUpdate) clearTimeout(pendingUpdate);
+						sendProgress(100);
+						resolve();
+					});
+
+					innerZip.on("error", reject);
 				});
-				zipfile.on("error", reject);
 			});
 
+			zipfile.readEntry();
 			zipfile.on("error", reject);
 		});
 	});
