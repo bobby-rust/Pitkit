@@ -3,9 +3,68 @@ import unzip from "./utils/unzip";
 import path from "path";
 import fs from "fs";
 import { parseZipFile, zipHasModsSubdir } from "./utils/zipParser";
-import { Mod } from "src/types/types";
+import { Mod, ModsData } from "src/types/types";
 
 export default class ModInstaller {
+	/**
+	 * Installs a mod
+	 * @param modsFolder The folder where the user's mods are located
+	 * @param sendProgress A function to update the frontend with install progress
+	 */
+	public async installMod(
+		modsFolder: string,
+		sendProgress: (progress: number) => void,
+		source?: string
+	): Promise<Mod | void> {
+		if (!source) {
+			source = await this.selectMod();
+		}
+		if (!source) {
+			throw new Error("Cancelled mod install");
+		}
+
+		const dest = await this.determineInstallDest(modsFolder, source);
+		console.log("Installing to : ", dest);
+
+		if (dest === "") {
+			return;
+		}
+
+		if (path.extname(source).toLowerCase() === ".zip") {
+			this.installModZip(source, dest, sendProgress);
+			const mod = await parseZipFile(source);
+			return mod;
+		} else if (path.extname(source).toLowerCase() === ".pkz") {
+			await this.installModFile(source, dest, sendProgress);
+			const mod: Mod = {
+				name: path.basename(source).split(".")[0],
+				type: "track",
+				files: {
+					files: [] as any,
+					subfolders: {
+						tracks: {
+							files: [] as any,
+							subfolders: {
+								[path.basename(path.dirname(dest))]: {
+									files: [path.basename(source)],
+									subfolders: {},
+								},
+							},
+						},
+					},
+				},
+				installDate: new Date().toLocaleDateString(),
+			};
+
+			return mod;
+		}
+	}
+
+	public async uninstallMod(modsFolder: string, modToRemove: Mod) {
+		// TODO: implement uninstallMod
+		console.log("Removing mod: ", modToRemove);
+	}
+
 	private async extractZip(
 		source: string,
 		dest: string,
@@ -107,60 +166,6 @@ export default class ModInstaller {
 		}
 
 		return "";
-	}
-
-	/**
-	 * Installs a mod
-	 * @param modsFolder The folder where the user's mods are located
-	 * @param sendProgress A function to update the frontend with install progress
-	 */
-	public async installMod(
-		modsFolder: string,
-		sendProgress: (progress: number) => void,
-		source?: string
-	): Promise<Mod | void> {
-		if (!source) {
-			source = await this.selectMod();
-		}
-		if (!source) {
-			throw new Error("Cancelled mod install");
-		}
-
-		const dest = await this.determineInstallDest(modsFolder, source);
-		console.log("Installing to : ", dest);
-
-		if (dest === "") {
-			return;
-		}
-
-		if (path.extname(source).toLowerCase() === ".zip") {
-			this.installModZip(source, dest, sendProgress);
-			const mod = await parseZipFile(source);
-			return mod;
-		} else if (path.extname(source).toLowerCase() === ".pkz") {
-			await this.installModFile(source, dest, sendProgress);
-			const mod: Mod = {
-				name: path.basename(source).split(".")[0],
-				type: "track",
-				files: {
-					files: [] as any,
-					subfolders: {
-						tracks: {
-							files: [] as any,
-							subfolders: {
-								[path.basename(path.dirname(dest))]: {
-									files: [path.basename(source)],
-									subfolders: {},
-								},
-							},
-						},
-					},
-				},
-				installDate: new Date().toLocaleDateString(),
-			};
-
-			return mod;
-		}
 	}
 
 	private async selectMod() {

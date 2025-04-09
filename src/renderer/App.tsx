@@ -4,7 +4,7 @@ import "./App.css";
 import { ModsData } from "src/types/types";
 import { FolderPlus } from "lucide-react";
 import ModsGrid from "./components/mods-grid/ModsGrid";
-import { setupWindowControls, updateWindowState } from "./utils/windowControls";
+import { setupWindowControls } from "./utils/windowControls";
 
 export default function App() {
 	const [progress, setProgress] = useState(null);
