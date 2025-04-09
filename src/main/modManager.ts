@@ -99,6 +99,13 @@ export default class ModManager {
 		this.writeModsToDisk();
 	}
 
+	public async uninstallMod(modName: string) {
+		await this.installer.uninstallMod(
+			this.config.modsFolder,
+			this.mods.get(modName)
+		);
+	}
+
 	private addModToModsData(mod: Mod) {
 		this.mods.set(mod.name, mod);
 	}
