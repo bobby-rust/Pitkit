@@ -1,6 +1,6 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import { contextBridge, ipcRenderer, webUtils, webFrameMain } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { ModsData } from "src/types/types";
 
 contextBridge.exposeInMainWorld("modManagerAPI", {
@@ -48,7 +48,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		for (const key in fileList) {
 			if (fileList.hasOwnProperty(key) && !isNaN(Number(key))) {
 				const file = fileList[key];
-				// Make sure we're getting the path, not the File object
 				const path = webUtils.getPathForFile(file);
 				console.log(`Found file at key ${key}, path: ${path}`);
 				filePaths.push(path);
@@ -62,4 +61,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	removeAllListeners: () =>
 		ipcRenderer.removeAllListeners("window-state-changed"),
 });
-console.log("Preload script loaded."); // Log to confirm execution
+console.log("Preload script loaded.");
