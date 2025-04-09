@@ -13,7 +13,7 @@ export default function App() {
 
 	async function installModWithProgress(filePaths?: string[]) {
 		// Start polling for progress every 1000 milliseconds (1 second)
-		const pollingInterval = 10;
+		const pollingInterval = 1000;
 		const progressTimer = setInterval(async () => {
 			try {
 				const progress =

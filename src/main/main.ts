@@ -1,4 +1,4 @@
-import { app, BrowserWindow, IpcMain, IpcMainInvokeEvent } from "electron";
+import { app, BrowserWindow, IpcMainInvokeEvent } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 
@@ -17,8 +17,6 @@ const createWindow = () => {
 		frame: false,
 		webPreferences: {
 			preload: path.join(__dirname, "preload.js"),
-			contextIsolation: true,
-			nodeIntegration: false,
 		},
 		autoHideMenuBar: true,
 	});
