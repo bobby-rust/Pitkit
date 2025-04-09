@@ -1,6 +1,6 @@
 import yauzl from "yauzl";
 import path from "path";
-import fs, { mkdirSync } from "fs";
+import fs from "fs";
 
 export default async function extractZip(
 	source: string,
@@ -37,10 +37,10 @@ export default async function extractZip(
 						);
 
 						if (/\/$/.test(entry.fileName)) {
-							mkdirSync(entryPath, { recursive: true });
+							fs.promises.mkdir(entryPath, { recursive: true });
 							innerZip.readEntry();
 						} else {
-							mkdirSync(path.dirname(entryPath), {
+							fs.promises.mkdir(path.dirname(entryPath), {
 								recursive: true,
 							});
 
@@ -53,11 +53,17 @@ export default async function extractZip(
 									const writeStream =
 										fs.createWriteStream(entryPath);
 
+									let lastUpdate = Date.now();
+
 									readStream.on("data", (chunk) => {
 										extractedBytes += chunk.length;
 										const progress =
 											(extractedBytes / totalBytes) * 100;
-										setExtractionProgress(progress);
+										const now = Date.now();
+										if (now - lastUpdate > 200) {
+											setExtractionProgress(progress);
+											lastUpdate = now;
+										}
 									});
 
 									readStream.pipe(writeStream);
