@@ -10,29 +10,45 @@ export default function App() {
 	const [progress, setProgress] = useState(null);
 	const [modsData, setModsData] = useState<ModsData | null>(null);
 	const [isInstalling, setIsInstalling] = useState(false);
-	const [installComplete, setInstallComplete] = useState(false);
 
-	// async function handleInstallMod(filePaths?: string[]) {
-	// 	setIsInstalling(true);
-	// 	setInstallComplete(false);
-	// 	setProgress(0);
-	// 	try {
-	// 		await window.modManagerAPI.installMod(filePaths);
-	// 	} catch (err) {
-	// 		console.error(err);
-	// 		setIsInstalling(false);
-	// 	}
-	// }
+	async function installModWithProgress(filePaths?: string[]) {
+		// Start polling for progress every 1000 milliseconds (1 second)
+		const pollingInterval = 10;
+		const progressTimer = setInterval(async () => {
+			try {
+				const progress =
+					await window.modManagerAPI.requestExtractionProgress();
+				// Update your UI with the latest progress
+				console.log("Current progress:", progress);
+				setProgress(progress);
+				// For example: updateProgressBar(progress);
+			} catch (error) {
+				console.error("Error getting extraction progress:", error);
+			}
+		}, pollingInterval);
+
+		try {
+			// Await the async installation function
+			// This could be an IPC call that triggers handleInstallMod in the main process
+			await window.modManagerAPI.installMod(filePaths);
+			console.log("Installation complete");
+		} catch (error) {
+			console.error("Installation failed:", error);
+		} finally {
+			// Stop the polling loop once the installation is complete (or has errored out)
+			clearInterval(progressTimer);
+		}
+	}
 
 	const handleInstallMod = async (filePaths?: string[]) => {
-		setIsInstalling(true); // ✅ Block UI interactions
-		setInstallComplete(false);
+		setIsInstalling(true);
 		setProgress(0);
 		try {
-			await window.modManagerAPI.installMod(filePaths);
+			await installModWithProgress(filePaths);
 		} finally {
-			setIsInstalling(false); // ✅ Re-enable UI
-			setInstallComplete(true);
+			setIsInstalling(false);
+			setProgress(100);
+			await fetchModsData();
 		}
 	};
 
@@ -52,20 +68,20 @@ export default function App() {
 	useEffect(() => {
 		// Only refresh data when both conditions are met
 		(async () => {
-			if (progress === 100 && installComplete && isInstalling) {
+			if (progress === 100 && isInstalling) {
 				console.log(
 					"Both progress complete and installation complete, refreshing data"
 				);
 				setIsInstalling(false);
 				setProgress(null);
-				setInstallComplete(false);
 				await fetchModsData();
 			}
 		})();
-	}, [progress, installComplete, isInstalling]);
+	}, [progress, isInstalling]);
 
 	const handleDrop = useCallback((event: React.DragEvent) => {
 		event.preventDefault();
+		event.stopPropagation();
 		const files = event.dataTransfer.files;
 		if (files.length === 0) return;
 
@@ -79,42 +95,18 @@ export default function App() {
 
 	const handleDragOver = useCallback((event: React.DragEvent) => {
 		event.preventDefault();
+		event.stopPropagation();
 	}, []);
 
 	useEffect(() => {
-		// Subscribe to progress updates
-		const progressHandler = (progress: number) => {
-			console.log(`Progress: ${progress}%`);
-			setProgress(progress);
-		};
-
-		// Add listener for installation complete
-		const handleInstallComplete = async (result: any) => {
-			console.log("Installation complete signal received", result);
-			setInstallComplete(true);
-			await fetchModsData();
-		};
-
-		window.modManagerAPI.onProgress(progressHandler);
-		window.modManagerAPI.onInstallComplete(handleInstallComplete);
-
+		setupWindowControls();
 		// Initial data fetch only when component mounts
 		(async () => await fetchModsData())();
-
-		return () => {
-			window.modManagerAPI.removeInstallCompleteListener(
-				handleInstallComplete
-			);
-		};
 	}, []);
 
 	useEffect(() => {
 		console.log(modsData);
 	}, [modsData]);
-
-	useEffect(() => {
-		setupWindowControls();
-	}, []);
 
 	return (
 		<div
