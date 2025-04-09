@@ -5,9 +5,10 @@ import "./ModsGrid.css";
 
 interface ModsGridProps {
 	modsData: ModsData;
+	uninstall: (modName: string) => any;
 }
 
-export default function ModsGrid({ modsData }: ModsGridProps) {
+export default function ModsGrid({ modsData, uninstall }: ModsGridProps) {
 	console.log("Rendering mods data: ", modsData);
 	return (
 		<div id="mods-container" className="mods-container">
@@ -19,6 +20,7 @@ export default function ModsGrid({ modsData }: ModsGridProps) {
 								name={mod.name}
 								type={mod.type}
 								installDate={mod.installDate}
+								uninstall={uninstall}
 							/>
 						</div>
 					);

@@ -102,8 +102,11 @@ export default class ModManager {
 	public async uninstallMod(modName: string) {
 		await this.installer.uninstallMod(
 			this.config.modsFolder,
-			this.mods.get(modName)
+			this.mods,
+			modName
 		);
+		this.mods.delete(modName);
+		this.writeModsToDisk();
 	}
 
 	private addModToModsData(mod: Mod) {

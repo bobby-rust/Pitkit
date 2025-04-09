@@ -151,6 +151,13 @@ ipcMain.handle(
 	}
 );
 
+ipcMain.handle(
+	"uninstall-mod",
+	async (event: IpcMainInvokeEvent, modName: string) => {
+		modManager.uninstallMod(modName);
+	}
+);
+
 ipcMain.handle("request-mods-data", (event: IpcMainInvokeEvent) => {
 	return modManager.getMods();
 });
