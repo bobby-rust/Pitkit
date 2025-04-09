@@ -49,9 +49,6 @@ const createWindow = () => {
 		}
 	});
 
-	// Note: The old code had separate max/restore. We combine maximize/unmaximize logic here.
-	// If you need separate 'restore' specifically tied to the restore button,
-	// you might send 'unmaximize-window' instead.
 	ipcMain.on("unmaximize-window", (event) => {
 		const webContents = event.sender;
 		const win = BrowserWindow.fromWebContents(webContents);
