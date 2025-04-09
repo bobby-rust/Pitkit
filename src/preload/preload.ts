@@ -1,6 +1,6 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import { contextBridge, ipcRenderer, webUtils } from "electron";
+import { contextBridge, ipcRenderer, webUtils, webFrameMain } from "electron";
 import { ModsData } from "src/types/types";
 
 contextBridge.exposeInMainWorld("modManagerAPI", {
@@ -75,3 +75,4 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	removeAllListeners: () =>
 		ipcRenderer.removeAllListeners("window-state-changed"),
 });
+console.log("Preload script loaded."); // Log to confirm execution

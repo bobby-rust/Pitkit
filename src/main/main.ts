@@ -19,6 +19,7 @@ const createWindow = () => {
 			preload: path.join(__dirname, "preload.js"),
 			contextIsolation: true,
 			nodeIntegration: false,
+			navigateOnDragDrop: false,
 		},
 		autoHideMenuBar: true,
 	});
@@ -92,6 +93,11 @@ async function init() {
 	console.log("Mods: ", modManager.getMods());
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
+		mainWindow.webContents.executeJavaScript(`
+			// Disable default drag-and-drop behavior
+			document.body.addEventListener('dragover', (e) => e.preventDefault());
+			document.body.addEventListener('drop', (e) => e.preventDefault());
+		`);
 	});
 }
 
@@ -127,29 +133,37 @@ import { ipcMain } from "electron";
 
 let modManager: ModManager;
 
-ipcMain.handle(
-	"install-mod",
-	async (event: IpcMainInvokeEvent, filePaths?: string[]) => {
-		try {
-			const result = await modManager.installMod(filePaths, (progress) =>
-				event.sender.send("extraction-progress", progress)
-			);
+ipcMain.handle("install-mod", async (event, filePaths?: string[]) => {
+	try {
+		const progressCallback = (progress: number) => {
+			if (
+				mainWindow.webContents &&
+				!mainWindow.webContents.isDestroyed()
+			) {
+				mainWindow.webContents.send("extraction-progress", progress); // ✅ Target main window
+			}
+		};
 
-			// Add this line to emit the completion event
-			event.sender.send("mod-installation-complete", result);
+		const result = await modManager.installMod(
+			filePaths || [],
+			progressCallback
+		);
 
-			return result;
-		} catch (error) {
-			console.error("Error installing mod:", error);
-			// Still send completion with error info
-			event.sender.send("mod-installation-complete", {
-				success: false,
-				error: error.message,
-			});
-			throw error;
+		if (mainWindow && !mainWindow.isDestroyed()) {
+			mainWindow.webContents.send("mod-installation-complete", result);
 		}
+
+		return result;
+	} catch (error) {
+		if (mainWindow && !mainWindow.isDestroyed()) {
+			mainWindow.webContents.send(
+				"mod-installation-error",
+				error.message
+			);
+		}
+		throw error;
 	}
-);
+});
 
 ipcMain.handle(
 	"uninstall-mod",
