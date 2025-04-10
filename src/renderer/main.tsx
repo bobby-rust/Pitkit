@@ -8,12 +8,12 @@ import "./index.css";
 const root = createRoot(document.getElementById("root"));
 
 function Main() {
-  return (
-    <div className="main-container">
-      <Header />
-      <Sidebar />
-      <App />
-    </div>
-  );
+	return (
+		<div className="main-container">
+			<Header />
+			<Sidebar />
+			<App />
+		</div>
+	);
 }
 root.render(<Main />);

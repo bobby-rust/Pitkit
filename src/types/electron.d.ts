@@ -35,7 +35,7 @@ interface ElectronAPI {
 	onWindowStateChange: (
 		callback: (isMaximized: boolean) => void
 	) => () => void; // Returns cleanup function
-	getFilePaths: (filePaths: FileList) => string[];
+	getFilePath: (file: any) => string;
 	notifyDrop: (filePaths: string[]) => void;
 	removeAllListeners: () => void; // Optional alternative cleanup
 }

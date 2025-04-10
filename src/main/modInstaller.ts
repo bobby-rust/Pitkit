@@ -36,27 +36,27 @@ export default class ModInstaller {
 			return mod;
 		} else if (path.extname(source).toLowerCase() === ".pkz") {
 			await this.installModFile(source, dest);
-			const mod: Mod = {
-				name: path.basename(source).split(".")[0],
-				type: "track",
-				files: {
-					files: [] as any,
-					subfolders: {
-						tracks: {
-							files: [] as any,
-							subfolders: {
-								[path.basename(path.dirname(dest))]: {
-									files: [path.basename(source)],
-									subfolders: {},
-								},
-							},
-						},
-					},
-				},
-				installDate: new Date().toLocaleDateString(),
-			};
+			// const mod: Mod = {
+			// 	name: path.basename(source).split(".")[0],
+			// 	type: "track",
+			// 	files: {
+			// 		files: [] as any,
+			// 		subfolders: {
+			// 			tracks: {
+			// 				files: [] as any,
+			// 				subfolders: {
+			// 					[path.basename(path.dirname(dest))]: {
+			// 						files: [path.basename(source)],
+			// 						subfolders: {},
+			// 					},
+			// 				},
+			// 			},
+			// 		},
+			// 	},
+			// 	installDate: new Date().toLocaleDateString(),
+			// };
 
-			return mod;
+			// return mod;
 		}
 	}
 
@@ -132,12 +132,7 @@ export default class ModInstaller {
 		}
 
 		try {
-			const result = fs.copyFile(source, dest, (err) => {
-				if (err) {
-					throw err;
-				}
-			});
-			console.log("Result of moving file: ", result);
+			await fs.promises.copyFile(source, dest);
 			console.log("Copied file from ", source, " to ", dest);
 		} catch (err) {
 			console.error("Unable to install mod: ", err);

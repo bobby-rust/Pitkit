@@ -13,7 +13,7 @@ export default function App() {
 
 	async function installModWithProgress(filePaths?: string[]) {
 		// Start polling for progress every 1000 milliseconds (1 second)
-		const pollingInterval = 1000;
+		const pollingInterval = 10;
 		const progressTimer = setInterval(async () => {
 			try {
 				const progress =
@@ -74,24 +74,25 @@ export default function App() {
 		})();
 	}, [progress, isInstalling]);
 
-	const handleDrop = useCallback((event: React.DragEvent) => {
+	const handleDrop = (event: React.DragEvent) => {
 		event.preventDefault();
-		event.stopPropagation();
 		const files = event.dataTransfer.files;
-		if (files.length === 0) return;
+		const filePaths = [];
+		for (const file of files) {
+			const filePath = window.electronAPI.getFilePath(file);
+			console.log("Got file path: ", filePath);
+			filePaths.push(filePath);
+		}
 
-		// Use preload API to get validated paths
-		const filePaths = window.electronAPI.getFilePaths(files);
 		console.log("Got dropped file paths: ", filePaths);
 		if (filePaths.length > 0) {
 			handleInstallMod(filePaths);
 		}
-	}, []);
+	};
 
-	const handleDragOver = useCallback((event: React.DragEvent) => {
+	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();
-		event.stopPropagation();
-	}, []);
+	};
 
 	useEffect(() => {
 		setupWindowControls();
