@@ -32,6 +32,7 @@ interface ElectronAPI {
 	unmaximizeWindow: () => void;
 	closeWindow: () => void;
 	getInitialWindowState: () => Promise<boolean>;
+	getAssetsPath: () => string;
 	onWindowStateChange: (
 		callback: (isMaximized: boolean) => void
 	) => () => void; // Returns cleanup function

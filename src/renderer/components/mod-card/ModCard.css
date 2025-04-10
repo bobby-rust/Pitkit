@@ -2,8 +2,8 @@
 	padding: 0.7rem;
 	border: 1px solid var(--border);
 	border-radius: 0.5rem;
-	min-width: 15rem;
-	height: 5rem;
+	width: 250px;
+	height: 150px;
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
@@ -30,7 +30,9 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	overflow: ellipsis;
 }
+
 .mod-card-footer {
 	display: flex;
 	justify-content: space-between;
@@ -44,8 +46,4 @@
 
 p {
 	padding-right: 0.5rem;
-}
-
-.mod-card-wrapper {
-	padding-bottom: 0.5rem;
 }

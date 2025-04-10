@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	unmaximizeWindow: () => ipcRenderer.send("unmaximize-window"), // Use if you need separate restore
 	closeWindow: () => ipcRenderer.send("close-window"),
 	getInitialWindowState: () => ipcRenderer.invoke("get-initial-window-state"),
-
+	getAssetsPath: () => ipcRenderer.invoke("get-assets-path"),
 	// Function to setup listener for Main -> Renderer events
 	onWindowStateChange: (callback: (arg0: any) => any) => {
 		const subscription = (_event: any, isMaximized: any) =>
