@@ -91,22 +91,22 @@ export default class ModManager {
 						this.setExtractionProgress,
 						source
 					);
-					// if (!mod) {
-					// 	console.error("Unable to install mod");
-					// 	this.setExtractionProgress(0);
-					// 	return;
-					// }
-					// console.log("Installed mod: ", mod);
-					// this.addModToModsData(mod);
+					if (!mod) {
+						console.error("Unable to install mod");
+						this.setExtractionProgress(0);
+						return;
+					}
+					console.log("Installed mod: ", mod);
+					this.addModToModsData(mod);
 				}
 			} catch (err) {
-				// this.setExtractionProgress(0);
+				this.setExtractionProgress(0);
 				console.error(err);
 			}
 		}
 
-		// this.setExtractionProgress(0);
-		// this.writeModsToDisk();
+		this.setExtractionProgress(0);
+		this.writeModsToDisk();
 	}
 
 	private setExtractionProgress(progress: number) {

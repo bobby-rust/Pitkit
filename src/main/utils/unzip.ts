@@ -53,17 +53,11 @@ export default async function extractZip(
 									const writeStream =
 										fs.createWriteStream(entryPath);
 
-									let lastUpdate = Date.now();
-
 									readStream.on("data", (chunk) => {
 										extractedBytes += chunk.length;
 										const progress =
 											(extractedBytes / totalBytes) * 100;
-										const now = Date.now();
-										if (now - lastUpdate > 200) {
-											setExtractionProgress(progress);
-											lastUpdate = now;
-										}
+										setExtractionProgress(progress);
 									});
 
 									readStream.pipe(writeStream);

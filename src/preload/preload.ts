@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getFilePath: (file: any): string => {
 		return webUtils.getPathForFile(file);
 	},
+	getFilePaths: (files: any): string[] => {
+		return [];
+	},
 	// Function to remove all listeners (e.g., on unload)
 	removeAllListeners: () =>
 		ipcRenderer.removeAllListeners("window-state-changed"),

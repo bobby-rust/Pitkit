@@ -36,27 +36,27 @@ export default class ModInstaller {
 			return mod;
 		} else if (path.extname(source).toLowerCase() === ".pkz") {
 			await this.installModFile(source, dest);
-			// const mod: Mod = {
-			// 	name: path.basename(source).split(".")[0],
-			// 	type: "track",
-			// 	files: {
-			// 		files: [] as any,
-			// 		subfolders: {
-			// 			tracks: {
-			// 				files: [] as any,
-			// 				subfolders: {
-			// 					[path.basename(path.dirname(dest))]: {
-			// 						files: [path.basename(source)],
-			// 						subfolders: {},
-			// 					},
-			// 				},
-			// 			},
-			// 		},
-			// 	},
-			// 	installDate: new Date().toLocaleDateString(),
-			// };
+			const mod: Mod = {
+				name: path.basename(source).split(".pkz")[0],
+				type: "track",
+				files: {
+					files: [] as any,
+					subfolders: {
+						tracks: {
+							files: [] as any,
+							subfolders: {
+								[path.basename(path.dirname(dest))]: {
+									files: [path.basename(source)],
+									subfolders: {},
+								},
+							},
+						},
+					},
+				},
+				installDate: new Date().toLocaleDateString(),
+			};
 
-			// return mod;
+			return mod;
 		}
 	}
 
@@ -65,9 +65,6 @@ export default class ModInstaller {
 		mods: ModsData,
 		modName: string
 	) {
-		// TODO: implement uninstallMod
-		console.log("mods folder: ", modsFolder);
-
 		const modToRemove = mods.get(modName);
 		this.deleteFolderStructure(modToRemove.files, modsFolder);
 	}

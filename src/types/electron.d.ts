@@ -36,6 +36,7 @@ interface ElectronAPI {
 		callback: (isMaximized: boolean) => void
 	) => () => void; // Returns cleanup function
 	getFilePath: (file: any) => string;
+	getFilePaths: (files: any) => string[];
 	notifyDrop: (filePaths: string[]) => void;
 	removeAllListeners: () => void; // Optional alternative cleanup
 }
