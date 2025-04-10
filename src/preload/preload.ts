@@ -36,26 +36,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			ipcRenderer.removeListener("window-state-changed", subscription);
 		};
 	},
-	getFilePaths: (fileList: any): string[] => {
-		console.log(
-			"File List type:",
-			Object.prototype.toString.call(fileList)
-		);
-		console.log("File List:", fileList);
-
-		// Extract files by checking for numeric keys
-		const filePaths = [];
-		for (const key in fileList) {
-			if (fileList.hasOwnProperty(key) && !isNaN(Number(key))) {
-				const file = fileList[key];
-				const path = webUtils.getPathForFile(file);
-				console.log(`Found file at key ${key}, path: ${path}`);
-				filePaths.push(path);
-			}
-		}
-
-		console.log("File paths array:", filePaths);
-		return filePaths;
+	getFilePath: (file: any): string => {
+		return webUtils.getPathForFile(file);
 	},
 	// Function to remove all listeners (e.g., on unload)
 	removeAllListeners: () =>
