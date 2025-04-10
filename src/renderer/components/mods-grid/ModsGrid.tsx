@@ -12,7 +12,7 @@ export default function ModsGrid({ modsData, uninstall }: ModsGridProps) {
 	console.log("Rendering mods data: ", modsData);
 	return (
 		<div id="mods-container" className="mods-container">
-			{modsData.size ? (
+			{modsData && modsData.size ? (
 				Array.from(modsData.entries()).map(([id, mod]) => {
 					return (
 						<div key={id} className="mod-item">

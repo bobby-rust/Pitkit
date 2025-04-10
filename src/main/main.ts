@@ -2,6 +2,8 @@ import { app, BrowserWindow, IpcMainInvokeEvent } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 
+const IS_DEV = !app.isPackaged;
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
 	app.quit();
@@ -77,7 +79,7 @@ const createWindow = () => {
 		return win?.isMaximized() ?? false;
 	});
 	// Open the DevTools.
-	mainWindow.webContents.openDevTools();
+	IS_DEV && mainWindow.webContents.openDevTools();
 };
 
 async function init() {
@@ -142,6 +144,16 @@ ipcMain.handle("request-mods-data", (_event: IpcMainInvokeEvent) => {
 
 ipcMain.handle("request-extraction-progress", (_event: IpcMainInvokeEvent) => {
 	return modManager.getExtractionProgress();
+});
+
+const assetsPath = IS_DEV
+	? "src/renderer/assets"
+	: path.join(process.resourcesPath, "assets");
+
+console.log("assets path: ", assetsPath);
+
+ipcMain.handle("get-assets-path", (_event: IpcMainInvokeEvent) => {
+	return assetsPath;
 });
 
 export { mainWindow };
