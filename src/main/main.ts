@@ -150,8 +150,6 @@ const assetsPath = IS_DEV
 	? "src/renderer/assets"
 	: path.join(process.resourcesPath, "assets");
 
-console.log("assets path: ", assetsPath);
-
 ipcMain.handle("get-assets-path", (_event: IpcMainInvokeEvent) => {
 	return assetsPath;
 });

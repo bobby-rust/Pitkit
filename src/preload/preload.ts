@@ -15,6 +15,10 @@ contextBridge.exposeInMainWorld("modManagerAPI", {
 
 	requestExtractionProgress: (): Promise<number> =>
 		ipcRenderer.invoke("request-extraction-progress"),
+
+	onMessage: (channel: any, callback: any) => {
+		ipcRenderer.on(channel, (_event, data) => callback(data));
+	},
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {

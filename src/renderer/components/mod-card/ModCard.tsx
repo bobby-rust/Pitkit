@@ -6,23 +6,36 @@ import { Trash2 } from "lucide-react";
 interface ModCardProps {
 	name: string;
 	installDate: string;
-	type: string;
+	modType: string;
+	trackType: string | null;
 	uninstall: (modName: string) => any;
+}
+
+function capitalize(str: string): string {
+	return str[0].toUpperCase() + str.slice(1);
+}
+
+function abbreviateTrackType(trackType: string): "MX" | "SX" {
+	return trackType === "supercross" ? "SX" : "MX";
 }
 
 export default function ModCard({
 	name,
 	installDate,
-	type,
+	modType,
+	trackType,
 	uninstall,
 }: ModCardProps) {
 	return (
 		<div className="mod-card-wrapper">
 			<div className="mod-card-container">
 				<div className="mod-card-header">
-					<h3>{name}</h3>
+					<h3 className="mod-card-name">{name}</h3>
 					<p className="mod-card-type">
-						{type[0].toUpperCase() + type.slice(1)}
+						<span>
+							{trackType && abbreviateTrackType(trackType)}{" "}
+							{capitalize(modType)}
+						</span>
 					</p>
 				</div>
 				<div className="mod-card-footer">

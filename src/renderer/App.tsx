@@ -96,8 +96,16 @@ export default function App() {
 
 	useEffect(() => {
 		setupWindowControls();
+
 		// Initial data fetch only when component mounts
-		(async () => await fetchModsData())();
+		fetchModsData();
+
+		// Listen for main context sending mods data
+		window.modManagerAPI.onMessage("send-mods-data", (data: ModsData) => {
+			console.log("Recieved mods data message: ", data);
+			// Can't receive a Map, we receive an object, so convert it to a Map
+			setModsData(new Map(Object.entries(data)));
+		});
 	}, []);
 
 	useEffect(() => {

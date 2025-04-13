@@ -25,6 +25,8 @@ export interface ModManagerAPI {
 	requestModsData: () => Promise<ModsData>;
 
 	requestExtractionProgress: () => Promise<number>;
+
+	onMessage: (channel, callback) => Promise<any>;
 }
 interface ElectronAPI {
 	minimizeWindow: () => void;

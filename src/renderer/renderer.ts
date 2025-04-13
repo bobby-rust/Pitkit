@@ -55,7 +55,7 @@ async function handleWindowControls() {
 	// Make minimise/maximise/restore/close buttons work when they are clicked
 	const minButton = document.getElementById("min-button");
 	const maxButton = document.getElementById("max-button");
-	const restoreButton = document.getElementById("restore-button"); // Make sure this ID exists in your HTML
+	const restoreButton = document.getElementById("restore-button");
 	const closeButton = document.getElementById("close-button");
 
 	if (minButton) {

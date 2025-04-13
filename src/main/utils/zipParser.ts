@@ -14,6 +14,7 @@ async function parseZipFile(zipPath: string): Promise<Mod> {
 			name: modName,
 			files: { files: [], subfolders: {} },
 			type: "bike",
+			trackType: null,
 			installDate: new Date().toLocaleString(),
 		};
 

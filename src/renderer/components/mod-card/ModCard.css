@@ -21,6 +21,13 @@
 	font-size: small;
 }
 
+.mod-card-name {
+	display: flex;
+
+	max-width: 70%;
+	min-width: 70%;
+}
+
 .delete-button:hover {
 	background-color: #db6060;
 	box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
@@ -42,8 +49,10 @@
 
 .mod-card-type {
 	font-size: small;
-}
-
-p {
-	padding-right: 0.5rem;
+	display: flex;
+	justify-content: flex-end;
+	width: 100%;
+	height: 100%;
+	margin-left: 0.5rem;
+	min-width: 1.5rem;
 }
