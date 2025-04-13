@@ -64,6 +64,9 @@ export default class ModManager {
 
 	public loadMods() {
 		this.mods = loadMods();
+		// Send mods to renderer as soon as we load them
+		const modsObject = Object.fromEntries(this.getMods());
+		mainWindow.webContents.send("send-mods-data", modsObject);
 	}
 
 	public getMods() {

@@ -18,7 +18,8 @@ export default function ModsGrid({ modsData, uninstall }: ModsGridProps) {
 						<div key={id} className="mod-item">
 							<ModCard
 								name={mod.name}
-								type={mod.type}
+								modType={mod.type}
+								trackType={mod.trackType}
 								installDate={mod.installDate}
 								uninstall={uninstall}
 							/>

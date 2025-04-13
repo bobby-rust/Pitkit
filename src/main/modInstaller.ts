@@ -3,7 +3,14 @@ import unzip from "./utils/unzip";
 import path from "path";
 import fs from "fs";
 import { parseZipFile, zipHasModsSubdir } from "./utils/zipParser";
-import { FolderStructure, Mod, ModsData } from "src/types/types";
+import {
+	FolderStructure,
+	Mod,
+	ModsData,
+	ModType,
+	TrackType,
+} from "src/types/types";
+import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
 
 export default class ModInstaller {
 	/**
@@ -23,7 +30,10 @@ export default class ModInstaller {
 			throw new Error("Cancelled mod install");
 		}
 
-		const dest = await this.determineInstallDest(modsFolder, source);
+		const modName = path.basename(source).split(".pkz")[0];
+		const modType = await this.selectModType(modName);
+
+		const dest = await this.getInstallDest(modsFolder, source);
 		console.log("Installing to : ", dest);
 
 		if (dest === "") {
@@ -35,10 +45,18 @@ export default class ModInstaller {
 			const mod = await parseZipFile(source);
 			return mod;
 		} else if (path.extname(source).toLowerCase() === ".pkz") {
-			await this.installModFile(source, dest);
+			const trackType = await this.selectTrackType(modName);
+			if (!trackType) return;
+			const trackDest = await this.getInstallDest(
+				modsFolder,
+				source,
+				trackType
+			);
+			await this.installModFile(source, trackDest);
 			const mod: Mod = {
-				name: path.basename(source).split(".pkz")[0],
+				name: modName,
 				type: "track",
+				trackType: trackType,
 				files: {
 					files: [] as any,
 					subfolders: {
@@ -69,18 +87,29 @@ export default class ModInstaller {
 		this.deleteFolderStructure(modToRemove.files, modsFolder);
 	}
 
+	/**
+	 * Recursively delete all files from a FolderStructure.
+	 * If folders are empty after deleting all files, those folders will also be deleted.
+	 *
+	 * @param folderStructure The FolderStructure object of the Mod
+	 * @param currentDirectory The current directory that files/folders are being deleted from
+	 */
 	private deleteFolderStructure(
 		folderStructure: FolderStructure,
 		currentDirectory: string
 	) {
+		// For each file in current directory
 		for (const file of folderStructure.files) {
 			try {
+				// rm the file
 				fs.rmSync(path.join(currentDirectory, file));
 			} catch (err) {
+				// error, continue anyways to delete the rest
 				console.error(err);
 			}
 		}
 		try {
+			// If the folder is empty, delete it
 			if (this.isDirEmpty(currentDirectory)) {
 				fs.rmdirSync(currentDirectory);
 			}
@@ -88,31 +117,42 @@ export default class ModInstaller {
 			console.error(err);
 		}
 
+		// For each subfolder name and FolderStructure associated with it
 		for (const [k, v] of Object.entries(folderStructure.subfolders)) {
+			// The current directory is the current directory plus the name of the current subfolder
 			currentDirectory = path.join(currentDirectory, k);
-			console.log("Current directory: ", currentDirectory);
-			console.log("K: ", k);
-			console.log("V: ", v);
 			this.deleteFolderStructure(v, currentDirectory);
+			// Reset the current directory because there may be other folders in the current directory that need to be deleted
 			currentDirectory = path.dirname(currentDirectory);
 		}
 	}
 
-	private isDirEmpty(dirname: string) {
+	/**
+	 * Determines if a directory is empty
+	 *
+	 * @param dirname The name of the directory
+	 * @returns {boolean} Whether the directory is empty
+	 */
+	private isDirEmpty(dirname: string): boolean {
 		let files;
 		try {
+			// This will return a list of the names of all files/folders in the directory
 			files = fs.readdirSync(dirname);
 		} catch (err) {
 			console.error(err);
 			return false;
 		}
-		console.log("Files in ", dirname, ": ", files);
-		if (!files.length) {
-			return true;
-		}
-		return false;
+
+		return !files.length;
 	}
 
+	/**
+	 * Installs a mod that needs to be unzipped
+	 *
+	 * @param source
+	 * @param dest
+	 * @param setExtractionProgress
+	 */
 	private async installModZip(
 		source: string,
 		dest: string,
@@ -136,47 +176,65 @@ export default class ModInstaller {
 		}
 	}
 
-	private async selectTrackType(trackName: string) {
-		const trackTypes = ["supercross", "motocross", "supermoto", "enduro"];
+	/**
+	 * Prompts the user to select a ModType and returns the result
+	 *
+	 * @param modName The name of the mod
+	 * @returns the ModType selected by the user
+	 */
+	private async selectModType(modName: string): Promise<ModType> {
+		const modTypes: ModType[] = ["bike", "rider", "track", "tyre"];
 		const result = await dialog.showMessageBox({
 			type: "question",
 			buttons: [
-				"Supercross",
-				"Motocross",
-				"Supermoto",
-				"Enduro",
+				...modTypes.map(
+					(type) => type[0].toUpperCase() + type.slice(1) // Make mod types uppercase
+				),
 				"Cancel",
 			],
-			title: "Select Track Type",
-			message: `What type of track is ${trackName}?`,
+			title: "Select Mod Type",
+			message: `What type of mod is ${modName}?`,
 			cancelId: 4, // If the user presses ESC or closes, it selects "Cancel"
 		});
 
-		console.log("Response: ", result.response, trackTypes[result.response]);
-
 		if (result.response === 4) {
-			console.log("User canceled track selection.");
+			console.log("User canceled mod type selection.");
 			return null;
 		}
 
-		const selectedTrackType = trackTypes[result.response];
-
-		console.log("User selected track type:", selectedTrackType);
-		return selectedTrackType;
+		const modType = modTypes[result.response];
+		return modType;
 	}
 
-	private async determineInstallDest(
+	private async selectTrackType(
+		trackName: string
+	): Promise<TrackType | null> {
+		const trackTypes: TrackType[] = [
+			"supercross",
+			"motocross",
+			"supermoto",
+			"enduro",
+		];
+		const title = "Select Track Type";
+		const message = `What kind of track is ${trackName}?`;
+		const trackType = await promptQuestion(title, message, trackTypes);
+
+		return trackType as TrackType;
+	}
+
+	private async getInstallDest(
 		modsFolder: string,
-		modPath: string
+		modPath: string,
+		trackType?: TrackType
 	): Promise<string> {
 		console.log("determinine install destination for mod path: ", modPath);
 		const ext = path.extname(modPath).toLowerCase();
 		console.log(ext);
-		if (ext === ".pkz") {
+		if (ext === ".pkz" && !trackType) return "tracks";
+		if (ext === ".pkz" && trackType) {
 			const trackName = path.basename(modPath);
 			console.log("Got pkz");
-			const trackType = await this.selectTrackType(trackName);
-			console.log("Track type: ", trackType);
+			console.log("Got track type: ", trackType);
 			return path.join(modsFolder, "tracks", trackType, trackName);
 		} else if (ext === ".zip") {
 			console.log("Got zip file...");
@@ -194,17 +252,10 @@ export default class ModInstaller {
 	}
 
 	private async selectMod() {
-		console.log("Selecting mod");
-		const result = await dialog.showOpenDialog({
-			properties: ["openFile"],
-			filters: [{ name: "Mod Files", extensions: ["zip", "pkz"] }],
-			title: "Select mod to install",
-		});
-
-		if (result.canceled || result.filePaths.length === 0) {
-			return null;
-		}
-
-		return result.filePaths[0];
+		const modPath = await promptSelectFile("Select A Mod To Install", [
+			".zip",
+			".pkz",
+		]);
+		return modPath;
 	}
 }

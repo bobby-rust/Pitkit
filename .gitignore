@@ -93,3 +93,6 @@ out/
 
 # App data
 data/
+
+# App config
+config.ini
