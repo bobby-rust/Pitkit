@@ -5,6 +5,7 @@ import { ModsData } from "src/types/types";
 import { FolderPlus } from "lucide-react";
 import ModsGrid from "./components/mods-grid/ModsGrid";
 import { setupWindowControls } from "./utils/windowControls";
+import { ipcRenderer } from "electron";
 
 export default function App() {
 	const [progress, setProgress] = useState(null);
@@ -12,26 +13,11 @@ export default function App() {
 	const [isInstalling, setIsInstalling] = useState(false);
 
 	async function installModWithProgress(filePaths?: string[]) {
-		// Start polling for progress every 1000 milliseconds (1 second)
-		const pollingInterval = 10;
-		const progressTimer = setInterval(async () => {
-			try {
-				const progress =
-					await window.modManagerAPI.requestExtractionProgress();
-				console.log("Current progress:", progress);
-				setProgress(progress);
-			} catch (error) {
-				console.error("Error getting extraction progress:", error);
-			}
-		}, pollingInterval);
-
 		try {
 			await window.modManagerAPI.installMod(filePaths);
 			console.log("Installation complete");
 		} catch (error) {
 			console.error("Installation failed:", error);
-		} finally {
-			clearInterval(progressTimer);
 		}
 	}
 
@@ -106,6 +92,11 @@ export default function App() {
 			// Can't receive a Map, we receive an object, so convert it to a Map
 			setModsData(new Map(Object.entries(data)));
 		});
+
+		window.modManagerAPI.onMessage("install-progress", (data: number) => {
+			console.log("install progress: ", data);
+			setProgress(data);
+		});
 	}, []);
 
 	useEffect(() => {
@@ -120,10 +111,10 @@ export default function App() {
 		>
 			<div id="app" className="app">
 				<div className="app-heading">
-					<h1>MX Bikes Mod Manager</h1>
+					<h1>PitKit</h1>
 					<button
 						disabled={isInstalling}
-						className="install-button"
+						className="btn install-button"
 						onClick={() => handleInstallMod()}
 					>
 						<FolderPlus /> <span>Install Mod</span>
@@ -137,6 +128,12 @@ export default function App() {
 							<progress value={progress} max={100} />
 						</div>
 					)}
+				</div>
+				<div className="filter-buttons">
+					<button className="btn filter-btn">Bikes</button>
+					<button className="btn filter-btn">Tracks</button>
+					<button className="btn filter-btn">Rider</button>
+					<button className="btn filter-btn">Other</button>
 				</div>
 				{modsData !== null && (
 					<ModsGrid

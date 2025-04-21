@@ -8,6 +8,7 @@
 	align-items: center;
 	flex-direction: column;
 	width: 100%;
+	max-width: calc(100vw - 6rem);
 	gap: 1rem;
 	height: calc(100vh - 32px); /* Set to full height minus titlebar */
 	margin-top: 32px; /* Match titlebar height */
@@ -25,16 +26,10 @@
 }
 
 .install-button {
-	padding: 1rem;
-	border: 1px solid var(--border);
-	border-radius: 0.5rem;
 	min-width: 10rem;
-	display: flex;
-	justify-content: center;
-	align-items: center;
 	gap: 0.5rem;
-	text-align: center;
 }
+
 .install-button span {
 	text-align: center;
 	height: 100%;
@@ -44,7 +39,7 @@
 	transform: translateY(2px);
 }
 
-.install-button:hover {
+.btn:hover {
 	box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
 	background-color: var(--foreground);
 	color: var(--background);
@@ -107,4 +102,13 @@ body {
 	margin-top: 32px;
 	overflow-y: hidden;
 	overflow-x: hidden;
+}
+
+.filter-btn {
+}
+
+.filter-buttons {
+	display: flex;
+	gap: 1rem;
+	justify-content: center;
 }

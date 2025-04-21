@@ -21,7 +21,7 @@ export default function Header() {
 				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 			>
 				<div id="window-title">
-					<span>MX Bikes Mod Manager</span>
+					<span>PitKit</span>
 				</div>
 				<div
 					id="window-controls"
