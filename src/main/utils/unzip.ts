@@ -5,7 +5,7 @@ import fs from "fs";
 export default async function extractZip(
 	source: string,
 	destination: string,
-	setExtractionProgress: (progress: number) => void
+	sendProgress: (progress: number) => void
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
 		yauzl.open(source, { lazyEntries: true }, (openErr, zipfile) => {
@@ -57,7 +57,7 @@ export default async function extractZip(
 										extractedBytes += chunk.length;
 										const progress =
 											(extractedBytes / totalBytes) * 100;
-										setExtractionProgress(progress);
+										sendProgress(progress);
 									});
 
 									readStream.pipe(writeStream);
@@ -72,7 +72,7 @@ export default async function extractZip(
 
 					innerZip.on("end", () => {
 						console.log("inner zip end");
-						setExtractionProgress(100);
+						sendProgress(100);
 						resolve();
 					});
 

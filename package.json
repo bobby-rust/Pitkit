@@ -1,11 +1,11 @@
 {
-	"name": "mxbmodmanager",
-	"productName": "mxbmodmanager",
+	"name": "pitkit",
+	"productName": "PitKit",
 	"version": "1.0.0",
-	"description": "My Electron application description",
+	"description": "The MX Bikes Mod Manager",
 	"main": ".vite/build/main.js",
 	"scripts": {
-		"start": "electron-forge start --enable-logging",
+		"dev": "electron-forge start --enable-logging",
 		"package": "electron-forge package",
 		"make": "electron-forge make",
 		"publish": "electron-forge publish",

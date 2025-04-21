@@ -20,7 +20,7 @@ export default class ModInstaller {
 	 */
 	public async installMod(
 		modsFolder: string,
-		setExtractionProgress: (progress: number) => void,
+		sendProgress: (progress: number) => void,
 		source?: string
 	): Promise<Mod | void> {
 		if (!source) {
@@ -41,7 +41,7 @@ export default class ModInstaller {
 		}
 
 		if (path.extname(source).toLowerCase() === ".zip") {
-			await this.installModZip(source, dest, setExtractionProgress);
+			await this.installModZip(source, dest, sendProgress);
 			const mod = await parseZipFile(source);
 			return mod;
 		} else if (path.extname(source).toLowerCase() === ".pkz") {
@@ -156,10 +156,10 @@ export default class ModInstaller {
 	private async installModZip(
 		source: string,
 		dest: string,
-		setExtractionProgress: (progress: number) => void
+		sendProgress: (progress: number) => void
 	) {
 		console.log("installing mod zip");
-		await unzip(source, dest, setExtractionProgress);
+		await unzip(source, dest, sendProgress);
 	}
 
 	private async installModFile(source: string, dest: string) {
@@ -253,8 +253,8 @@ export default class ModInstaller {
 
 	private async selectMod() {
 		const modPath = await promptSelectFile("Select A Mod To Install", [
-			".zip",
-			".pkz",
+			"zip",
+			"pkz",
 		]);
 		return modPath;
 	}

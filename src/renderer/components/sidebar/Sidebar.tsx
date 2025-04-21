@@ -9,19 +9,36 @@ export default function Sidebar() {
 		<div className="sidebar-container">
 			<ul>
 				<li className="logo">
-					<Logo /> MXB Mod Manager
+					<Logo /> PitKit Mod Manager
 				</li>
 				<div className="divider"></div>
-				<li>
-					<button className="sidebar-button">
-						<Folder /> Mods
-					</button>
-				</li>
-				<li>
-					<button className="sidebar-button">
-						<Settings /> Settings
-					</button>
-				</li>
+				<div className="sidebar-upper">
+					<li>
+						<button className="sidebar-button">
+							<Folder /> All Mods
+						</button>
+						<button className="sidebar-button">
+							<Folder /> Bikes
+						</button>
+						<button className="sidebar-button">
+							<Folder /> Tracks
+						</button>
+						<button className="sidebar-button">
+							<Folder /> Rider
+						</button>
+						<button className="sidebar-button">
+							<Folder />
+							Other
+						</button>
+					</li>
+				</div>
+				<div className="sidebar-lower">
+					<li>
+						<button className="sidebar-button">
+							<Settings /> Settings
+						</button>
+					</li>
+				</div>
 			</ul>
 		</div>
 	);

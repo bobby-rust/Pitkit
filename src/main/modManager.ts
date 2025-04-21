@@ -28,6 +28,7 @@ export default class ModManager {
 
 		// Bind the function to ensure correct context when calling from other classes
 		this.setExtractionProgress = this.setExtractionProgress.bind(this);
+		this.sendProgressToRenderer = this.sendProgressToRenderer.bind(this);
 	}
 
 	public getExtractionProgress() {
@@ -69,6 +70,10 @@ export default class ModManager {
 		mainWindow.webContents.send("send-mods-data", modsObject);
 	}
 
+	public sendProgressToRenderer(progress: number) {
+		mainWindow.webContents.send("install-progress", progress);
+	}
+
 	public getMods() {
 		return this.mods;
 	}
@@ -78,7 +83,7 @@ export default class ModManager {
 		if (!filePaths) {
 			const mod = await this.installer.installMod(
 				this.config.modsFolder,
-				this.setExtractionProgress
+				this.sendProgressToRenderer
 			);
 			if (!mod) {
 				console.error("Unable to install mod");
@@ -91,7 +96,7 @@ export default class ModManager {
 				for (const source of filePaths) {
 					mod = await this.installer.installMod(
 						this.config.modsFolder,
-						this.setExtractionProgress,
+						this.sendProgressToRenderer,
 						source
 					);
 					if (!mod) {
