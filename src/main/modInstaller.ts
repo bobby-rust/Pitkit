@@ -1,8 +1,6 @@
-import { dialog } from "electron";
 import unzip from "./utils/unzip";
 import path from "path";
 import fs from "fs";
-import { parseZipFile, zipHasModsSubdir } from "./utils/zipParser";
 import {
 	FolderStructure,
 	Mod,
@@ -11,11 +9,9 @@ import {
 	TrackType,
 } from "src/types/types";
 import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
-import { subdirExists } from "./utils/lib";
+import { subdirExists, isDir } from "./utils/lib";
 
 export default class ModInstaller {
-	private hasModsSubdir(source: string) {}
-
 	/**
 	 * Installs a mod
 	 * @param modsFolder The folder where the user's mods are located
@@ -49,59 +45,71 @@ export default class ModInstaller {
 			throw new Error("Cancelled mod install");
 		}
 
+		// NOTE: Mod.from() does not set the track type.
+		const mod: Mod = await Mod.from(source);
+
 		// Stage 2: Add a custom name if desired (Skip for now, QoL feature).
+		// Can set mod.name if a custom name is desired
+		// const modName = path.parse(source).name;
 
 		// Stage 3: Check for a mods subdirectory IF the file type is zip or a folder.
 		const modsSubdirLocation = subdirExists(source, "mods");
 		if (modsSubdirLocation) {
-		}
+			const dest = path.dirname(modsFolder);
+			if (isDir(source)) {
+				// path.dirname will do C:/Documents/mods -> C:/Documents
+				this.mv(source, dest);
+			} else if (path.extname(source) === ".zip") {
+				await unzip(source, dest, sendProgress);
+			}
 
-		const modName = path.basename(source).split(".pkz")[0];
-		const modType = await this.selectModType(modName);
-
-		const dest = await this.getInstallDest(modsFolder, source);
-		console.log("Installing to : ", dest);
-
-		if (dest === "") {
-			return;
-		}
-
-		if (path.extname(source).toLowerCase() === ".zip") {
-			await this.installModZip(source, dest, sendProgress);
-			const mod = await parseZipFile(source);
-			return mod;
-		} else if (path.extname(source).toLowerCase() === ".pkz") {
-			const trackType = await this.selectTrackType(modName);
-			if (!trackType) return;
-			const trackDest = await this.getInstallDest(
-				modsFolder,
-				source,
-				trackType
-			);
-			await this.installModFile(source, trackDest);
-			const mod: Mod = {
-				name: modName,
-				type: "track",
-				trackType: trackType,
-				files: {
-					files: [] as any,
-					subfolders: {
-						tracks: {
-							files: [] as any,
-							subfolders: {
-								[path.basename(path.dirname(dest))]: {
-									files: [path.basename(source)],
-									subfolders: {},
-								},
-							},
-						},
-					},
-				},
-				installDate: new Date().toLocaleDateString(),
-			};
-
+			// Done! - All mod creators should structure their mod releases like this.
+			// Unfortunately, they don't, so our job is harder
 			return mod;
 		}
+
+		const modType = await this.selectModType(mod.name);
+		switch (modType) {
+			case "bike":
+				return await this.installBikeMod(source, mod);
+			case "track":
+				return await this.installTrackMod(source, mod);
+			case "rider":
+				return await this.installRiderMod(source, mod);
+			case "other":
+				return await this.installOtherMod(source, mod);
+		}
+	}
+
+	/**
+	 * Mutates and returns the passed mod object
+	 */
+	private async installBikeMod(
+		source: string,
+		mod: Mod
+	): Promise<void | Mod> {
+		throw new Error("Method not implemented.");
+	}
+
+	private async installTrackMod(
+		source: string,
+		mod: Mod
+	): Promise<void | Mod> {
+		throw new Error("Method not implemented.");
+	}
+
+	private async installRiderMod(
+		source: string,
+		mod: Mod
+	): Promise<void | Mod> {
+		throw new Error("Method not implemented.");
+	}
+
+	private async installOtherMod(
+		source: string,
+		mod: Mod
+	): Promise<void | Mod> {
+		throw new Error("Method not implemented.");
 	}
 
 	public async uninstallMod(
@@ -194,15 +202,15 @@ export default class ModInstaller {
 	 * @param source The path of the file
 	 * @param dest The installation destination for the file
 	 */
-	private async installModFile(source: string, dest: string) {
+	private async mv(source: string, dest: string) {
 		const dirname = path.dirname(dest);
 		if (!fs.existsSync(dirname)) {
+			console.log("Directory does not exist, creating directory:", dest);
 			fs.mkdirSync(dirname, { recursive: true });
 		}
 
 		try {
 			await fs.promises.copyFile(source, dest);
-			console.log("Copied file from ", source, " to ", dest);
 		} catch (err) {
 			console.error("Unable to install mod: ", err);
 		}
@@ -215,7 +223,7 @@ export default class ModInstaller {
 	 * @returns the ModType selected by the user
 	 */
 	private async selectModType(modName: string): Promise<ModType | null> {
-		const modTypes: ModType[] = ["bike", "rider", "track", "tyre"];
+		const modTypes: ModType[] = ["bike", "rider", "track", "other"];
 		const title = "Select Mod Type";
 		const message = `What type of mod is ${modName}?`;
 		const result = await promptQuestion(title, message, modTypes);
@@ -252,7 +260,7 @@ export default class ModInstaller {
 			const trackName = path.basename(modPath);
 			return path.join(modsFolder, "tracks", trackType, trackName);
 		} else if (ext === ".zip") {
-			const hasModsSubdir = await zipHasModsSubdir(modPath, "mods");
+			const hasModsSubdir = await subdirExists(modPath, "mods");
 			if (hasModsSubdir) {
 				// path.dirname will return the parent directory of the argument
 				return path.dirname(modsFolder);
