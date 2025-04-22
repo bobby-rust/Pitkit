@@ -82,28 +82,31 @@ function addFileToFolderStructure(root: FolderStructure, filePath: string) {
 	current.files.push(paths[paths.length - 1]);
 }
 
-function zipHasModsSubdir(zipPath: string): Promise<boolean> {
+function subdirExistsZip(
+	zipPath: string,
+	target: string
+): Promise<string | null> {
 	return new Promise((resolve, reject) => {
 		yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
 			if (err || !zipfile) return reject(err);
-
-			let found = false;
 
 			zipfile.readEntry();
 
 			zipfile.on("entry", (entry) => {
 				// Check if it's a directory exactly named "mods/"
-				if (/\/$/.test(entry.fileName) && entry.fileName === "mods/") {
-					found = true;
+				if (
+					/\/$/.test(entry.fileName) &&
+					entry.fileName === target + "/"
+				) {
 					zipfile.close(); // stop reading more entries
-					return resolve(true);
+					return resolve(zipPath + entry.fileName);
 				}
 
 				zipfile.readEntry();
 			});
 
 			zipfile.on("end", () => {
-				resolve(false);
+				resolve(null);
 			});
 
 			zipfile.on("error", reject);
@@ -111,4 +114,4 @@ function zipHasModsSubdir(zipPath: string): Promise<boolean> {
 	});
 }
 
-export { parseZipFile, zipHasModsSubdir };
+export { parseZipFile, subdirExistsZip };
