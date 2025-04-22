@@ -6,16 +6,13 @@ function getModName(filePath: string) {
 	return path.basename(filePath, path.extname(filePath));
 }
 
-async function parseZipFile(zipPath: string): Promise<Mod> {
+async function parseZipFile(zipPath: string): Promise<FolderStructure> {
 	return new Promise((resolve, reject) => {
 		const modName = getModName(zipPath);
 
-		const root: Mod = {
-			name: modName,
-			files: { files: [], subfolders: {} },
-			type: "bike",
-			trackType: null,
-			installDate: new Date().toLocaleString(),
+		const root: FolderStructure = {
+			files: [],
+			subfolders: {},
 		};
 
 		yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
@@ -40,11 +37,15 @@ async function parseZipFile(zipPath: string): Promise<Mod> {
 	});
 }
 
-function addPathToFolderStructure(root: Mod, path: string, isDir: boolean) {
+function addPathToFolderStructure(
+	root: FolderStructure,
+	path: string,
+	isDir: boolean
+) {
 	if (isDir) {
-		addDirToFolderStructure(root.files, path);
+		addDirToFolderStructure(root, path);
 	} else {
-		addFileToFolderStructure(root.files, path);
+		addFileToFolderStructure(root, path);
 	}
 }
 

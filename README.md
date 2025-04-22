@@ -17,3 +17,4 @@
 -   One-click install various preset settings configs from pros (lynds, etc.)
 -   One-click download and install mods via mxb-mods api?
 -   Parse existing mods folder to detect installed mods that were not installed through the manager
+-   Install entire tracklist from mxb-ranked category
