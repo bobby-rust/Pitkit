@@ -129,12 +129,7 @@ export default function App() {
 						</div>
 					)}
 				</div>
-				<div className="filter-buttons">
-					<button className="btn filter-btn">Bikes</button>
-					<button className="btn filter-btn">Tracks</button>
-					<button className="btn filter-btn">Rider</button>
-					<button className="btn filter-btn">Other</button>
-				</div>
+
 				{modsData !== null && (
 					<ModsGrid
 						modsData={modsData}

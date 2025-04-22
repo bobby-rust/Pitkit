@@ -11,8 +11,11 @@ import {
 	TrackType,
 } from "src/types/types";
 import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
+import { subdirExists } from "./utils/lib";
 
 export default class ModInstaller {
+	private hasModsSubdir(source: string) {}
+
 	/**
 	 * Installs a mod
 	 * @param modsFolder The folder where the user's mods are located
@@ -23,11 +26,34 @@ export default class ModInstaller {
 		sendProgress: (progress: number) => void,
 		source?: string
 	): Promise<Mod | void> {
+		// Mod install process:
+		// Stage 1: File selection
+		// Stage 2: Add a custom name if desired, if not just use the file/folder name.
+		// Stage 3: Check for a mods subdirectory.
+		// Stage 4: If it has a mods subdirectory, install it and we're done!
+		// Stage 5: No mods subdirectory, continue to manual installation process.
+		// Stage 6: Manual installation process - Select Mod Type (Bike, Track, Rider, Other)
+		// Stage 7: Case 1 - Bike => Copy pkz & folder with the same name as the pkz file (Create if not exists) to bikes folder.
+		// Stage 8: Case 2 - Track => Select Track Type (SX, MX, Enduro, SM). Install pkz file to selected location.
+		// Stage 9: Case 3 - Rider => Select Rider Mod Type (boots, helmet, gloves, rider)
+		// Stage 10: If boots, copy pkz to boots folder.
+		// Stage 11: If helmet, copy folder to helmets directory.
+		// Stage 12: If gloves, Select which rider to install the gloves on, and copy the pnt to the correct location.
+		// Stage 13: If riders, Copy the folder to the riders directory.
+
+		// Stage 1: File selection
 		if (!source) {
 			source = await this.selectMod();
 		}
 		if (!source) {
 			throw new Error("Cancelled mod install");
+		}
+
+		// Stage 2: Add a custom name if desired (Skip for now, QoL feature).
+
+		// Stage 3: Check for a mods subdirectory IF the file type is zip or a folder.
+		const modsSubdirLocation = subdirExists(source, "mods");
+		if (modsSubdirLocation) {
 		}
 
 		const modName = path.basename(source).split(".pkz")[0];
@@ -151,17 +177,23 @@ export default class ModInstaller {
 	 *
 	 * @param source
 	 * @param dest
-	 * @param setExtractionProgress
+	 * @param sendProgress
 	 */
 	private async installModZip(
 		source: string,
 		dest: string,
 		sendProgress: (progress: number) => void
 	) {
-		console.log("installing mod zip");
 		await unzip(source, dest, sendProgress);
 	}
 
+	/**
+	 * Copies a file from source to dest. Will create the directory recursively
+	 * if it does not exist.
+	 *
+	 * @param source The path of the file
+	 * @param dest The installation destination for the file
+	 */
 	private async installModFile(source: string, dest: string) {
 		const dirname = path.dirname(dest);
 		if (!fs.existsSync(dirname)) {
@@ -182,28 +214,13 @@ export default class ModInstaller {
 	 * @param modName The name of the mod
 	 * @returns the ModType selected by the user
 	 */
-	private async selectModType(modName: string): Promise<ModType> {
+	private async selectModType(modName: string): Promise<ModType | null> {
 		const modTypes: ModType[] = ["bike", "rider", "track", "tyre"];
-		const result = await dialog.showMessageBox({
-			type: "question",
-			buttons: [
-				...modTypes.map(
-					(type) => type[0].toUpperCase() + type.slice(1) // Make mod types uppercase
-				),
-				"Cancel",
-			],
-			title: "Select Mod Type",
-			message: `What type of mod is ${modName}?`,
-			cancelId: 4, // If the user presses ESC or closes, it selects "Cancel"
-		});
+		const title = "Select Mod Type";
+		const message = `What type of mod is ${modName}?`;
+		const result = await promptQuestion(title, message, modTypes);
 
-		if (result.response === 4) {
-			console.log("User canceled mod type selection.");
-			return null;
-		}
-
-		const modType = modTypes[result.response];
-		return modType;
+		return result as ModType;
 	}
 
 	private async selectTrackType(
@@ -233,12 +250,9 @@ export default class ModInstaller {
 		if (ext === ".pkz" && !trackType) return "tracks";
 		if (ext === ".pkz" && trackType) {
 			const trackName = path.basename(modPath);
-			console.log("Got pkz");
-			console.log("Got track type: ", trackType);
 			return path.join(modsFolder, "tracks", trackType, trackName);
 		} else if (ext === ".zip") {
-			console.log("Got zip file...");
-			const hasModsSubdir = await zipHasModsSubdir(modPath);
+			const hasModsSubdir = await zipHasModsSubdir(modPath, "mods");
 			if (hasModsSubdir) {
 				// path.dirname will return the parent directory of the argument
 				return path.dirname(modsFolder);

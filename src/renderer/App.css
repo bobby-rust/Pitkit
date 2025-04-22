@@ -104,11 +104,9 @@ body {
 	overflow-x: hidden;
 }
 
-.filter-btn {
-}
-
 .filter-buttons {
 	display: flex;
 	gap: 1rem;
 	justify-content: center;
+	height: 100%;
 }
