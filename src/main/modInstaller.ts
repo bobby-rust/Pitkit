@@ -6,12 +6,26 @@ import {
 	Mod,
 	ModsData,
 	ModType,
+	RiderModType,
 	TrackType,
 } from "src/types/types";
 import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
 import { subdirExists, isDir } from "./utils/lib";
 
 export default class ModInstaller {
+	/**
+	 * In the future, settings may be needed,
+	 * such as whether to move or copy the mod file
+	 * when installing
+	 */
+
+	private modsFolder: string;
+	private sendProgress: (progress: number) => void;
+
+	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
+		this.modsFolder = modsFolder;
+		this.sendProgress = sendProgress;
+	}
 	/**
 	 * Installs a mod
 	 * @param modsFolder The folder where the user's mods are located
@@ -58,7 +72,7 @@ export default class ModInstaller {
 			const dest = path.dirname(modsFolder);
 			if (isDir(source)) {
 				// path.dirname will do C:/Documents/mods -> C:/Documents
-				this.mv(source, dest);
+				this.cp(source, dest);
 			} else if (path.extname(source) === ".zip") {
 				await unzip(source, dest, sendProgress);
 			}
@@ -82,7 +96,15 @@ export default class ModInstaller {
 	}
 
 	/**
+	 * ======== Specific Install Methods ==========
+	 *
 	 * Mutates and returns the passed mod object
+	 */
+
+	/**
+	 * All of the bike packs contain a mods folder for easy install, but
+	 * if a bike mod does not contain that, this method will be used. Bikes just have a pkz file in the bikes directory,
+	 * and a folder with the same name as the pkz file to store paints
 	 */
 	private async installBikeMod(
 		source: string,
@@ -91,18 +113,109 @@ export default class ModInstaller {
 		throw new Error("Method not implemented.");
 	}
 
+	/**
+	 * Tracks could be a pkz or (rarely) a zip or a rar, but they do not need to
+	 * be extracted, the file can simply be copied to the destination.
+	 */
 	private async installTrackMod(
 		source: string,
 		mod: Mod
 	): Promise<void | Mod> {
-		throw new Error("Method not implemented.");
+		const trackType = await this.selectTrackType(mod.name);
+		mod.trackType = trackType;
+		const dest = path.join(this.modsFolder, "tracks", trackType, mod.name);
+		try {
+			await this.cp(source, dest);
+		} catch (err) {
+			console.error(err);
+		}
+
+		return mod;
 	}
 
+	/**
+	 * Supported rider mods are a whole rider, boots, gloves, or a helmet.
+	 * Boots and helmets are not attached to a specific rider, but gloves are.
+	 * If it's a whole rider, the folder can be moved to the rider/riders directory.
+	 * Or if its a zip, it will need to be unzipped, but there must be a directory within the zip
+	 * Some rider mods contain a "rider" directory that can simply be moved into the mods folder
+	 */
 	private async installRiderMod(
 		source: string,
 		mod: Mod
 	): Promise<void | Mod> {
-		throw new Error("Method not implemented.");
+		if (subdirExists(source, "rider")) {
+			// Could be a zip here
+			const dest = this.modsFolder; // rider exists under mods/
+			if (path.extname(source) === ".zip") {
+				await unzip(source, dest, this.sendProgress);
+			} else if (isDir(source)) {
+				await this.cp(source, dest);
+			}
+
+			// Done!
+			return mod;
+		}
+
+		const riderModType: RiderModType = await this.selectRiderModType(
+			mod.name
+		);
+
+		switch (riderModType) {
+			case "boots":
+				return await this.installBoots(source, mod);
+			case "gloves":
+				return await this.installGloves(source, mod);
+			case "helmet":
+				return await this.installHelmet(source, mod);
+			case "rider":
+				return await this.installRider(source, mod);
+		}
+	}
+
+	private async installBoots(source: string, mod: Mod): Promise<Mod> {
+		if (subdirExists(source, "boots")) {
+			// Copy boots to rider
+			const dest = path.join(this.modsFolder, "rider");
+			if (path.extname(source) === ".zip") {
+				await unzip(source, dest, this.sendProgress);
+			} else {
+				this.cp(source, dest);
+			}
+		}
+
+		// must be a pkz, if not idk
+		if (path.extname(source) === ".pkz") {
+			const dest = path.join(this.modsFolder, "rider", "boots");
+			this.cp(source, dest);
+		}
+
+		return mod;
+	}
+
+	/**
+	 * Gloves belong to a specific rider
+	 */
+	private async installGloves(source: string, mod: Mod): Promise<Mod> {
+		// Get the available riders
+		// Then prompt the user to select a rider or riders to install the gloves to
+		return mod;
+	}
+	private async installHelmet(source: string, mod: Mod): Promise<Mod> {
+		return mod;
+	}
+	private async installRider(source: string, mod: Mod): Promise<Mod> {
+		return mod;
+	}
+
+	private async selectRiderModType(modName: string): Promise<RiderModType> {
+		const types: RiderModType[] = ["boots", "gloves", "helmet", "rider"];
+		const riderModType = await promptQuestion(
+			"Select Rider Mod Type",
+			`What type of rider mod is ${modName}?`,
+			types
+		);
+		return riderModType as RiderModType;
 	}
 
 	private async installOtherMod(
@@ -181,28 +294,13 @@ export default class ModInstaller {
 	}
 
 	/**
-	 * Installs a mod that needs to be unzipped
-	 *
-	 * @param source
-	 * @param dest
-	 * @param sendProgress
-	 */
-	private async installModZip(
-		source: string,
-		dest: string,
-		sendProgress: (progress: number) => void
-	) {
-		await unzip(source, dest, sendProgress);
-	}
-
-	/**
 	 * Copies a file from source to dest. Will create the directory recursively
 	 * if it does not exist.
 	 *
 	 * @param source The path of the file
 	 * @param dest The installation destination for the file
 	 */
-	private async mv(source: string, dest: string) {
+	private async cp(source: string, dest: string) {
 		const dirname = path.dirname(dest);
 		if (!fs.existsSync(dirname)) {
 			console.log("Directory does not exist, creating directory:", dest);
@@ -212,7 +310,7 @@ export default class ModInstaller {
 		try {
 			await fs.promises.copyFile(source, dest);
 		} catch (err) {
-			console.error("Unable to install mod: ", err);
+			throw new Error("Unable to install mod: ", err);
 		}
 	}
 
@@ -252,10 +350,6 @@ export default class ModInstaller {
 		modPath: string,
 		trackType?: TrackType
 	): Promise<string> {
-		console.log("determinine install destination for mod path: ", modPath);
-		const ext = path.extname(modPath).toLowerCase();
-		console.log(ext);
-		if (ext === ".pkz" && !trackType) return "tracks";
 		if (ext === ".pkz" && trackType) {
 			const trackName = path.basename(modPath);
 			return path.join(modsFolder, "tracks", trackType, trackName);

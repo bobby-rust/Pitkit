@@ -20,6 +20,7 @@ export const FolderStructure = {
 };
 
 export type TrackType = "motocross" | "supercross" | "enduro" | "supermoto";
+export type RiderModType = "boots" | "gloves" | "helmet" | "rider"; // "riders" is a whole rider, such as Rider+ or Rider+ Rolled Up
 export type ModType = "bike" | "track" | "rider" | "other";
 
 export interface Mod {

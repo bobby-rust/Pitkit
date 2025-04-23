@@ -13,7 +13,14 @@ export async function subdirExists(
 	if (path.extname(source) === ".zip") {
 		return await subdirExistsZip(source, target);
 	}
-	const entries = fs.readdirSync(source);
+
+	let entries;
+	try {
+		entries = fs.readdirSync(source);
+	} catch (err) {
+		// must not be a file
+		return null;
+	}
 
 	for (const entry of entries) {
 		const fullPath = path.join(source, entry);
