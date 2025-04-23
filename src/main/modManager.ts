@@ -23,12 +23,16 @@ export default class ModManager {
 	private extractionProgress: number;
 
 	constructor() {
-		this.installer = new ModInstaller();
 		this.extractionProgress = 0;
 
 		// Bind the function to ensure correct context when calling from other classes
 		this.setExtractionProgress = this.setExtractionProgress.bind(this);
 		this.sendProgressToRenderer = this.sendProgressToRenderer.bind(this);
+
+		this.installer = new ModInstaller(
+			this.config.modsFolder,
+			this.sendProgressToRenderer
+		);
 	}
 
 	public getExtractionProgress() {
