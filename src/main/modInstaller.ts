@@ -36,6 +36,7 @@ export default class ModInstaller {
 		sendProgress: (progress: number) => void,
 		source?: string
 	): Promise<Mod | void> {
+		console.log("Iinstaling mod");
 		// Mod install process:
 		// Stage 1: File selection
 		// Stage 2: Add a custom name if desired, if not just use the file/folder name.
@@ -67,7 +68,9 @@ export default class ModInstaller {
 		// const modName = path.parse(source).name;
 
 		// Stage 3: Check for a mods subdirectory IF the file type is zip or a folder.
-		const modsSubdirLocation = subdirExists(source, "mods");
+		console.log("Checking for mods subdir");
+		const modsSubdirLocation = await subdirExists(source, "mods");
+		console.log("Mods subdir location: ", modsSubdirLocation);
 		if (modsSubdirLocation) {
 			const dest = path.dirname(modsFolder);
 			if (isDir(source)) {
@@ -83,6 +86,7 @@ export default class ModInstaller {
 		}
 
 		const modType = await this.selectModType(mod.name);
+		console.log("Mod type selected: ", modType);
 		switch (modType) {
 			case "bike":
 				return await this.installBikeMod(source, mod);
@@ -198,6 +202,8 @@ export default class ModInstaller {
 	 */
 	private async installGloves(source: string, mod: Mod): Promise<Mod> {
 		// Get the available riders
+		const riders = this.getRiders();
+		console.log("Got riders: ", riders);
 		// Then prompt the user to select a rider or riders to install the gloves to
 		return mod;
 	}
@@ -206,6 +212,13 @@ export default class ModInstaller {
 	}
 	private async installRider(source: string, mod: Mod): Promise<Mod> {
 		return mod;
+	}
+
+	private getRiders(): string[] {
+		const files = fs.readdirSync(
+			path.join(this.modsFolder, "rider", "riders")
+		);
+		return files;
 	}
 
 	private async selectRiderModType(modName: string): Promise<RiderModType> {

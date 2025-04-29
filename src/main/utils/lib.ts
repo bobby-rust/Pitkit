@@ -44,6 +44,7 @@ export function getModTypeFromModsSubdir(source: string): ModType {
 	// get a lot of information from its directory structure.
 	// The mod type can be found by checking what subdirectory is under the mods subfolder
 	// Ex. mods->bikes === bike mod, mods->tracks === track mod, mods->rider === rider mod
+	if (!isDir(source)) return null;
 	const subfolders = fs.readdirSync(source);
 	for (const f of subfolders) {
 		switch (f) {

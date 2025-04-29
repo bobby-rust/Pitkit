@@ -12,6 +12,7 @@ export const FolderStructure = {
 		if (path.extname(source) === ".zip") {
 			return await parseZipFile(source);
 		}
+		// TODO: return the correct folder structure in other cases
 		return {
 			files: [],
 			subfolders: {},
