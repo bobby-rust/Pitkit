@@ -8,13 +8,13 @@ import {
 	ModType,
 	RiderModType,
 	TrackType,
-} from "src/types/types";
+} from "../types/types";
 import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
 import { subdirExists, isDir } from "./utils/lib";
 
 export default class ModInstaller {
 	/**
-	 * In the future, settings may be needed,
+	 * In the future, settings may be added,
 	 * such as whether to move or copy the mod file
 	 * when installing
 	 */
@@ -343,28 +343,6 @@ export default class ModInstaller {
 		const trackType = await promptQuestion(title, message, trackTypes);
 
 		return trackType as TrackType;
-	}
-
-	private async getInstallDest(
-		modsFolder: string,
-		modPath: string,
-		trackType?: TrackType
-	): Promise<string> {
-		if (ext === ".pkz" && trackType) {
-			const trackName = path.basename(modPath);
-			return path.join(modsFolder, "tracks", trackType, trackName);
-		} else if (ext === ".zip") {
-			const hasModsSubdir = await subdirExists(modPath, "mods");
-			if (hasModsSubdir) {
-				// path.dirname will return the parent directory of the argument
-				return path.dirname(modsFolder);
-			}
-		} else {
-			console.log(ext);
-			return "";
-		}
-
-		return "";
 	}
 
 	private async selectMod() {

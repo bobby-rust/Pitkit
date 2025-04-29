@@ -1,6 +1,6 @@
 import path from "path";
-import { getModTypeFromModsSubdir } from "src/main/utils/lib";
-import { parseZipFile } from "src/main/utils/zipParser";
+import { getModTypeFromModsSubdir } from "../main/utils/lib";
+import { parseZipFile } from "../main/utils/zipParser";
 
 export interface FolderStructure {
 	files: string[];
@@ -35,8 +35,6 @@ export interface Mod {
 export const Mod = {
 	/**
 	 * Does not set the track type, even if modType is track.
-	 * @param source
-	 * @returns
 	 */
 	async from(source: string): Promise<Mod> {
 		const modType = getModTypeFromModsSubdir(source);
