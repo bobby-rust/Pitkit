@@ -29,6 +29,8 @@ export default class ModManager {
 		this.setExtractionProgress = this.setExtractionProgress.bind(this);
 		this.sendProgressToRenderer = this.sendProgressToRenderer.bind(this);
 
+		this.loadConfig();
+
 		this.installer = new ModInstaller(
 			this.config.modsFolder,
 			this.sendProgressToRenderer
@@ -86,39 +88,32 @@ export default class ModManager {
 		let mod;
 		if (!filePaths) {
 			const mod = await this.installer.installMod(
-				this.config.modsFolder,
 				this.sendProgressToRenderer
 			);
 			if (!mod) {
-				console.error("Unable to install mod");
 				this.setExtractionProgress(0);
-				return;
+				throw new Error("Mod installation failed");
 			}
 			this.addModToModsData(mod);
+			return mod;
 		} else {
-			try {
-				for (const source of filePaths) {
-					mod = await this.installer.installMod(
-						this.config.modsFolder,
-						this.sendProgressToRenderer,
-						source
-					);
-					if (!mod) {
-						console.error("Unable to install mod");
-						this.setExtractionProgress(0);
-						return;
-					}
-					console.log("Installed mod: ", mod);
-					this.addModToModsData(mod);
+			for (const source of filePaths) {
+				mod = await this.installer.installMod(
+					this.sendProgressToRenderer,
+					source
+				);
+				if (!mod) {
+					console.error("Unable to install mod");
+					this.setExtractionProgress(0);
+					return;
 				}
-			} catch (err) {
-				this.setExtractionProgress(0);
-				console.error(err);
+				console.log("Installed mod: ", mod);
+				this.addModToModsData(mod);
 			}
 		}
 
 		this.setExtractionProgress(0);
-		this.writeModsToDisk();
+		// this.writeModsToDisk();
 	}
 
 	private setExtractionProgress(progress: number) {

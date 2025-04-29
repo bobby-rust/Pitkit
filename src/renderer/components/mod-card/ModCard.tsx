@@ -26,6 +26,8 @@ export default function ModCard({
 	trackType,
 	uninstall,
 }: ModCardProps) {
+	console.log("Got mod: ", name, installDate, modType, trackType);
+
 	return (
 		<div className="mod-card-wrapper">
 			<div className="mod-card-container">

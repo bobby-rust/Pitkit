@@ -23,6 +23,7 @@ export default class ModInstaller {
 	private sendProgress: (progress: number) => void;
 
 	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
+		console.log("Creating mod installer instance : ", modsFolder);
 		this.modsFolder = modsFolder;
 		this.sendProgress = sendProgress;
 	}
@@ -32,7 +33,6 @@ export default class ModInstaller {
 	 * @param sendProgress A function to update the frontend with install progress
 	 */
 	public async installMod(
-		modsFolder: string,
 		sendProgress: (progress: number) => void,
 		source?: string
 	): Promise<Mod | void> {
@@ -72,7 +72,7 @@ export default class ModInstaller {
 		const modsSubdirLocation = await subdirExists(source, "mods");
 		console.log("Mods subdir location: ", modsSubdirLocation);
 		if (modsSubdirLocation) {
-			const dest = path.dirname(modsFolder);
+			const dest = path.dirname(this.modsFolder);
 			if (isDir(source)) {
 				// path.dirname will do C:/Documents/mods -> C:/Documents
 				this.cp(source, dest);
@@ -87,6 +87,7 @@ export default class ModInstaller {
 
 		const modType = await this.selectModType(mod.name);
 		console.log("Mod type selected: ", modType);
+		mod.type = modType;
 		switch (modType) {
 			case "bike":
 				return await this.installBikeMod(source, mod);
@@ -148,7 +149,11 @@ export default class ModInstaller {
 		source: string,
 		mod: Mod
 	): Promise<void | Mod> {
-		if (subdirExists(source, "rider")) {
+		console.log("Installing rider mod");
+		const riderSubdir = await subdirExists(source, "rider");
+		console.log("Rider subdir: ", riderSubdir);
+		if (riderSubdir) {
+			console.log("Rider subdirectory exists.");
 			// Could be a zip here
 			const dest = this.modsFolder; // rider exists under mods/
 			if (path.extname(source) === ".zip") {
@@ -160,6 +165,7 @@ export default class ModInstaller {
 			// Done!
 			return mod;
 		}
+		console.log("Rider subdirectory does not exist.");
 
 		const riderModType: RiderModType = await this.selectRiderModType(
 			mod.name
@@ -178,7 +184,9 @@ export default class ModInstaller {
 	}
 
 	private async installBoots(source: string, mod: Mod): Promise<Mod> {
-		if (subdirExists(source, "boots")) {
+		console.log("Installing boots");
+		const bootsSubdir = await subdirExists(source, "boots");
+		if (bootsSubdir) {
 			// Copy boots to rider
 			const dest = path.join(this.modsFolder, "rider");
 			if (path.extname(source) === ".zip") {
@@ -311,18 +319,24 @@ export default class ModInstaller {
 	 * if it does not exist.
 	 *
 	 * @param source The path of the file
-	 * @param dest The installation destination for the file
+	 * @param dest The path of the directory the file will be copied to, will be created if it does not exist
 	 */
 	private async cp(source: string, dest: string) {
-		const dirname = path.dirname(dest);
-		if (!fs.existsSync(dirname)) {
+		if (!fs.existsSync(dest)) {
 			console.log("Directory does not exist, creating directory:", dest);
-			fs.mkdirSync(dirname, { recursive: true });
+			fs.mkdirSync(dest, { recursive: true });
 		}
 
+		console.log("Copying to dest: ", dest);
+
+		const fileName = path.basename(source);
+		const destFile = path.join(dest, fileName);
 		try {
-			await fs.promises.copyFile(source, dest);
+			await fs.promises
+				.copyFile(source, destFile)
+				.catch((err) => console.error("Error in cp: ", err));
 		} catch (err) {
+			console.log("Error in copy func: ", err);
 			throw new Error("Unable to install mod: ", err);
 		}
 	}
