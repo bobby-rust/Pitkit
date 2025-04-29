@@ -26,7 +26,6 @@ export async function promptQuestion(
 		message: message,
 		cancelId: buttons.length, // If the user presses ESC or closes, it selects "Cancel"
 	});
-	console.log("Result.response: ", result.response);
 	if (result.response === 4) {
 		console.log("User canceled question prompt.");
 		return null;
