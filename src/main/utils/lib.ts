@@ -65,7 +65,6 @@ export function isDir(source: string): boolean {
 	try {
 		return fs.statSync(source).isDirectory();
 	} catch (err) {
-		console.error(err);
 		return false;
 	}
 }

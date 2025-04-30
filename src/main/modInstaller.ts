@@ -11,6 +11,7 @@ import {
 } from "../types/types";
 import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
 import { subdirExists, isDir, extractRar } from "./utils/lib";
+import extractZip from "./utils/unzip";
 
 export default class ModInstaller {
 	/**
@@ -268,8 +269,12 @@ export default class ModInstaller {
 				// the helmet files must be found and installed
 				await this.installHelmetRar(source);
 				break;
+			case ".zip":
+				await this.installHelmetZip(source);
+				break;
 			case "":
 				// a folder, treat the same way as an extracted rar
+				await this.installHelmetsFolder(source);
 				break;
 			default:
 				console.error(
@@ -288,20 +293,63 @@ export default class ModInstaller {
 		return mod;
 	}
 
-	private async installHelmetRar(source: string) {
-		const dest = path.join(__dirname, "tmp");
+	private async installHelmetZip(source: string) {
+		const tmpPath = path.join(__dirname, "tmp");
+		await extractZip(source, tmpPath, () => null); // dummy function, no progress tracking
+		await this.installHelmetsFolder(tmpPath);
+	}
 
-		await extractRar(source, dest);
+	private async installHelmetRar(source: string) {
+		const tmpPath = path.join(__dirname, "tmp");
+
+		await extractRar(source, tmpPath);
 
 		// let's look for helmet.edf as that seems to hold the juice for helmet models
 		// If a directory contains a helmet.edf, that helmet goes in modsFolder/rider/helmets
+
+		await this.installHelmetsFolder(tmpPath);
+
+		fs.rmSync(tmpPath, { recursive: true });
+	}
+
+	private async installHelmetsFolder(source: string) {
+		const helmetDirs = this.findHelmetEdfs(source);
+		console.log("Got helmet dirs: ", helmetDirs);
+		for (const helmetDir of helmetDirs) {
+			await this.cp(
+				helmetDir,
+				path.join(this.modsFolder, "rider", "helmets")
+			);
+		}
 	}
 
 	/**
 	 * Given a path to a directory, returns a list of all folders containing a helmet.edf
 	 */
-	private findHelmetEdf(source: string): string[] {
+	private findHelmetEdfs(source: string): string[] {
+		console.log("Finding helmet efs in ", source);
 		const helmetDirs: string[] = [];
+		const subfolders = fs.readdirSync(source);
+		console.log(subfolders);
+
+		for (const subfolder of subfolders) {
+			const subfolderPath = path.join(source, subfolder);
+			const ext = path.extname(subfolder);
+
+			// NOTE: This is a workaround for now, this should be refactored later
+			// IF we find a pkz, that needs to be moved into the helmets dir just like a folder
+			// These concerns should probably be separated
+			if (ext === ".pkz") helmetDirs.push(subfolderPath);
+
+			if (subfolder === "helmet.edf" || subfolder === "paints") {
+				console.log("Found helmet path in ", subfolderPath);
+				helmetDirs.push(source);
+			} else if (isDir(subfolderPath)) {
+				console.log("Found subdirectory...", subfolder);
+				const result = this.findHelmetEdfs(subfolderPath);
+				helmetDirs.push(...result);
+			}
+		}
 		return helmetDirs;
 	}
 
@@ -441,7 +489,7 @@ export default class ModInstaller {
 		const destFile = path.join(dest, fileName);
 		try {
 			await fs.promises
-				.copyFile(source, destFile)
+				.cp(source, destFile, { recursive: true })
 				.catch((err) => console.error("Error in cp: ", err));
 		} catch (err) {
 			console.log("Error in copy func: ", err);

@@ -94,11 +94,10 @@ function subdirExistsZip(
 			zipfile.readEntry();
 
 			zipfile.on("entry", (entry) => {
+				console.log("ZIP ENTRY : ", entry);
 				// Check if it's a directory exactly named "mods/"
-				if (
-					/\/$/.test(entry.fileName) &&
-					entry.fileName === target + "/"
-				) {
+				const entryName = path.basename(entry.fileName);
+				if (entryName === target) {
 					zipfile.close(); // stop reading more entries
 					return resolve(zipPath + entry.fileName);
 				}
