@@ -10,7 +10,7 @@ import {
 	TrackType,
 } from "../types/types";
 import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
-import { subdirExists, isDir } from "./utils/lib";
+import { subdirExists, isDir, extractRar } from "./utils/lib";
 
 export default class ModInstaller {
 	/**
@@ -289,8 +289,9 @@ export default class ModInstaller {
 	}
 
 	private async installHelmetRar(source: string) {
-		// const dest = "C:\\Users\\bob\\Desktop";
-		// await extractRar(source, dest);
+		const dest = "C:\\Users\\bob\\Desktop";
+
+		await extractRar(source, dest);
 	}
 
 	private async installHelmetPnt(source: string) {
@@ -473,6 +474,7 @@ export default class ModInstaller {
 			"zip",
 			"pkz",
 			"pnt",
+			"rar",
 		]);
 		return modPath;
 	}

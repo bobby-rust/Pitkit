@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { subdirExistsZip } from "./zipParser";
 import { ModType } from "src/types/types";
+import { spawn } from "child_process";
 
 /**
  * Recursively searches for a subdirectory, and returns the location if it exists, else null
@@ -67,4 +68,34 @@ export function isDir(source: string): boolean {
 		console.error(err);
 		return false;
 	}
+}
+
+export function extractRar(rarPath: string, extractPath: string) {
+	// Path to bundled unrar.exe
+	const unrarPath =
+		process.env.NODE_ENV === "development"
+			? path.join(__dirname, "resources", "bin", "unrar.exe") // Development
+			: path.join(process.resourcesPath, "bin", "unrar.exe"); // Production
+
+	return new Promise((resolve, reject) => {
+		const unrarProcess = spawn(unrarPath, [
+			"x", // Extract with full paths
+			"-o+", // Overwrite existing files
+			"-y", // Yes to all queries
+			rarPath, // Path to RAR file
+			extractPath,
+		]);
+
+		unrarProcess.on("close", (code) => {
+			if (code === 0) {
+				resolve(true);
+			} else {
+				reject(new Error(`Extraction failed with code ${code}`));
+			}
+		});
+
+		unrarProcess.on("error", (err) => {
+			reject(err);
+		});
+	});
 }
