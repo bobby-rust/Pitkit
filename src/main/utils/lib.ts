@@ -70,7 +70,8 @@ export function isDir(source: string): boolean {
 	}
 }
 
-export function extractRar(rarPath: string, extractPath: string) {
+export async function extractRar(rarPath: string, extractPath: string) {
+	await fs.promises.mkdir(extractPath, { recursive: true });
 	// Path to bundled unrar.exe
 	const unrarPath =
 		process.env.NODE_ENV === "development"

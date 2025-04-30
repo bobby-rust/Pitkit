@@ -289,9 +289,20 @@ export default class ModInstaller {
 	}
 
 	private async installHelmetRar(source: string) {
-		const dest = "C:\\Users\\bob\\Desktop";
+		const dest = path.join(__dirname, "tmp");
 
 		await extractRar(source, dest);
+
+		// let's look for helmet.edf as that seems to hold the juice for helmet models
+		// If a directory contains a helmet.edf, that helmet goes in modsFolder/rider/helmets
+	}
+
+	/**
+	 * Given a path to a directory, returns a list of all folders containing a helmet.edf
+	 */
+	private findHelmetEdf(source: string): string[] {
+		const helmetDirs: string[] = [];
+		return helmetDirs;
 	}
 
 	private async installHelmetPnt(source: string) {
