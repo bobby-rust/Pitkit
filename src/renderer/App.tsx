@@ -5,7 +5,6 @@ import { ModsData } from "src/types/types";
 import { FolderPlus } from "lucide-react";
 import ModsGrid from "./components/mods-grid/ModsGrid";
 import { setupWindowControls } from "./utils/windowControls";
-import { ipcRenderer } from "electron";
 
 export default function App() {
 	const [progress, setProgress] = useState(null);
@@ -13,6 +12,9 @@ export default function App() {
 	const [isInstalling, setIsInstalling] = useState(false);
 
 	async function installModWithProgress(filePaths?: string[]) {
+		/**
+		 * TODO: Display a success / failure message to the user after mod installation
+		 */
 		try {
 			await window.modManagerAPI.installMod(filePaths);
 			console.log("Installation complete");

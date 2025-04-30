@@ -207,19 +207,115 @@ export default class ModInstaller {
 
 	/**
 	 * Gloves belong to a specific rider
+	 * Gloves should be a .pnt file
 	 */
 	private async installGloves(source: string, mod: Mod): Promise<Mod> {
 		// Get the available riders
 		const riders = this.getRiders();
 		console.log("Got riders: ", riders);
 		// Then prompt the user to select a rider or riders to install the gloves to
+		const title = "Select a rider";
+		const message = "Select a rider for which to install the gloves";
+
+		const rider = await promptQuestion(title, message, riders);
+
+		console.log("Selected rider: ", rider);
+
+		const ridersDir = path.join(this.modsFolder, "rider", "riders");
+
+		const fileType = path.extname(source);
+
+		if (!(fileType === ".pnt")) {
+			throw new Error("Gloves should be a .pnt file");
+		}
+
+		await this.cp(source, path.join(ridersDir, rider, "gloves"));
+
 		return mod;
 	}
+
+	/**
+	 * Handles installation of both helmet models and helmet paints
+	 *
+	 * Installs either a helmet model or a helmet paint
+	 *
+	 * If the source is a pkz, it will be treated as a helmet model
+	 * If the source is a pnt, it will be treated as a helmet paint
+	 *
+	 * If installing a helmet paint, it must be installed on the correct helmet, or it will not work.
+	 * There is no way to tell what the correct helmet is or if the correct helmet was selected, that is up to the user.
+	 *
+	 * Helmet models could be a .rar or a folder. If it is any compressed file or a folder,
+	 * the correct folders can be found by finding which subdirectories actually contain the helmet files.
+	 * In mods/rider/helmets, the folders contain the helmet files or encrypted pkz files. They cannot be nested deeper within directories or they will not be found.
+	 */
 	private async installHelmet(source: string, mod: Mod): Promise<Mod> {
+		// Get the directory of the helmets
+		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
+
+		const ext = path.extname(source);
+		switch (ext) {
+			case ".pkz":
+				// New helmet model
+				await this.cp(source, helmetsDir);
+				break;
+			case ".pnt":
+				// Paint for existing helmet
+				await this.installHelmetPnt(source);
+				break;
+			case ".rar":
+				// Helmet pack, must be extracted and the folders containing
+				// the helmet files must be found and installed
+				await this.installHelmetRar(source);
+				break;
+			case "":
+				// a folder, treat the same way as an extracted rar
+				break;
+			default:
+				console.error(
+					"Unrecognized file type for helmet model or paint: ",
+					ext
+				);
+				throw new Error(
+					"Unrecognized file type for helmet model or paint: " + ext
+				);
+		}
+
 		return mod;
 	}
+
 	private async installRider(source: string, mod: Mod): Promise<Mod> {
 		return mod;
+	}
+
+	private async installHelmetRar(source: string) {
+		// const dest = "C:\\Users\\bob\\Desktop";
+		// await extractRar(source, dest);
+	}
+
+	private async installHelmetPnt(source: string) {
+		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
+		// Helmet paint for existing helmet model
+		// cp will create the paints folder automatically
+
+		// Need to select a helmet to install the paint into
+		const helmets = this.getHelmets();
+		const title = "Select a helmet";
+		const message = "Select a helmet to install the paint on";
+		const helmetFile = await promptQuestion(title, message, helmets);
+
+		const ext = path.extname(helmetFile);
+		const helmetFolder = helmetFile.split(ext)[0];
+		const paintsFolder = path.join(helmetsDir, helmetFolder, "paints");
+		console.log("installing to paints folder: ", paintsFolder);
+		this.cp(source, paintsFolder);
+	}
+
+	private getHelmets(): string[] {
+		const files = fs.readdirSync(
+			path.join(this.modsFolder, "rider", "helmets")
+		);
+		return files;
 	}
 
 	private getRiders(): string[] {
@@ -376,6 +472,7 @@ export default class ModInstaller {
 		const modPath = await promptSelectFile("Select A Mod To Install", [
 			"zip",
 			"pkz",
+			"pnt",
 		]);
 		return modPath;
 	}
