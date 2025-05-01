@@ -13,6 +13,10 @@ import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
 import { subdirExists, isDir, extractRar } from "./utils/lib";
 import extractZip from "./utils/unzip";
 
+/**
+ * TODO: rar files need to be checked for a mods subdir
+ * TODO: folders cannot be selected using the install button
+ */
 export default class ModInstaller {
 	/**
 	 * In the future, settings may be added,
