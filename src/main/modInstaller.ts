@@ -73,12 +73,24 @@ export default class ModInstaller {
 		const modsSubdirLocation = await subdirExists(source, "mods");
 		console.log("Mods subdir location: ", modsSubdirLocation);
 		if (modsSubdirLocation) {
+			// path.dirname will do C:/Documents/mods -> C:/Documents
 			const dest = path.dirname(this.modsFolder);
+
+			// So we are returned the path relative to the zip... if mods is right in the zip, then
 			if (isDir(source)) {
-				// path.dirname will do C:/Documents/mods -> C:/Documents
 				this.cp(source, dest);
 			} else if (path.extname(source) === ".zip") {
-				await unzip(source, dest, sendProgress);
+				// Extract to a temporary directory
+				const tmpDir = path.join(__dirname, "tmp");
+				await unzip(source, tmpDir, sendProgress);
+
+				// Copy only the mods folder
+				const tmpSrc = path.join(tmpDir, modsSubdirLocation);
+				console.log("Temp src: ", tmpSrc);
+				await this.cp(tmpSrc, dest);
+
+				// Delete the temporary dir
+				fs.rmSync(tmpDir, { recursive: true });
 			}
 
 			// Done! - All mod creators should structure their mod releases like this.

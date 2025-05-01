@@ -83,6 +83,10 @@ function addFileToFolderStructure(root: FolderStructure, filePath: string) {
 	current.files.push(paths[paths.length - 1]);
 }
 
+/**
+ * Returns the path of target relative to zipPath if found, else null
+ * Ex. target = mods, zipPath = C:/Downloads/foo.zip, and foo.zip contains subfolder bar/mods, mods location relative to zipPath is bar/mods
+ */
 function subdirExistsZip(
 	zipPath: string,
 	target: string
@@ -94,12 +98,13 @@ function subdirExistsZip(
 			zipfile.readEntry();
 
 			zipfile.on("entry", (entry) => {
-				console.log("ZIP ENTRY : ", entry);
-				// Check if it's a directory exactly named "mods/"
+				// Check if it's a directory exactly named target
 				const entryName = path.basename(entry.fileName);
+				console.log("Current entry name: ", entryName);
 				if (entryName === target) {
+					console.log("Found mods subdir");
 					zipfile.close(); // stop reading more entries
-					return resolve(zipPath + entry.fileName);
+					return resolve(entry.fileName);
 				}
 
 				zipfile.readEntry();

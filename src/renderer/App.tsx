@@ -96,7 +96,6 @@ export default function App() {
 		});
 
 		window.modManagerAPI.onMessage("install-progress", (data: number) => {
-			console.log("install progress: ", data);
 			setProgress(data);
 		});
 	}, []);

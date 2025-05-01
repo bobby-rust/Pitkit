@@ -9,7 +9,6 @@ interface ModsGridProps {
 }
 
 export default function ModsGrid({ modsData, uninstall }: ModsGridProps) {
-	console.log("Rendering mods data: ", modsData);
 	return (
 		<div id="mods-container" className="mods-container">
 			{modsData && modsData.size ? (
