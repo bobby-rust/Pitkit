@@ -23,16 +23,20 @@ export async function subdirExists(
 		return null;
 	}
 
+	console.log("Checking entries: ", entries);
+
 	for (const entry of entries) {
 		const fullPath = path.join(source, entry);
 		const stat = fs.statSync(fullPath);
 
 		if (stat.isDirectory()) {
+			console.log("Found subdirectory: ", fullPath);
+			console.log("Comparing ", entry, " to ", target);
 			if (entry === target) {
 				return fullPath;
 			}
 
-			const result = subdirExists(fullPath, target);
+			const result = await subdirExists(fullPath, target);
 			if (result) return result;
 		}
 	}

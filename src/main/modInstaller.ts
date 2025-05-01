@@ -76,9 +76,8 @@ export default class ModInstaller {
 			// path.dirname will do C:/Documents/mods -> C:/Documents
 			const dest = path.dirname(this.modsFolder);
 
-			// So we are returned the path relative to the zip... if mods is right in the zip, then
 			if (isDir(source)) {
-				this.cp(source, dest);
+				this.cp(modsSubdirLocation, dest);
 			} else if (path.extname(source) === ".zip") {
 				// Extract to a temporary directory
 				const tmpDir = path.join(__dirname, "tmp");
