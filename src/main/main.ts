@@ -1,5 +1,5 @@
-import { app, BrowserWindow, IpcMainInvokeEvent } from "electron";
-import path from "node:path";
+import { app, BrowserWindow, dialog, IpcMainInvokeEvent } from "electron";
+import path from "path";
 import started from "electron-squirrel-startup";
 
 const IS_DEV = !app.isPackaged;
@@ -85,7 +85,6 @@ const createWindow = () => {
 async function init() {
 	modManager = new ModManager();
 	await modManager.loadConfig();
-	modManager.loadMods();
 	console.log("Mods: ", modManager.getMods());
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
@@ -121,6 +120,17 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 import ModManager from "./modManager";
 import { ipcMain } from "electron";
+
+process.on("uncaughtException", (err) => {
+	// write to stderr (will appear in the console)
+	console.error("UNCAUGHT EXCEPTION:", err);
+
+	// show a system dialog so the user sees it
+	dialog.showErrorBox(
+		"An unhandled error occurred",
+		err.stack || err.message
+	);
+});
 
 let modManager: ModManager;
 

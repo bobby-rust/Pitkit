@@ -29,7 +29,7 @@ export default class ModManager {
 		this.setExtractionProgress = this.setExtractionProgress.bind(this);
 		this.sendProgressToRenderer = this.sendProgressToRenderer.bind(this);
 
-		this.loadConfig();
+		this.loadMods();
 
 		this.installer = new ModInstaller(
 			this.config.modsFolder,
@@ -177,6 +177,7 @@ export default class ModManager {
 	 */
 	private async getBaseGameDirectory(): Promise<string> {
 		// If they fail after 100 attempts, that's on them :)
+
 		for (let i = 0; i < 100; ++i) {
 			if (i !== 0) {
 				const choice = await dialog.showMessageBox({
@@ -191,8 +192,12 @@ export default class ModManager {
 			}
 
 			const choice = await this.showGetBaseGameDirectoryPrompt();
+
 			switch (choice) {
 				case 1:
+					console.log(
+						"Quitting due to cancelled base game dir selection!"
+					);
 					app.quit();
 			}
 			const result = await dialog.showOpenDialog({

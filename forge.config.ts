@@ -6,14 +6,11 @@ import { MakerRpm } from "@electron-forge/maker-rpm";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
-import path from "path";
 
 const config: ForgeConfig = {
 	packagerConfig: {
 		asar: true,
-		extraResource: [
-			path.resolve(__dirname, "resources", "bin", "unrar.exe"),
-		],
+		extraResource: "./src/renderer/assets",
 		icon: "./src/renderer/assets/favicon",
 	},
 	rebuildConfig: {},
