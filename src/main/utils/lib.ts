@@ -32,7 +32,7 @@ export async function subdirExists(
 		if (stat.isDirectory()) {
 			console.log("Found subdirectory: ", fullPath);
 			console.log("Comparing ", entry, " to ", target);
-			if (entry === target) {
+			if (entry.toLowerCase() === target.toLowerCase()) {
 				return fullPath;
 			}
 
