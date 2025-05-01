@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 export function loadMods(): ModsData {
-	const filePath = path.join("data", "mods.json");
+	const filePath = path.join(__dirname, "data", "mods.json");
 	const dir = path.dirname(filePath);
 	if (!fs.existsSync(dir)) {
 		fs.mkdirSync(dir);

@@ -1,5 +1,5 @@
 import ini from "ini";
-import fs from "fs";
+import fs, { existsSync } from "fs";
 import path from "path";
 import os from "os";
 import { dialog, app } from "electron";
@@ -48,6 +48,10 @@ export default class ModManager {
 		const cfgFile = fs.readFileSync("config.ini", "utf-8");
 
 		const cfgContents = ini.parse(cfgFile);
+		if (!cfgContents.base_game_folder) {
+			cfgContents.base_game_folder =
+				"C:\\Program Files (x86)\\Steam\\steamapps\\common\\MX Bikes";
+		}
 
 		// No base game directory set, get base game directory from user
 		if (
@@ -65,6 +69,8 @@ export default class ModManager {
 			modsFolder: cfgContents.mods_folder,
 			baseGameFolder: cfgContents.base_game_folder,
 		};
+
+		this.installer.setModsFolder(this.config.modsFolder);
 
 		console.log("Loaded config: ", this.config);
 	}
@@ -95,7 +101,6 @@ export default class ModManager {
 				throw new Error("Mod installation failed");
 			}
 			this.addModToModsData(mod);
-			return mod;
 		} else {
 			for (const source of filePaths) {
 				mod = await this.installer.installMod(
@@ -113,7 +118,9 @@ export default class ModManager {
 		}
 
 		this.setExtractionProgress(0);
-		// this.writeModsToDisk();
+		this.writeModsToDisk();
+
+		return mod;
 	}
 
 	private setExtractionProgress(progress: number) {
@@ -136,8 +143,13 @@ export default class ModManager {
 
 	private writeModsToDisk() {
 		console.log("Writing mods to disk: ", this.mods);
+		const dataDir = path.join(__dirname, "data");
+		if (!existsSync(dataDir)) {
+			fs.mkdirSync(dataDir, { recursive: true });
+		}
+
 		fs.writeFileSync(
-			path.join("data", "mods.json"),
+			path.join(dataDir, "mods.json"),
 			JSON.stringify(Object.fromEntries(this.mods))
 		);
 	}

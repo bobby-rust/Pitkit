@@ -128,6 +128,10 @@ export function isDir(source: string): boolean {
 	try {
 		return fs.statSync(source).isDirectory();
 	} catch (err) {
+		// If source is a relative path, statSync won't be able to find it.
+		// In this case, fall back to checking the extname
+		const ft = path.extname(source);
+		if (ft === "") return true;
 		return false;
 	}
 }

@@ -26,8 +26,6 @@ async function parseZipFile(zipPath: string): Promise<FolderStructure> {
 			// Thus, we cannot assume that a directory exists when adding a file to a FolderStructure
 			zipfile.on("entry", (entry) => {
 				// The third argument determines whether the entry is a folder or a file
-				console.log("current entry: ", entry.fileName);
-				console.log("Current entry is dir? ", isDir(entry.fileName));
 				addPathToFolderStructure(root, entry.fileName);
 
 				zipfile.readEntry();
@@ -39,7 +37,8 @@ async function parseZipFile(zipPath: string): Promise<FolderStructure> {
 }
 
 function addPathToFolderStructure(root: FolderStructure, path: string) {
-	if (isDir(path)) {
+	const isDirectory = isDir(path);
+	if (isDirectory) {
 		addDirToFolderStructure(root, path);
 	} else {
 		addFileToFolderStructure(root, path);
@@ -72,17 +71,17 @@ function addDirToFolderStructure(root: FolderStructure, dir: string) {
 function addFileToFolderStructure(root: FolderStructure, filePath: string) {
 	if (!root) return;
 	const paths = filePath.split("/");
+
+	// If the last element is an empty string, remove it
+	if (paths[paths.length - 1] === "") paths.pop();
+
 	let current = root;
-	console.log("Paths: ", paths);
-	console.log("Current: ", current);
 	for (let i = 0; i < paths.length - 1; ++i) {
-		if (paths[i] === "mods") continue;
-		console.log("Current path: ", paths[i]);
+		if (!paths[i] || paths[i] === "mods") continue;
 
 		let tmp = current.subfolders[paths[i]];
 
 		if (!tmp) {
-			console.log("Adding ", filePath, " to folder structure");
 			addDirToFolderStructure(root, filePath);
 			tmp = current.subfolders[paths[i]];
 		}
@@ -108,9 +107,7 @@ function subdirExistsZip(
 			zipfile.on("entry", (entry) => {
 				// Check if it's a directory exactly named target
 				const entryName = path.basename(entry.fileName);
-				console.log("Current entry name: ", entryName);
 				if (entryName === target) {
-					console.log("Found mods subdir");
 					zipfile.close(); // stop reading more entries
 					return resolve(entry.fileName);
 				}

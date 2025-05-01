@@ -12,10 +12,6 @@ export default async function extractZip(
 		const normalizedSource = path.normalize(source);
 		const normalizedDestination = path.normalize(destination);
 
-		console.log(
-			`Extracting ${normalizedSource} to ${normalizedDestination}`
-		);
-
 		yauzl.open(
 			normalizedSource,
 			{ lazyEntries: true },
@@ -68,19 +64,13 @@ export default async function extractZip(
 									normalizedDestination,
 									entry.fileName
 								);
-								console.log(
-									`Processing entry: ${entry.fileName} -> ${entryPath}`
-								);
-
 								try {
 									if (/\/$/.test(entry.fileName)) {
 										// Directory entry
 										await fs.promises.mkdir(entryPath, {
 											recursive: true,
 										});
-										console.log(
-											`Created directory: ${entryPath}`
-										);
+
 										innerZip.readEntry();
 									} else {
 										// File entry
@@ -88,9 +78,6 @@ export default async function extractZip(
 										await fs.promises.mkdir(dirname, {
 											recursive: true,
 										});
-										console.log(
-											`Ensuring directory exists: ${dirname}`
-										);
 
 										// Check if the file already exists and handle accordingly
 										try {
@@ -133,7 +120,7 @@ export default async function extractZip(
 															chunk.length;
 														const progress =
 															Math.min(
-																100,
+																99,
 																Math.floor(
 																	(extractedBytes /
 																		totalBytes) *
@@ -147,9 +134,6 @@ export default async function extractZip(
 												readStream.pipe(writeStream);
 
 												writeStream.on("close", () => {
-													console.log(
-														`Extracted: ${entryPath}`
-													);
 													innerZip.readEntry();
 												});
 

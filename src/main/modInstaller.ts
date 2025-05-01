@@ -18,6 +18,28 @@ import {
 } from "./utils/lib";
 import extractZip from "./utils/unzip";
 
+const WHITELISTED_DIRS: Set<string> = new Set([
+	"bikes",
+	"tracks",
+	"rider",
+	"tyres",
+	"misc",
+	"fonts",
+	"pitboard",
+	"animations",
+	"boots",
+	"fonts",
+	"helmetcams",
+	"helmets",
+	"protections",
+	"riders",
+	"default_mx",
+	"enduro",
+	"motocross",
+	"supercross",
+	"supermoto",
+]);
+
 /**
  * TODO: rar files need to be checked for a mods subdir
  * TODO: folders cannot be selected using the install button
@@ -70,6 +92,8 @@ export default class ModInstaller {
 			throw new Error("Cancelled mod install");
 		}
 
+		console.log("MODS FOLDER: ", this.modsFolder);
+
 		// NOTE: Mod.from() does not set the track type.
 		const mod: Mod = await Mod.from(source);
 
@@ -94,8 +118,8 @@ export default class ModInstaller {
 						await this.installWithModsSubdirZip(
 							mod,
 							source,
-							modsSubdirLocation,
 							dest,
+							modsSubdirLocation,
 							sendProgress
 						);
 
@@ -135,6 +159,10 @@ export default class ModInstaller {
 		}
 	}
 
+	public setModsFolder(modsFolder: string) {
+		this.modsFolder = modsFolder;
+	}
+
 	private async installWithModsSubdirRar(
 		mod: Mod,
 		source: string,
@@ -159,22 +187,24 @@ export default class ModInstaller {
 	private async installWithModsSubdirZip(
 		mod: Mod,
 		source: string,
-		modsSubdirLocation: string,
 		dest: string,
+		modsSubdirLocation: string,
 		sendProgress: (progress: number) => void
 	) {
+		console.log("DEST: ", dest);
 		// Extract to a temporary directory
 		const tmpDir = path.join(__dirname, "tmp");
+		console.log("tmp dir: ", tmpDir);
 		await unzip(source, tmpDir, sendProgress);
 
 		// Copy only the mods folder
 		const tmpSrc = path.join(tmpDir, modsSubdirLocation);
-
-		// Need to set the mod type here because the source was a compressed file when the Mod object was created,
-		// so no mod type can be found until the file is decompressed so the folders can be walked
 		mod.type = getModTypeFromModsSubdir(tmpSrc);
+		console.log("tmp src: ", tmpSrc);
 
 		await this.cp(tmpSrc, dest);
+
+		sendProgress(100);
 
 		// Delete the temporary dir
 		fs.rmSync(tmpDir, { recursive: true });
@@ -505,21 +535,16 @@ export default class ModInstaller {
 		for (const file of folderStructure.files) {
 			try {
 				// rm the file
-				fs.rmSync(path.join(currentDirectory, file));
+				fs.rmSync(path.join(currentDirectory, file), {
+					recursive: true,
+				});
 			} catch (err) {
 				// error, continue anyways to delete the rest
 				console.error(err);
 			}
 		}
-		try {
-			// If the folder is empty, delete it
-			if (this.isDirEmpty(currentDirectory)) {
-				fs.rmdirSync(currentDirectory);
-			}
-		} catch (err) {
-			console.error(err);
-		}
 
+		// Check subfolders before checking to delete the current folder
 		// For each subfolder name and FolderStructure associated with it
 		for (const [k, v] of Object.entries(folderStructure.subfolders)) {
 			// The current directory is the current directory plus the name of the current subfolder
@@ -527,6 +552,22 @@ export default class ModInstaller {
 			this.deleteFolderStructure(v, currentDirectory);
 			// Reset the current directory because there may be other folders in the current directory that need to be deleted
 			currentDirectory = path.dirname(currentDirectory);
+		}
+
+		// Now all subfolders of the current folder have been checked, see if the current folder needs to be deleted
+		try {
+			// If the folder is empty AND it is not a whitelisted folder (folders that the base game creates in the mods directory), delete it
+			console.log("Current dir: ", currentDirectory);
+			const isDirectoryEmpty = this.isDirEmpty(currentDirectory);
+			const basename = path.basename(currentDirectory);
+			const isWhitelisted = WHITELISTED_DIRS.has(basename);
+			console.log("is directory empty? ", isDirectoryEmpty);
+			console.log("Is whitelisted ", isWhitelisted);
+			if (isDirectoryEmpty && !isWhitelisted) {
+				fs.rmSync(currentDirectory, { recursive: true });
+			}
+		} catch (err) {
+			console.error(err);
 		}
 	}
 

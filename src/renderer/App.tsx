@@ -100,9 +100,7 @@ export default function App() {
 		});
 	}, []);
 
-	useEffect(() => {
-		console.log(" Got mods data: ", modsData);
-	}, [modsData]);
+	useEffect(() => {}, [modsData]);
 
 	return (
 		<div
