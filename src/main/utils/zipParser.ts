@@ -1,6 +1,7 @@
 import yauzl from "yauzl";
 import { FolderStructure, Mod } from "../../types/types";
 import path from "path";
+import { isDir, subdirExists } from "./lib";
 
 function getModName(filePath: string) {
 	return path.basename(filePath, path.extname(filePath));
@@ -21,13 +22,13 @@ async function parseZipFile(zipPath: string): Promise<FolderStructure> {
 
 			zipfile.readEntry();
 
+			// yauzl readEntry does not guarantee that nested paths will not be evaluated before their parent.
+			// Thus, we cannot assume that a directory exists when adding a file to a FolderStructure
 			zipfile.on("entry", (entry) => {
 				// The third argument determines whether the entry is a folder or a file
-				addPathToFolderStructure(
-					root,
-					entry.fileName,
-					entry.fileName.endsWith("/")
-				);
+				console.log("current entry: ", entry.fileName);
+				console.log("Current entry is dir? ", isDir(entry.fileName));
+				addPathToFolderStructure(root, entry.fileName);
 
 				zipfile.readEntry();
 			});
@@ -37,12 +38,8 @@ async function parseZipFile(zipPath: string): Promise<FolderStructure> {
 	});
 }
 
-function addPathToFolderStructure(
-	root: FolderStructure,
-	path: string,
-	isDir: boolean
-) {
-	if (isDir) {
+function addPathToFolderStructure(root: FolderStructure, path: string) {
+	if (isDir(path)) {
 		addDirToFolderStructure(root, path);
 	} else {
 		addFileToFolderStructure(root, path);
@@ -73,12 +70,23 @@ function addDirToFolderStructure(root: FolderStructure, dir: string) {
 }
 
 function addFileToFolderStructure(root: FolderStructure, filePath: string) {
+	if (!root) return;
 	const paths = filePath.split("/");
 	let current = root;
+	console.log("Paths: ", paths);
+	console.log("Current: ", current);
 	for (let i = 0; i < paths.length - 1; ++i) {
 		if (paths[i] === "mods") continue;
+		console.log("Current path: ", paths[i]);
 
-		current = current.subfolders[paths[i]];
+		let tmp = current.subfolders[paths[i]];
+
+		if (!tmp) {
+			console.log("Adding ", filePath, " to folder structure");
+			addDirToFolderStructure(root, filePath);
+			tmp = current.subfolders[paths[i]];
+		}
+		current = tmp;
 	}
 	current.files.push(paths[paths.length - 1]);
 }
