@@ -10,7 +10,12 @@ import {
 	TrackType,
 } from "../types/types";
 import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
-import { subdirExists, isDir, extractRar } from "./utils/lib";
+import {
+	subdirExists,
+	isDir,
+	extractRar,
+	getModTypeFromModsSubdir,
+} from "./utils/lib";
 import extractZip from "./utils/unzip";
 
 /**
@@ -80,24 +85,38 @@ export default class ModInstaller {
 			// path.dirname will do C:/Documents/mods -> C:/Documents
 			const dest = path.dirname(this.modsFolder);
 
+			const ext = path.extname(source);
 			if (isDir(source)) {
 				this.cp(modsSubdirLocation, dest);
-			} else if (path.extname(source) === ".zip") {
-				// Extract to a temporary directory
-				const tmpDir = path.join(__dirname, "tmp");
-				await unzip(source, tmpDir, sendProgress);
+			} else {
+				switch (ext) {
+					case ".zip":
+						await this.installWithModsSubdirZip(
+							mod,
+							source,
+							modsSubdirLocation,
+							dest,
+							sendProgress
+						);
 
-				// Copy only the mods folder
-				const tmpSrc = path.join(tmpDir, modsSubdirLocation);
-				console.log("Temp src: ", tmpSrc);
-				await this.cp(tmpSrc, dest);
-
-				// Delete the temporary dir
-				fs.rmSync(tmpDir, { recursive: true });
+						break;
+					case ".rar":
+						await this.installWithModsSubdirRar(
+							mod,
+							source,
+							modsSubdirLocation,
+							dest
+						);
+						break;
+					default:
+						console.error("Unrecognized file type: ", ext);
+						throw new Error("Unrecognized file type " + ext);
+				}
 			}
 
 			// Done! - All mod creators should structure their mod releases like this.
 			// Unfortunately, they don't, so our job is harder
+			console.log("Returning mod: ", mod);
 			return mod;
 		}
 
@@ -114,6 +133,51 @@ export default class ModInstaller {
 			case "other":
 				return await this.installOtherMod(source, mod);
 		}
+	}
+
+	private async installWithModsSubdirRar(
+		mod: Mod,
+		source: string,
+		modsSubdirLocation: string,
+		dest: string
+	) {
+		// Ext
+		const tmpDir = path.join(__dirname, "tmp");
+		await extractRar(source, tmpDir);
+
+		// Copy only the mods subfolder
+		const tmpSrc = path.join(tmpDir, modsSubdirLocation);
+
+		// Need to set the mod type here because the source was a compressed file when the Mod object was created,
+		// so no mod type can be found until the file is decompressed so the folders can be walked
+		mod.type = getModTypeFromModsSubdir(tmpSrc);
+
+		await this.cp(tmpSrc, dest);
+		fs.rmSync(tmpDir, { recursive: true });
+	}
+
+	private async installWithModsSubdirZip(
+		mod: Mod,
+		source: string,
+		modsSubdirLocation: string,
+		dest: string,
+		sendProgress: (progress: number) => void
+	) {
+		// Extract to a temporary directory
+		const tmpDir = path.join(__dirname, "tmp");
+		await unzip(source, tmpDir, sendProgress);
+
+		// Copy only the mods folder
+		const tmpSrc = path.join(tmpDir, modsSubdirLocation);
+
+		// Need to set the mod type here because the source was a compressed file when the Mod object was created,
+		// so no mod type can be found until the file is decompressed so the folders can be walked
+		mod.type = getModTypeFromModsSubdir(tmpSrc);
+
+		await this.cp(tmpSrc, dest);
+
+		// Delete the temporary dir
+		fs.rmSync(tmpDir, { recursive: true });
 	}
 
 	/**
@@ -320,7 +384,7 @@ export default class ModInstaller {
 		await extractRar(source, tmpPath);
 
 		// let's look for helmet.edf as that seems to hold the juice for helmet models
-		// If a directory contains a helmet.edf, that helmet goes in modsFolder/rider/helmets
+		// If a directory contains a helmet.edf, that directory goes in modsFolder/rider/helmets
 
 		await this.installHelmetsFolder(tmpPath);
 
