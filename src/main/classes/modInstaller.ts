@@ -13,9 +13,11 @@ import {
 
 import { promptQuestion, promptSelectFile } from "../utils/dialogHelper";
 
-import PitkitLib from "./pitkitLib";
-import Decompressor from "./decompressor";
-import FolderStructure from "./folderStructure";
+import Decompressor from "./Decompressor";
+import FolderStructure from "./FolderStructure";
+import { ArchiveScanner } from "../services/ArchiveScanner";
+import { cpRecurse, isDir } from "../utils/FileSystemUtils";
+import { getModTypeFromModsSubdir } from "../services/ModClassifier";
 
 /**
  * TODO: rar files need to be checked for a mods subdir
@@ -31,13 +33,13 @@ export default class ModInstaller {
 	private modsFolder: string;
 	private tmpDir: string;
 	private decompressor: Decompressor;
-	private pitkitLib: PitkitLib;
+	private archiveScanner: ArchiveScanner;
 
 	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
 		this.modsFolder = modsFolder;
 		this.tmpDir = path.join(os.tmpdir(), "pitkit-extract");
 		this.decompressor = new Decompressor(sendProgress);
-		this.pitkitLib = new PitkitLib();
+		this.archiveScanner = new ArchiveScanner();
 	}
 
 	/**
@@ -85,7 +87,7 @@ export default class ModInstaller {
 		// Stage 3: Check for a mods subdirectory IF the file type is zip or a folder.
 		console.log("Checking for mods subdir");
 
-		const modsSubdirLocation = await this.pitkitLib.subdirExists(
+		const modsSubdirLocation = await this.archiveScanner.subdirExists(
 			source,
 			"mods"
 		);
@@ -96,8 +98,8 @@ export default class ModInstaller {
 			const dest = path.dirname(this.modsFolder);
 
 			const ext = path.extname(source);
-			if (this.pitkitLib.isDir(source)) {
-				this.pitkitLib.cp(modsSubdirLocation, dest);
+			if (isDir(source)) {
+				cpRecurse(modsSubdirLocation, dest);
 				mod.files.setEntriesFromFolder(modsSubdirLocation);
 			} else {
 				switch (ext) {
@@ -169,9 +171,9 @@ export default class ModInstaller {
 
 		// Need to set the mod type here because the source was a compressed file when the Mod object was created,
 		// so no mod type can be found until the file is decompressed so the folders can be walked
-		mod.type = this.pitkitLib.getModTypeFromModsSubdir(tmpSrc);
+		mod.type = getModTypeFromModsSubdir(tmpSrc);
 
-		await this.pitkitLib.cp(tmpSrc, dest);
+		await cpRecurse(tmpSrc, dest);
 		fs.rmSync(this.tmpDir, { recursive: true });
 	}
 
@@ -189,10 +191,10 @@ export default class ModInstaller {
 
 		// Copy only the mods folder
 		const tmpSrc = path.join(this.tmpDir, modsSubdirLocation);
-		mod.type = this.pitkitLib.getModTypeFromModsSubdir(tmpSrc);
+		mod.type = getModTypeFromModsSubdir(tmpSrc);
 		console.log("tmp src: ", tmpSrc);
 
-		await this.pitkitLib.cp(tmpSrc, dest);
+		await cpRecurse(tmpSrc, dest);
 
 		sendProgress(100);
 
@@ -230,7 +232,7 @@ export default class ModInstaller {
 		mod.trackType = trackType;
 		const dest = path.join(this.modsFolder, "tracks", trackType);
 		try {
-			await this.pitkitLib.cp(source, dest);
+			await cpRecurse(source, dest);
 		} catch (err) {
 			console.error(err);
 		}
@@ -267,7 +269,10 @@ export default class ModInstaller {
 		mod: Mod
 	): Promise<void | Mod> {
 		console.log("Installing rider mod");
-		const riderSubdir = await this.pitkitLib.subdirExists(source, "rider");
+		const riderSubdir = await this.archiveScanner.subdirExists(
+			source,
+			"rider"
+		);
 		console.log("Rider subdir: ", riderSubdir);
 		if (riderSubdir) {
 			console.log("Rider subdirectory exists.");
@@ -275,8 +280,8 @@ export default class ModInstaller {
 			const dest = this.modsFolder; // rider exists under mods/
 			if (path.extname(source) === ".zip") {
 				await this.decompressor.extract(source, dest);
-			} else if (this.pitkitLib.isDir(source)) {
-				await this.pitkitLib.cp(source, dest);
+			} else if (isDir(source)) {
+				await cpRecurse(source, dest);
 			}
 
 			// Done!
@@ -302,21 +307,24 @@ export default class ModInstaller {
 
 	private async installBoots(source: string, mod: Mod): Promise<Mod> {
 		console.log("Installing boots");
-		const bootsSubdir = await this.pitkitLib.subdirExists(source, "boots");
+		const bootsSubdir = await this.archiveScanner.subdirExists(
+			source,
+			"boots"
+		);
 		if (bootsSubdir) {
 			// Copy boots to rider
 			const dest = path.join(this.modsFolder, "rider");
 			if (path.extname(source) === ".zip") {
 				await this.decompressor.extract(source, dest);
 			} else {
-				this.pitkitLib.cp(source, dest);
+				cpRecurse(source, dest);
 			}
 		}
 
 		// must be a pkz, if not idk
 		if (path.extname(source) === ".pkz") {
 			const dest = path.join(this.modsFolder, "rider", "boots");
-			this.pitkitLib.cp(source, dest);
+			cpRecurse(source, dest);
 		}
 
 		return mod;
@@ -346,7 +354,7 @@ export default class ModInstaller {
 			throw new Error("Gloves should be a .pnt file");
 		}
 
-		await this.pitkitLib.cp(source, path.join(ridersDir, rider, "gloves"));
+		await cpRecurse(source, path.join(ridersDir, rider, "gloves"));
 
 		return mod;
 	}
@@ -377,7 +385,7 @@ export default class ModInstaller {
 		switch (ext) {
 			case ".pkz":
 				// New helmet model
-				await this.pitkitLib.cp(source, helmetsDir);
+				await cpRecurse(source, helmetsDir);
 				break;
 			case ".pnt":
 				// Paint for existing helmet
@@ -432,14 +440,13 @@ export default class ModInstaller {
 		const helmetDirs = this.findHelmetEdfs(source);
 		console.log("Got helmet dirs: ", helmetDirs);
 		for (const helmetDir of helmetDirs) {
-			await this.pitkitLib.cp(
+			await cpRecurse(
 				helmetDir,
 				path.join(this.modsFolder, "rider", "helmets")
 			);
 			// So after finding the helmet folders, we know that the helmet folders go in modsFolder/rider/helmets,
 			// so we need to build the folder structure accordingly
 			const root: FolderEntries = mod.files.setEntriesFromFolder(
-				this.modsFolder,
 				path.join("rider", "helmets", path.basename(helmetDir))
 			);
 			mod.files.entries = root;
@@ -467,7 +474,7 @@ export default class ModInstaller {
 			if (subfolder === "helmet.edf" || subfolder === "paints") {
 				console.log("Found helmet path in ", subfolderPath);
 				helmetDirs.push(source);
-			} else if (this.pitkitLib.isDir(subfolderPath)) {
+			} else if (isDir(subfolderPath)) {
 				console.log("Found subdirectory...", subfolder);
 				const result = this.findHelmetEdfs(subfolderPath);
 				helmetDirs.push(...result);
@@ -479,7 +486,7 @@ export default class ModInstaller {
 	private async installHelmetPnt(source: string) {
 		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
 		// Helmet paint for existing helmet model
-		// cp will create the paints folder automatically
+		// cpRecurse will create the paints folder automatically
 
 		// Need to select a helmet to install the paint into
 		const helmets = this.getHelmets();
@@ -491,7 +498,7 @@ export default class ModInstaller {
 		const helmetFolder = helmetFile.split(ext)[0];
 		const paintsFolder = path.join(helmetsDir, helmetFolder, "paints");
 		console.log("installing to paints folder: ", paintsFolder);
-		this.pitkitLib.cp(source, paintsFolder);
+		cpRecurse(source, paintsFolder);
 	}
 
 	private async installOtherMod(

@@ -1,28 +1,20 @@
-import fs from "fs";
-import path from "path";
-import yauzl from "yauzl";
-
-import { ModType } from "src/types";
 import { spawn } from "child_process";
+import fs from "fs";
+import yauzl from "yauzl";
+import path from "path";
 
-class PitkitLib {
-	/**
-	 * Recursively searches for a subdirectory, and returns the location if it exists, else null
-	 */
-	public async subdirExists(
-		source: string,
-		target: string
-	): Promise<string | null> {
-		const ft = path.extname(source);
-		switch (ft) {
+export class ArchiveScanner {
+	async subdirExists(source: string, target: string): Promise<string | null> {
+		const ext = path.extname(source);
+		switch (ext) {
 			case ".zip":
-				return await this.subdirExistsZip(source, target);
+				return this.subdirExistsZip(source, target);
 			case ".rar":
-				return await this.subdirExistsRar(source, target);
+				return this.subdirExistsRar(source, target);
 			case "":
-				return await this.subdirExistsFolder(source, target);
+				return this.subdirExistsFolder(source, target);
 			default:
-				throw new Error("Unrecognized file type: '" + ft + "'");
+				throw new Error("Unrecognized archive type: " + ext);
 		}
 	}
 
@@ -143,86 +135,4 @@ class PitkitLib {
 			});
 		});
 	}
-
-	public getModTypeFromModsSubdir(source: string): ModType {
-		// If this mod contained a mods subfolder, that means that we can
-		// get a lot of information from its directory structure.
-		// The mod type can be found by checking what subdirectory is under the mods subfolder
-		// Ex. mods->bikes === bike mod, mods->tracks === track mod, mods->rider === rider mod
-		if (!this.isDir(source)) return null;
-
-		const subfolders = fs.readdirSync(source);
-		for (const f of subfolders) {
-			switch (f) {
-				case "bikes":
-					return "bike";
-				case "tracks":
-					return "track";
-				case "rider":
-					return "rider";
-				default:
-					return "other";
-			}
-		}
-	}
-
-	public isDir(source: string): boolean {
-		try {
-			return fs.statSync(source).isDirectory();
-		} catch (err) {
-			// If source is a relative path, statSync won't be able to find it.
-			// In this case, fall back to checking the extname
-			const ft = path.extname(source);
-			if (ft === "") return true;
-			return false;
-		}
-	}
-
-	/**
-	 * Determines if a directory is empty
-	 *
-	 * @param dirname The name of the directory
-	 * @returns {boolean} Whether the directory is empty
-	 */
-	public isDirEmpty(dirname: string): boolean {
-		let files;
-		try {
-			// This will return a list of the names of all files/folders in the directory
-			files = fs.readdirSync(dirname);
-		} catch (err) {
-			console.error(err);
-			return false;
-		}
-
-		return !files.length;
-	}
-
-	/**
-	 * Copies a file from source to dest. Will create the directory recursively
-	 * if it does not exist.
-	 *
-	 * @param source The path of the file
-	 * @param dest The path of the directory the file will be copied to, will be created if it does not exist
-	 */
-	public async cp(source: string, dest: string) {
-		if (!fs.existsSync(dest)) {
-			console.log("Directory does not exist, creating directory:", dest);
-			fs.mkdirSync(dest, { recursive: true });
-		}
-
-		console.log("Copying to dest: ", dest);
-
-		const fileName = path.basename(source);
-		const destFile = path.join(dest, fileName);
-		try {
-			await fs.promises
-				.cp(source, destFile, { recursive: true })
-				.catch((err) => console.error("Error in cp: ", err));
-		} catch (err) {
-			console.log("Error in copy func: ", err);
-			throw new Error("Unable to install mod: ", err);
-		}
-	}
 }
-
-export default PitkitLib;

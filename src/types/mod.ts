@@ -1,6 +1,6 @@
 import path from "path";
 
-import FolderStructure from "src/main/classes/folderStructure";
+import FolderStructure from "src/main/classes/FolderStructure";
 
 export type TrackType = "motocross" | "supercross" | "enduro" | "supermoto";
 export type RiderModType = "boots" | "gloves" | "helmet" | "rider"; // "riders" is a whole rider, such as Rider+ or Rider+ Rolled Up

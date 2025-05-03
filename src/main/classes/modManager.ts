@@ -5,7 +5,7 @@ import os from "os";
 import { dialog, app } from "electron";
 import { mainWindow } from "../main";
 import { Mod, ModsData } from "src/types";
-import ModInstaller from "./modInstaller";
+import ModInstaller from "./ModInstaller";
 
 interface Config {
 	modsFolder: string;
