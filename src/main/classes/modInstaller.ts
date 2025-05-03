@@ -2,8 +2,6 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 
-import { app } from "electron";
-
 import {
 	FolderEntries,
 	Mod,
@@ -86,10 +84,12 @@ export default class ModInstaller {
 
 		// Stage 3: Check for a mods subdirectory IF the file type is zip or a folder.
 		console.log("Checking for mods subdir");
+
 		const modsSubdirLocation = await this.pitkitLib.subdirExists(
 			source,
 			"mods"
 		);
+
 		console.log("Mods subdir location: ", modsSubdirLocation);
 		if (modsSubdirLocation) {
 			// path.dirname will do C:\Users\bob\Documents\PiBoSo\MX Bikes\mods -> C:\Users\bob\Documents\PiBoSo\MX Bikes
@@ -98,6 +98,7 @@ export default class ModInstaller {
 			const ext = path.extname(source);
 			if (this.pitkitLib.isDir(source)) {
 				this.pitkitLib.cp(modsSubdirLocation, dest);
+				mod.files.setEntriesFromFolder(modsSubdirLocation);
 			} else {
 				switch (ext) {
 					case ".zip":
@@ -108,15 +109,17 @@ export default class ModInstaller {
 							modsSubdirLocation,
 							sendProgress
 						);
-
+						mod.files.setEntriesFromZip(modsSubdirLocation);
 						break;
 					case ".rar":
+						// The rar function sets the mod's file structure, so no need to do that here
 						await this.installWithModsSubdirRar(
 							mod,
 							source,
 							modsSubdirLocation,
 							dest
 						);
+						mod.files.setEntriesFromFolder(modsSubdirLocation);
 						break;
 					default:
 						console.error("Unrecognized file type: ", ext);
@@ -160,6 +163,9 @@ export default class ModInstaller {
 
 		// Copy only the mods subfolder
 		const tmpSrc = path.join(this.tmpDir, modsSubdirLocation);
+
+		// Set the mod files after extraction, need the directory relative to the mods
+		mod.files.setEntriesFromFolder(modsSubdirLocation);
 
 		// Need to set the mod type here because the source was a compressed file when the Mod object was created,
 		// so no mod type can be found until the file is decompressed so the folders can be walked

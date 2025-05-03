@@ -44,17 +44,34 @@ class FolderStructure {
 		this.modsFolder = modsFolder;
 	}
 
+	// source should actually be an absolute path to the source folder...
+	// if we get passed a rar, extract it to a temp dir, then build the folder structure from the temp dir
+	// same if we get passed a zip
+	// If we get passed a folder, no need to build the folder structure from the temp dir, we can just build it from source path.
+	public async setEntries(source: string) {
+		// but if not... i need more information... like where the source is installed at.
+		// So if there's no mods subdir, then source will be just a folder that we don't know where it was installed to...
+		// So if we get passed a source with no mods subfolder, what do we do ?
+		// we'll need relative dirs from the mods folder up to source.
+		// So for example if source is Skull and it's installed in mods/rider/helmets/Skull,
+		// we'll get passed C:/Users/Downloads/Skull, and we'll need "mods/rider/helmets",
+		// that is all the data that we need because it is impossible for the mod to contain any
+		// other files or subfolders other than the ones listed in relative dirs
+		// BUT if source is Skull/mods/rider/helmets/Skull, all that data is already there.
+		// Maybe we should ALWAYS pass source as relative to mods, so we will build up relative dirs during the install process, then set the entries at the end.
+		// BUT we have to make sure not to build the mod from the modsFolder as it could contain other files not relevant to the mod, we have to build the mod using ONLY
+		// the files from the source. So... we should build the entries from os.tmpdir/PitkitExtract/mods/rider/helmets/Skull, but that means we'd have to build up our own
+		// mods directory before extracting, which will not work with our current setup
+	}
+
 	public async setEntriesFromZip(source: string) {
 		this.entries = await this.parseZipFile(source);
 	}
 
 	// Folder should be relative to modsFolder
-	public setEntriesFromFolder(
-		modsFolder: string,
-		relativeDir: string
-	): FolderEntries {
+	public setEntriesFromFolder(relativeDir: string): FolderEntries {
 		console.log("Got relative dir: ", relativeDir);
-		return this.buildFolderStructFromDir(modsFolder, relativeDir);
+		return this.buildFolderStructFromDir(relativeDir);
 	}
 
 	/** PRIVATE **/
@@ -95,7 +112,7 @@ class FolderStructure {
 		}
 	}
 
-	private buildFolderStructFromDir(modsFolder: string, dir: string) {
+	private buildFolderStructFromDir(dir: string) {
 		const root: FolderEntries = {
 			files: [],
 			subfolders: {},
@@ -110,7 +127,7 @@ class FolderStructure {
 			current = current.subfolders[dir];
 		}
 
-		this.addDirToFolderStruct(current, path.join(modsFolder, dir));
+		this.addDirToFolderStruct(current, path.join(this.modsFolder, dir));
 
 		console.log("Built root: ", root);
 		return root;
