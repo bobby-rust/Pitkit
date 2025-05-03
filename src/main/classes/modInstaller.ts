@@ -1,44 +1,23 @@
-import unzip from "./utils/unzip";
 import path from "path";
+import os from "os";
 import fs from "fs";
+
+import { app } from "electron";
+
 import {
-	FolderStructure,
+	FolderEntries,
 	Mod,
 	ModsData,
 	ModType,
 	RiderModType,
 	TrackType,
-} from "../types/types";
-import { promptQuestion, promptSelectFile } from "./utils/dialogHelper";
-import {
-	subdirExists,
-	isDir,
-	extractRar,
-	getModTypeFromModsSubdir,
-} from "./utils/lib";
-import extractZip from "./utils/unzip";
+} from "../../types";
 
-const WHITELISTED_DIRS: Set<string> = new Set([
-	"bikes",
-	"tracks",
-	"rider",
-	"tyres",
-	"misc",
-	"fonts",
-	"pitboard",
-	"animations",
-	"boots",
-	"fonts",
-	"helmetcams",
-	"helmets",
-	"protections",
-	"riders",
-	"default_mx",
-	"enduro",
-	"motocross",
-	"supercross",
-	"supermoto",
-]);
+import { promptQuestion, promptSelectFile } from "../utils/dialogHelper";
+
+import PitkitLib from "./pitkitLib";
+import Decompressor from "./decompressor";
+import FolderStructure from "./folderStructure";
 
 /**
  * TODO: rar files need to be checked for a mods subdir
@@ -52,13 +31,17 @@ export default class ModInstaller {
 	 */
 
 	private modsFolder: string;
-	private sendProgress: (progress: number) => void;
+	private tmpDir: string;
+	private decompressor: Decompressor;
+	private pitkitLib: PitkitLib;
 
 	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
-		console.log("Creating mod installer instance : ", modsFolder);
 		this.modsFolder = modsFolder;
-		this.sendProgress = sendProgress;
+		this.tmpDir = path.join(os.tmpdir(), "pitkit-extract");
+		this.decompressor = new Decompressor(sendProgress);
+		this.pitkitLib = new PitkitLib();
 	}
+
 	/**
 	 * Installs a mod
 	 * @param modsFolder The folder where the user's mods are located
@@ -68,7 +51,7 @@ export default class ModInstaller {
 		sendProgress: (progress: number) => void,
 		source?: string
 	): Promise<Mod | void> {
-		console.log("Iinstaling mod");
+		console.log("Instaling mod");
 		// Mod install process:
 		// Stage 1: File selection
 		// Stage 2: Add a custom name if desired, if not just use the file/folder name.
@@ -83,6 +66,7 @@ export default class ModInstaller {
 		// Stage 11: If helmet, copy folder to helmets directory.
 		// Stage 12: If gloves, Select which rider to install the gloves on, and copy the pnt to the correct location.
 		// Stage 13: If riders, Copy the folder to the riders directory.
+		// Final Stage: Set the file structure of the mod and return it to be saved to disk by the mod manager.
 
 		// Stage 1: File selection
 		if (!source) {
@@ -92,10 +76,9 @@ export default class ModInstaller {
 			throw new Error("Cancelled mod install");
 		}
 
-		console.log("MODS FOLDER: ", this.modsFolder);
-
 		// NOTE: Mod.from() does not set the track type.
 		const mod: Mod = await Mod.from(source);
+		mod.files = new FolderStructure(this.modsFolder);
 
 		// Stage 2: Add a custom name if desired (Skip for now, QoL feature).
 		// Can set mod.name if a custom name is desired
@@ -103,15 +86,18 @@ export default class ModInstaller {
 
 		// Stage 3: Check for a mods subdirectory IF the file type is zip or a folder.
 		console.log("Checking for mods subdir");
-		const modsSubdirLocation = await subdirExists(source, "mods");
+		const modsSubdirLocation = await this.pitkitLib.subdirExists(
+			source,
+			"mods"
+		);
 		console.log("Mods subdir location: ", modsSubdirLocation);
 		if (modsSubdirLocation) {
-			// path.dirname will do C:/Documents/mods -> C:/Documents
+			// path.dirname will do C:\Users\bob\Documents\PiBoSo\MX Bikes\mods -> C:\Users\bob\Documents\PiBoSo\MX Bikes
 			const dest = path.dirname(this.modsFolder);
 
 			const ext = path.extname(source);
-			if (isDir(source)) {
-				this.cp(modsSubdirLocation, dest);
+			if (this.pitkitLib.isDir(source)) {
+				this.pitkitLib.cp(modsSubdirLocation, dest);
 			} else {
 				switch (ext) {
 					case ".zip":
@@ -170,18 +156,17 @@ export default class ModInstaller {
 		dest: string
 	) {
 		// Ext
-		const tmpDir = path.join(__dirname, "tmp");
-		await extractRar(source, tmpDir);
+		await this.decompressor.extract(source, this.tmpDir);
 
 		// Copy only the mods subfolder
-		const tmpSrc = path.join(tmpDir, modsSubdirLocation);
+		const tmpSrc = path.join(this.tmpDir, modsSubdirLocation);
 
 		// Need to set the mod type here because the source was a compressed file when the Mod object was created,
 		// so no mod type can be found until the file is decompressed so the folders can be walked
-		mod.type = getModTypeFromModsSubdir(tmpSrc);
+		mod.type = this.pitkitLib.getModTypeFromModsSubdir(tmpSrc);
 
-		await this.cp(tmpSrc, dest);
-		fs.rmSync(tmpDir, { recursive: true });
+		await this.pitkitLib.cp(tmpSrc, dest);
+		fs.rmSync(this.tmpDir, { recursive: true });
 	}
 
 	private async installWithModsSubdirZip(
@@ -193,21 +178,20 @@ export default class ModInstaller {
 	) {
 		console.log("DEST: ", dest);
 		// Extract to a temporary directory
-		const tmpDir = path.join(__dirname, "tmp");
-		console.log("tmp dir: ", tmpDir);
-		await unzip(source, tmpDir, sendProgress);
+		console.log("tmp dir: ", this.tmpDir);
+		await this.decompressor.extract(source, this.tmpDir);
 
 		// Copy only the mods folder
-		const tmpSrc = path.join(tmpDir, modsSubdirLocation);
-		mod.type = getModTypeFromModsSubdir(tmpSrc);
+		const tmpSrc = path.join(this.tmpDir, modsSubdirLocation);
+		mod.type = this.pitkitLib.getModTypeFromModsSubdir(tmpSrc);
 		console.log("tmp src: ", tmpSrc);
 
-		await this.cp(tmpSrc, dest);
+		await this.pitkitLib.cp(tmpSrc, dest);
 
 		sendProgress(100);
 
 		// Delete the temporary dir
-		fs.rmSync(tmpDir, { recursive: true });
+		fs.rmSync(this.tmpDir, { recursive: true });
 	}
 
 	/**
@@ -238,13 +222,30 @@ export default class ModInstaller {
 	): Promise<void | Mod> {
 		const trackType = await this.selectTrackType(mod.name);
 		mod.trackType = trackType;
-		const dest = path.join(this.modsFolder, "tracks", trackType, mod.name);
+		const dest = path.join(this.modsFolder, "tracks", trackType);
 		try {
-			await this.cp(source, dest);
+			await this.pitkitLib.cp(source, dest);
 		} catch (err) {
 			console.error(err);
 		}
 
+		// The FolderStructure of the mod is unknown up until this point for a track pkz
+		const entries: FolderEntries = {
+			files: [],
+			subfolders: {
+				tracks: {
+					files: [],
+					subfolders: {
+						[trackType]: {
+							files: [path.basename(source)],
+							subfolders: {},
+						},
+					},
+				},
+			},
+		};
+
+		mod.files.entries = entries;
 		return mod;
 	}
 
@@ -260,16 +261,16 @@ export default class ModInstaller {
 		mod: Mod
 	): Promise<void | Mod> {
 		console.log("Installing rider mod");
-		const riderSubdir = await subdirExists(source, "rider");
+		const riderSubdir = await this.pitkitLib.subdirExists(source, "rider");
 		console.log("Rider subdir: ", riderSubdir);
 		if (riderSubdir) {
 			console.log("Rider subdirectory exists.");
 			// Could be a zip here
 			const dest = this.modsFolder; // rider exists under mods/
 			if (path.extname(source) === ".zip") {
-				await unzip(source, dest, this.sendProgress);
-			} else if (isDir(source)) {
-				await this.cp(source, dest);
+				await this.decompressor.extract(source, dest);
+			} else if (this.pitkitLib.isDir(source)) {
+				await this.pitkitLib.cp(source, dest);
 			}
 
 			// Done!
@@ -295,21 +296,21 @@ export default class ModInstaller {
 
 	private async installBoots(source: string, mod: Mod): Promise<Mod> {
 		console.log("Installing boots");
-		const bootsSubdir = await subdirExists(source, "boots");
+		const bootsSubdir = await this.pitkitLib.subdirExists(source, "boots");
 		if (bootsSubdir) {
 			// Copy boots to rider
 			const dest = path.join(this.modsFolder, "rider");
 			if (path.extname(source) === ".zip") {
-				await unzip(source, dest, this.sendProgress);
+				await this.decompressor.extract(source, dest);
 			} else {
-				this.cp(source, dest);
+				this.pitkitLib.cp(source, dest);
 			}
 		}
 
 		// must be a pkz, if not idk
 		if (path.extname(source) === ".pkz") {
 			const dest = path.join(this.modsFolder, "rider", "boots");
-			this.cp(source, dest);
+			this.pitkitLib.cp(source, dest);
 		}
 
 		return mod;
@@ -339,7 +340,7 @@ export default class ModInstaller {
 			throw new Error("Gloves should be a .pnt file");
 		}
 
-		await this.cp(source, path.join(ridersDir, rider, "gloves"));
+		await this.pitkitLib.cp(source, path.join(ridersDir, rider, "gloves"));
 
 		return mod;
 	}
@@ -360,6 +361,9 @@ export default class ModInstaller {
 	 * In mods/rider/helmets, the folders contain the helmet files or encrypted pkz files. They cannot be nested deeper within directories or they will not be found.
 	 */
 	private async installHelmet(source: string, mod: Mod): Promise<Mod> {
+		// make sure the mod type is correct if the user manually selected helmet
+		mod.type = "rider";
+
 		// Get the directory of the helmets
 		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
 
@@ -367,7 +371,7 @@ export default class ModInstaller {
 		switch (ext) {
 			case ".pkz":
 				// New helmet model
-				await this.cp(source, helmetsDir);
+				await this.pitkitLib.cp(source, helmetsDir);
 				break;
 			case ".pnt":
 				// Paint for existing helmet
@@ -376,14 +380,14 @@ export default class ModInstaller {
 			case ".rar":
 				// Helmet pack, must be extracted and the folders containing
 				// the helmet files must be found and installed
-				await this.installHelmetRar(source);
+				await this.installHelmetRar(mod, source);
 				break;
 			case ".zip":
-				await this.installHelmetZip(source);
+				await this.installHelmetZip(mod, source);
 				break;
 			case "":
 				// a folder, treat the same way as an extracted rar
-				await this.installHelmetsFolder(source);
+				await this.installHelmetsFolder(mod, source);
 				break;
 			default:
 				console.error(
@@ -399,36 +403,40 @@ export default class ModInstaller {
 	}
 
 	private async installRider(source: string, mod: Mod): Promise<Mod> {
-		return mod;
+		throw new Error("Method not implemented");
 	}
 
-	private async installHelmetZip(source: string) {
-		const tmpPath = path.join(__dirname, "tmp");
-		await extractZip(source, tmpPath, () => null); // dummy function, no progress tracking
-		await this.installHelmetsFolder(tmpPath);
+	private async installHelmetZip(mod: Mod, source: string) {
+		await this.decompressor.extract(source, this.tmpDir); // dummy function, no progress tracking
+		await this.installHelmetsFolder(mod, this.tmpDir);
 	}
 
-	private async installHelmetRar(source: string) {
-		const tmpPath = path.join(__dirname, "tmp");
-
-		await extractRar(source, tmpPath);
+	private async installHelmetRar(mod: Mod, source: string) {
+		await this.decompressor.extract(source, this.tmpDir);
 
 		// let's look for helmet.edf as that seems to hold the juice for helmet models
 		// If a directory contains a helmet.edf, that directory goes in modsFolder/rider/helmets
 
-		await this.installHelmetsFolder(tmpPath);
+		await this.installHelmetsFolder(mod, this.tmpDir);
 
-		fs.rmSync(tmpPath, { recursive: true });
+		fs.rmSync(this.tmpDir, { recursive: true });
 	}
 
-	private async installHelmetsFolder(source: string) {
+	private async installHelmetsFolder(mod: Mod, source: string) {
 		const helmetDirs = this.findHelmetEdfs(source);
 		console.log("Got helmet dirs: ", helmetDirs);
 		for (const helmetDir of helmetDirs) {
-			await this.cp(
+			await this.pitkitLib.cp(
 				helmetDir,
 				path.join(this.modsFolder, "rider", "helmets")
 			);
+			// So after finding the helmet folders, we know that the helmet folders go in modsFolder/rider/helmets,
+			// so we need to build the folder structure accordingly
+			const root: FolderEntries = mod.files.setEntriesFromFolder(
+				this.modsFolder,
+				path.join("rider", "helmets", path.basename(helmetDir))
+			);
+			mod.files.entries = root;
 		}
 	}
 
@@ -453,7 +461,7 @@ export default class ModInstaller {
 			if (subfolder === "helmet.edf" || subfolder === "paints") {
 				console.log("Found helmet path in ", subfolderPath);
 				helmetDirs.push(source);
-			} else if (isDir(subfolderPath)) {
+			} else if (this.pitkitLib.isDir(subfolderPath)) {
 				console.log("Found subdirectory...", subfolder);
 				const result = this.findHelmetEdfs(subfolderPath);
 				helmetDirs.push(...result);
@@ -477,7 +485,14 @@ export default class ModInstaller {
 		const helmetFolder = helmetFile.split(ext)[0];
 		const paintsFolder = path.join(helmetsDir, helmetFolder, "paints");
 		console.log("installing to paints folder: ", paintsFolder);
-		this.cp(source, paintsFolder);
+		this.pitkitLib.cp(source, paintsFolder);
+	}
+
+	private async installOtherMod(
+		source: string,
+		mod: Mod
+	): Promise<void | Mod> {
+		throw new Error("Method not implemented.");
 	}
 
 	private getHelmets(): string[] {
@@ -494,6 +509,15 @@ export default class ModInstaller {
 		return files;
 	}
 
+	public async uninstallMod(
+		modsFolder: string,
+		mods: ModsData,
+		modName: string
+	) {
+		const modToRemove = mods.get(modName);
+		modToRemove.files.delete(modsFolder);
+	}
+
 	private async selectRiderModType(modName: string): Promise<RiderModType> {
 		const types: RiderModType[] = ["boots", "gloves", "helmet", "rider"];
 		const riderModType = await promptQuestion(
@@ -502,119 +526,6 @@ export default class ModInstaller {
 			types
 		);
 		return riderModType as RiderModType;
-	}
-
-	private async installOtherMod(
-		source: string,
-		mod: Mod
-	): Promise<void | Mod> {
-		throw new Error("Method not implemented.");
-	}
-
-	public async uninstallMod(
-		modsFolder: string,
-		mods: ModsData,
-		modName: string
-	) {
-		const modToRemove = mods.get(modName);
-		this.deleteFolderStructure(modToRemove.files, modsFolder);
-	}
-
-	/**
-	 * Recursively delete all files from a FolderStructure.
-	 * If folders are empty after deleting all files, those folders will also be deleted.
-	 *
-	 * @param folderStructure The FolderStructure object of the Mod
-	 * @param currentDirectory The current directory that files/folders are being deleted from
-	 */
-	private deleteFolderStructure(
-		folderStructure: FolderStructure,
-		currentDirectory: string
-	) {
-		// For each file in current directory
-		for (const file of folderStructure.files) {
-			try {
-				// rm the file
-				fs.rmSync(path.join(currentDirectory, file), {
-					recursive: true,
-				});
-			} catch (err) {
-				// error, continue anyways to delete the rest
-				console.error(err);
-			}
-		}
-
-		// Check subfolders before checking to delete the current folder
-		// For each subfolder name and FolderStructure associated with it
-		for (const [k, v] of Object.entries(folderStructure.subfolders)) {
-			// The current directory is the current directory plus the name of the current subfolder
-			currentDirectory = path.join(currentDirectory, k);
-			this.deleteFolderStructure(v, currentDirectory);
-			// Reset the current directory because there may be other folders in the current directory that need to be deleted
-			currentDirectory = path.dirname(currentDirectory);
-		}
-
-		// Now all subfolders of the current folder have been checked, see if the current folder needs to be deleted
-		try {
-			// If the folder is empty AND it is not a whitelisted folder (folders that the base game creates in the mods directory), delete it
-			console.log("Current dir: ", currentDirectory);
-			const isDirectoryEmpty = this.isDirEmpty(currentDirectory);
-			const basename = path.basename(currentDirectory);
-			const isWhitelisted = WHITELISTED_DIRS.has(basename);
-			console.log("is directory empty? ", isDirectoryEmpty);
-			console.log("Is whitelisted ", isWhitelisted);
-			if (isDirectoryEmpty && !isWhitelisted) {
-				fs.rmSync(currentDirectory, { recursive: true });
-			}
-		} catch (err) {
-			console.error(err);
-		}
-	}
-
-	/**
-	 * Determines if a directory is empty
-	 *
-	 * @param dirname The name of the directory
-	 * @returns {boolean} Whether the directory is empty
-	 */
-	private isDirEmpty(dirname: string): boolean {
-		let files;
-		try {
-			// This will return a list of the names of all files/folders in the directory
-			files = fs.readdirSync(dirname);
-		} catch (err) {
-			console.error(err);
-			return false;
-		}
-
-		return !files.length;
-	}
-
-	/**
-	 * Copies a file from source to dest. Will create the directory recursively
-	 * if it does not exist.
-	 *
-	 * @param source The path of the file
-	 * @param dest The path of the directory the file will be copied to, will be created if it does not exist
-	 */
-	private async cp(source: string, dest: string) {
-		if (!fs.existsSync(dest)) {
-			console.log("Directory does not exist, creating directory:", dest);
-			fs.mkdirSync(dest, { recursive: true });
-		}
-
-		console.log("Copying to dest: ", dest);
-
-		const fileName = path.basename(source);
-		const destFile = path.join(dest, fileName);
-		try {
-			await fs.promises
-				.cp(source, destFile, { recursive: true })
-				.catch((err) => console.error("Error in cp: ", err));
-		} catch (err) {
-			console.log("Error in copy func: ", err);
-			throw new Error("Unable to install mod: ", err);
-		}
 	}
 
 	/**

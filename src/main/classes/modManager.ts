@@ -3,9 +3,8 @@ import fs, { existsSync } from "fs";
 import path from "path";
 import os from "os";
 import { dialog, app } from "electron";
-import { mainWindow } from "./main";
-import { Mod, ModsData } from "src/types/types";
-import { loadMods } from "./utils/loadMods";
+import { mainWindow } from "../main";
+import { Mod, ModsData } from "src/types";
 import ModInstaller from "./modInstaller";
 
 interface Config {
@@ -76,10 +75,36 @@ export default class ModManager {
 	}
 
 	public loadMods() {
-		this.mods = loadMods();
+		this.mods = this.getModsData();
 		// Send mods to renderer as soon as we load them
 		const modsObject = Object.fromEntries(this.getMods());
 		mainWindow.webContents.send("send-mods-data", modsObject);
+	}
+
+	private getModsData(): ModsData {
+		const filePath = path.join(app.getPath("userData"), "mods.json");
+		const dir = path.dirname(filePath);
+		if (!fs.existsSync(dir)) {
+			fs.mkdirSync(dir);
+		}
+
+		if (!fs.existsSync(filePath)) {
+			fs.writeFileSync(filePath, "{}");
+		}
+
+		const modsDataFileContents = fs.readFileSync(filePath, "utf-8").trim();
+
+		const modsDataObject = JSON.parse(modsDataFileContents);
+
+		const modsData: ModsData = new Map<string, Mod>();
+
+		Object.entries(modsDataObject).forEach(([key, value]) => {
+			modsData.set(key, value as Mod);
+		});
+
+		console.log("Loaded mods data: ", modsData);
+
+		return modsData;
 	}
 
 	public sendProgressToRenderer(progress: number) {
@@ -142,8 +167,8 @@ export default class ModManager {
 	}
 
 	private writeModsToDisk() {
-		console.log("Writing mods to disk: ", this.mods);
-		const dataDir = path.join(__dirname, "data");
+		const dataDir = app.getPath("userData");
+		console.log("Data dir: ", dataDir);
 		if (!existsSync(dataDir)) {
 			fs.mkdirSync(dataDir, { recursive: true });
 		}

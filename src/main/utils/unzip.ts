@@ -2,7 +2,7 @@ import yauzl from "yauzl";
 import path from "path";
 import fs from "fs";
 
-export default async function extractZip(
+export default async function unzip(
 	source: string,
 	destination: string,
 	sendProgress: (progress: number) => void
