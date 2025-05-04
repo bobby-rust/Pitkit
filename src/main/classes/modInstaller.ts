@@ -21,6 +21,20 @@ import { getModTypeFromModsSubdir } from "../services/ModClassifier";
 
 /**
  * TODO: allow selecting folders when selecting mod to install
+ *
+ * For cases where there is no mods subdir, it is fine to build folder
+ * entries manually since we're installing the mod manually,
+ * no need to extract to tmpdir then build the mods folder ourselves.
+ * We can also search for the correct files instead of trusting that the user passed the
+ * actual pkz when they may have passed a folder or archive containing a pkz.
+ *
+ * There are cases where the mods weren't packed correctly and contain a mods subdir
+ * but with the wrong structure so the mod won't install correctly. For example,
+ * I have personally seen SomeMod/mods/bikes/mod/bikes/<actual bike mod> on SMOEM_v0.15.1_full.zip
+ * which is the __official__(!!) OEM supermoto v15.1 bikes found at https://mxb-mods.com/supermoto-oem-v0-15-1/
+ * So that won't install correctly.
+ *
+ *
  */
 export default class ModInstaller {
 	/**
