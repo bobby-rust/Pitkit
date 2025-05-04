@@ -20,8 +20,7 @@ import { cpRecurse, isDir } from "../utils/FileSystemUtils";
 import { getModTypeFromModsSubdir } from "../services/ModClassifier";
 
 /**
- * TODO: rar files need to be checked for a mods subdir
- * TODO: folders cannot be selected using the install button
+ * TODO: allow selecting folders when selecting mod to install
  */
 export default class ModInstaller {
 	/**
@@ -90,13 +89,13 @@ export default class ModInstaller {
 		mod.type = modType;
 		switch (modType) {
 			case "bike":
-				return await this.installBikeMod(source, mod);
+				return await this.installBikeMod(mod, source);
 			case "track":
-				return await this.installTrackMod(source, mod);
+				return await this.installTrackMod(mod, source);
 			case "rider":
-				return await this.installRiderMod(source, mod);
+				return await this.installRiderMod(mod, source);
 			case "other":
-				return await this.installOtherMod(source, mod);
+				return await this.installOtherMod(mod, source);
 		}
 	}
 
@@ -159,8 +158,8 @@ export default class ModInstaller {
 	 * and a folder with the same name as the pkz file to store paints
 	 */
 	private async installBikeMod(
-		source: string,
-		mod: Mod
+		mod: Mod,
+		source: string
 	): Promise<void | Mod> {
 		throw new Error("Method not implemented.");
 	}
@@ -170,9 +169,11 @@ export default class ModInstaller {
 	 * be extracted, the file can simply be copied to the destination.
 	 */
 	private async installTrackMod(
-		source: string,
-		mod: Mod
+		mod: Mod,
+		source: string
 	): Promise<void | Mod> {
+		// TODO: to make this function more robust, search for a pkz file,
+		// and handle cases where it is not a pkz
 		const trackType = await this.selectTrackType(mod.name);
 		mod.trackType = trackType;
 		const dest = path.join(this.modsFolder, "tracks", trackType);
@@ -210,8 +211,8 @@ export default class ModInstaller {
 	 * Some rider mods contain a "rider" directory that can simply be moved into the mods folder
 	 */
 	private async installRiderMod(
-		source: string,
-		mod: Mod
+		mod: Mod,
+		source: string
 	): Promise<void | Mod> {
 		console.log("Installing rider mod");
 		const riderSubdir = await this.archiveScanner.subdirExists(
@@ -240,17 +241,17 @@ export default class ModInstaller {
 
 		switch (riderModType) {
 			case "boots":
-				return await this.installBoots(source, mod);
+				return await this.installBoots(mod, source);
 			case "gloves":
-				return await this.installGloves(source, mod);
+				return await this.installGloves(mod, source);
 			case "helmet":
-				return await this.installHelmet(source, mod);
+				return await this.installHelmet(mod, source);
 			case "rider":
-				return await this.installRider(source, mod);
+				return await this.installRider(mod, source);
 		}
 	}
 
-	private async installBoots(source: string, mod: Mod): Promise<Mod> {
+	private async installBoots(mod: Mod, source: string): Promise<Mod> {
 		console.log("Installing boots");
 		const bootsSubdir = await this.archiveScanner.subdirExists(
 			source,
@@ -279,7 +280,7 @@ export default class ModInstaller {
 	 * Gloves belong to a specific rider
 	 * Gloves should be a .pnt file
 	 */
-	private async installGloves(source: string, mod: Mod): Promise<Mod> {
+	private async installGloves(mod: Mod, source: string): Promise<Mod> {
 		// Get the available riders
 		const riders = this.getRiders();
 		console.log("Got riders: ", riders);
@@ -319,7 +320,7 @@ export default class ModInstaller {
 	 * the correct folders can be found by finding which subdirectories actually contain the helmet files.
 	 * In mods/rider/helmets, the folders contain the helmet files or encrypted pkz files. They cannot be nested deeper within directories or they will not be found.
 	 */
-	private async installHelmet(source: string, mod: Mod): Promise<Mod> {
+	private async installHelmet(mod: Mod, source: string): Promise<Mod> {
 		// make sure the mod type is correct if the user manually selected helmet
 		mod.type = "rider";
 
@@ -361,7 +362,7 @@ export default class ModInstaller {
 		return mod;
 	}
 
-	private async installRider(source: string, mod: Mod): Promise<Mod> {
+	private async installRider(mod: Mod, source: string): Promise<Mod> {
 		throw new Error("Method not implemented");
 	}
 
@@ -447,8 +448,8 @@ export default class ModInstaller {
 	}
 
 	private async installOtherMod(
-		source: string,
-		mod: Mod
+		mod: Mod,
+		source: string
 	): Promise<void | Mod> {
 		throw new Error("Method not implemented.");
 	}
