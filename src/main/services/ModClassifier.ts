@@ -7,7 +7,7 @@ export function getModTypeFromModsSubdir(source: string): ModType {
 	const subfolders = fs.readdirSync(source);
 
 	for (const f of subfolders) {
-		switch (f) {
+		switch (f.toLowerCase()) {
 			case "bikes":
 				return "bike";
 			case "tracks":

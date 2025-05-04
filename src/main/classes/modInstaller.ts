@@ -14,7 +14,7 @@ import {
 import { promptQuestion, promptSelectFile } from "../utils/dialogHelper";
 
 import Decompressor from "./Decompressor";
-import FolderStructure from "./FolderStructure";
+import FolderStructureBuilder from "../services/FolderStructureBuilder";
 import { ArchiveScanner } from "../services/ArchiveScanner";
 import { cpRecurse, isDir } from "../utils/FileSystemUtils";
 import { getModTypeFromModsSubdir } from "../services/ModClassifier";
@@ -37,7 +37,7 @@ export default class ModInstaller {
 
 	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
 		this.modsFolder = modsFolder;
-		this.tmpDir = path.join(os.tmpdir(), "pitkit-extract");
+		this.tmpDir = path.join(os.tmpdir(), "PitkitExtract");
 		this.decompressor = new Decompressor(sendProgress);
 		this.archiveScanner = new ArchiveScanner();
 	}
@@ -51,23 +51,6 @@ export default class ModInstaller {
 		sendProgress: (progress: number) => void,
 		source?: string
 	): Promise<Mod | void> {
-		console.log("Instaling mod");
-		// Mod install process:
-		// Stage 1: File selection
-		// Stage 2: Add a custom name if desired, if not just use the file/folder name.
-		// Stage 3: Check for a mods subdirectory.
-		// Stage 4: If it has a mods subdirectory, install it and we're done!
-		// Stage 5: No mods subdirectory, continue to manual installation process.
-		// Stage 6: Manual installation process - Select Mod Type (Bike, Track, Rider, Other)
-		// Stage 7: Case 1 - Bike => Copy pkz & folder with the same name as the pkz file (Create if not exists) to bikes folder.
-		// Stage 8: Case 2 - Track => Select Track Type (SX, MX, Enduro, SM). Install pkz file to selected location.
-		// Stage 9: Case 3 - Rider => Select Rider Mod Type (boots, helmet, gloves, rider)
-		// Stage 10: If boots, copy pkz to boots folder.
-		// Stage 11: If helmet, copy folder to helmets directory.
-		// Stage 12: If gloves, Select which rider to install the gloves on, and copy the pnt to the correct location.
-		// Stage 13: If riders, Copy the folder to the riders directory.
-		// Final Stage: Set the file structure of the mod and return it to be saved to disk by the mod manager.
-
 		// Stage 1: File selection
 		if (!source) {
 			source = await this.selectMod();
@@ -78,7 +61,6 @@ export default class ModInstaller {
 
 		// NOTE: Mod.from() does not set the track type.
 		const mod: Mod = await Mod.from(source);
-		mod.files = new FolderStructure(this.modsFolder);
 
 		// Stage 2: Add a custom name if desired (Skip for now, QoL feature).
 		// Can set mod.name if a custom name is desired
@@ -87,54 +69,22 @@ export default class ModInstaller {
 		// Stage 3: Check for a mods subdirectory IF the file type is zip or a folder.
 		console.log("Checking for mods subdir");
 
-		const modsSubdirLocation = await this.archiveScanner.subdirExists(
+		// If source is a folder, this will hold an absolute path.
+		// If it is a rar or zip, this will hold a path relative to source.
+		const pathToModsSubdir = await this.archiveScanner.subdirExists(
 			source,
 			"mods"
 		);
 
-		console.log("Mods subdir location: ", modsSubdirLocation);
-		if (modsSubdirLocation) {
-			// path.dirname will do C:\Users\bob\Documents\PiBoSo\MX Bikes\mods -> C:\Users\bob\Documents\PiBoSo\MX Bikes
-			const dest = path.dirname(this.modsFolder);
+		console.log("Mods subdir location: ", pathToModsSubdir);
+		if (pathToModsSubdir) {
+			await this.installWithModsSubdir(mod, source, pathToModsSubdir);
+			sendProgress(100);
 
-			const ext = path.extname(source);
-			if (isDir(source)) {
-				cpRecurse(modsSubdirLocation, dest);
-				mod.files.setEntriesFromFolder(modsSubdirLocation);
-			} else {
-				switch (ext) {
-					case ".zip":
-						await this.installWithModsSubdirZip(
-							mod,
-							source,
-							dest,
-							modsSubdirLocation,
-							sendProgress
-						);
-						mod.files.setEntriesFromZip(modsSubdirLocation);
-						break;
-					case ".rar":
-						// The rar function sets the mod's file structure, so no need to do that here
-						await this.installWithModsSubdirRar(
-							mod,
-							source,
-							modsSubdirLocation,
-							dest
-						);
-						mod.files.setEntriesFromFolder(modsSubdirLocation);
-						break;
-					default:
-						console.error("Unrecognized file type: ", ext);
-						throw new Error("Unrecognized file type " + ext);
-				}
-			}
-
-			// Done! - All mod creators should structure their mod releases like this.
-			// Unfortunately, they don't, so our job is harder
-			console.log("Returning mod: ", mod);
 			return mod;
 		}
 
+		// Stage 4: No mods subdir, continue with manual install
 		const modType = await this.selectModType(mod.name);
 		console.log("Mod type selected: ", modType);
 		mod.type = modType;
@@ -154,52 +104,47 @@ export default class ModInstaller {
 		this.modsFolder = modsFolder;
 	}
 
-	private async installWithModsSubdirRar(
+	private async installWithModsSubdir(
 		mod: Mod,
 		source: string,
-		modsSubdirLocation: string,
-		dest: string
+		modsSubdirLocation: string
 	) {
-		// Ext
-		await this.decompressor.extract(source, this.tmpDir);
+		// path.dirname will do C:\Users\bob\Documents\PiBoSo\MX Bikes\mods -> C:\Users\bob\Documents\PiBoSo\MX Bikes
+		const dest = path.dirname(this.modsFolder);
 
-		// Copy only the mods subfolder
-		const tmpSrc = path.join(this.tmpDir, modsSubdirLocation);
+		const ext = path.extname(source);
+		const tmpDest = path.join(this.tmpDir, mod.name);
 
-		// Set the mod files after extraction, need the directory relative to the mods
-		mod.files.setEntriesFromFolder(modsSubdirLocation);
+		let modSource;
+		switch (ext) {
+			case ".zip":
+			case ".rar":
+				await this.decompressor.extract(source, tmpDest);
+				// If the mod source was a compressed file, modsSubdirLocation is a relative path,
+				// so build the absolute path
+				modSource = path.join(
+					this.tmpDir,
+					mod.name,
+					modsSubdirLocation
+				);
+				break;
+			case "":
+				// Already a folder, no need to extract
+				modSource = modsSubdirLocation;
+				break;
+			default:
+				console.error("Unrecognized file type: ", ext);
+				throw new Error("Unrecognized file type " + ext);
+		}
 
-		// Need to set the mod type here because the source was a compressed file when the Mod object was created,
-		// so no mod type can be found until the file is decompressed so the folders can be walked
-		mod.type = getModTypeFromModsSubdir(tmpSrc);
+		cpRecurse(modSource, dest);
+		mod.files = FolderStructureBuilder.build(modSource);
+		mod.type = getModTypeFromModsSubdir(modSource);
 
-		await cpRecurse(tmpSrc, dest);
-		fs.rmSync(this.tmpDir, { recursive: true });
-	}
-
-	private async installWithModsSubdirZip(
-		mod: Mod,
-		source: string,
-		dest: string,
-		modsSubdirLocation: string,
-		sendProgress: (progress: number) => void
-	) {
-		console.log("DEST: ", dest);
-		// Extract to a temporary directory
-		console.log("tmp dir: ", this.tmpDir);
-		await this.decompressor.extract(source, this.tmpDir);
-
-		// Copy only the mods folder
-		const tmpSrc = path.join(this.tmpDir, modsSubdirLocation);
-		mod.type = getModTypeFromModsSubdir(tmpSrc);
-		console.log("tmp src: ", tmpSrc);
-
-		await cpRecurse(tmpSrc, dest);
-
-		sendProgress(100);
-
-		// Delete the temporary dir
-		fs.rmSync(this.tmpDir, { recursive: true });
+		// Done! - All mod creators should structure their mod releases like this.
+		// Unfortunately, they don't, so our job is harder
+		console.log("Returning mod: ", mod);
+		return mod;
 	}
 
 	/**
