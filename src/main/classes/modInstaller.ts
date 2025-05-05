@@ -18,9 +18,16 @@ import FolderStructureBuilder from "../services/FolderStructureBuilder";
 import { ArchiveScanner } from "../services/ArchiveScanner";
 import { cpRecurse, isDir } from "../utils/FileSystemUtils";
 import { getModTypeFromModsSubdir } from "../services/ModClassifier";
+import FolderStructureDeleter from "../services/FolderStructureDeleter";
 
 /**
- * TODO: allow selecting folders when selecting mod to install
+ * TODO:
+ * [ ] - allow selecting folders when selecting mod to install
+ * [ ] - accept password inputs during extraction process
+ * [ ] - Search for the correct files instead of trusting that
+ * 		 mods passed with a mods subdir have the correct structure
+ *
+ *
  *
  * For cases where there is no mods subdir, it is fine to build folder
  * entries manually since we're installing the mod manually,
@@ -50,7 +57,12 @@ export default class ModInstaller {
 
 	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
 		this.modsFolder = modsFolder;
-		this.tmpDir = path.join(os.tmpdir(), "PitkitExtract");
+		this.tmpDir =
+			process.env.NODE_ENV === "development"
+				? path.join(__dirname, "tmp")
+				: path.join(os.tmpdir(), "PitkitExtract");
+
+		console.log("Temp dir: ", this.tmpDir);
 		this.decompressor = new Decompressor(sendProgress);
 		this.archiveScanner = new ArchiveScanner();
 	}
@@ -175,7 +187,46 @@ export default class ModInstaller {
 		mod: Mod,
 		source: string
 	): Promise<void | Mod> {
-		throw new Error("Method not implemented.");
+		// Search for a pkz.
+		// When a pkz is found, it goes in mods/bikes/<bike.pkz>
+		// Furthermore, a folder is created with the same name as the pkz file
+		// and within the folder, a paints folder exists to install paints for that bike.
+		mod.type = "bike";
+
+		const dest = path.join(this.modsFolder, "bikes");
+		const ft = path.extname(source);
+		const modName = path.basename(source, ".pkz");
+		switch (ft) {
+			case ".pkz":
+				// Extract the file name, removing the file type suffix
+				cpRecurse(source, dest);
+				const bikeFolderDest = path.join(dest, modName);
+				fs.mkdirSync(bikeFolderDest);
+				const paintsFolderDest = path.join(bikeFolderDest, "paints");
+				fs.mkdirSync(paintsFolderDest);
+		}
+
+		const entries: FolderEntries = {
+			files: [],
+			subfolders: {
+				bikes: {
+					files: [modName + ".pkz"],
+					subfolders: {
+						[modName]: {
+							files: [],
+							subfolders: {
+								paints: {
+									files: [],
+									subfolders: {},
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		mod.files.setEntries(entries);
 	}
 
 	/**
@@ -213,7 +264,7 @@ export default class ModInstaller {
 			},
 		};
 
-		mod.files.entries = entries;
+		mod.files.setEntries(entries);
 		return mod;
 	}
 
@@ -228,6 +279,7 @@ export default class ModInstaller {
 		mod: Mod,
 		source: string
 	): Promise<void | Mod> {
+		mod.type = "rider";
 		console.log("Installing rider mod");
 		const riderSubdir = await this.archiveScanner.subdirExists(
 			source,
@@ -287,6 +339,23 @@ export default class ModInstaller {
 			cpRecurse(source, dest);
 		}
 
+		const entries: FolderEntries = {
+			files: [],
+			subfolders: {
+				rider: {
+					files: [],
+					subfolders: {
+						boots: {
+							files: [path.basename(source)],
+							subfolders: {},
+						},
+					},
+				},
+			},
+		};
+
+		mod.files.setEntries(entries);
+
 		return mod;
 	}
 
@@ -316,6 +385,32 @@ export default class ModInstaller {
 
 		await cpRecurse(source, path.join(ridersDir, rider, "gloves"));
 
+		const entries: FolderEntries = {
+			files: [],
+			subfolders: {
+				rider: {
+					files: [],
+					subfolders: {
+						riders: {
+							files: [],
+							subfolders: {
+								[rider]: {
+									files: [],
+									subfolders: {
+										gloves: {
+											files: [path.basename(source)],
+											subfolders: {},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		mod.files.setEntries(entries);
 		return mod;
 	}
 
@@ -341,12 +436,17 @@ export default class ModInstaller {
 		// Get the directory of the helmets
 		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
 
+		if (fs.statSync(source).isDirectory()) {
+			// a folder, treat the same way as an extracted rar
+			await this.installHelmetsFolder(mod, source);
+			return mod;
+		}
+
 		const ext = path.extname(source);
 		switch (ext) {
 			case ".pkz":
 				// New helmet model
-				await cpRecurse(source, helmetsDir);
-				break;
+				return await this.installHelmetPkz(mod, source, helmetsDir);
 			case ".pnt":
 				// Paint for existing helmet
 				await this.installHelmetPnt(source);
@@ -359,10 +459,7 @@ export default class ModInstaller {
 			case ".zip":
 				await this.installHelmetZip(mod, source);
 				break;
-			case "":
-				// a folder, treat the same way as an extracted rar
-				await this.installHelmetsFolder(mod, source);
-				break;
+
 			default:
 				console.error(
 					"Unrecognized file type for helmet model or paint: ",
@@ -380,8 +477,54 @@ export default class ModInstaller {
 		throw new Error("Method not implemented");
 	}
 
+	private async installHelmetPkz(mod: Mod, source: string, dest: string) {
+		const fileName = path.basename(source, ".pkz");
+		console.log("File name: ", fileName);
+		const entries: FolderEntries = {
+			files: [],
+			subfolders: {
+				rider: {
+					files: [],
+					subfolders: {
+						helmets: {
+							files: [path.basename(source)],
+							subfolders: {
+								// Subfolder holding paints and goggles needs to have the same name as the pkz file
+								[fileName]: {
+									files: [],
+									subfolders: {
+										goggles: {
+											files: [],
+											subfolders: {},
+										},
+										paints: {
+											files: [],
+											subfolders: {},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		mod.files.setEntries(entries);
+
+		fs.writeFileSync(
+			"entries.json",
+			JSON.stringify(mod.files.getEntries())
+		);
+		await cpRecurse(source, dest);
+
+		this.makeHelmetFolder(fileName);
+
+		return mod;
+	}
+
 	private async installHelmetZip(mod: Mod, source: string) {
-		await this.decompressor.extract(source, this.tmpDir); // dummy function, no progress tracking
+		await this.decompressor.extract(source, this.tmpDir);
 		await this.installHelmetsFolder(mod, this.tmpDir);
 	}
 
@@ -398,18 +541,57 @@ export default class ModInstaller {
 
 	private async installHelmetsFolder(mod: Mod, source: string) {
 		const helmetDirs = this.findHelmetEdfs(source);
-		console.log("Got helmet dirs: ", helmetDirs);
+
+		const entries: FolderEntries = { files: [], subfolders: {} };
+
 		for (const helmetDir of helmetDirs) {
+			const gogglesPath = path.join(helmetDir, "goggles");
+			const paintsPath = path.join(helmetDir, "paints");
+			if (!fs.existsSync(gogglesPath)) {
+				fs.mkdirSync(gogglesPath);
+			}
+			if (!fs.existsSync(paintsPath)) {
+				fs.mkdirSync(paintsPath);
+			}
+
 			await cpRecurse(
 				helmetDir,
 				path.join(this.modsFolder, "rider", "helmets")
 			);
-			// So after finding the helmet folders, we know that the helmet folders go in modsFolder/rider/helmets,
-			// so we need to build the folder structure accordingly
-			const root: FolderEntries = mod.files.setEntriesFromFolder(
-				path.join("rider", "helmets", path.basename(helmetDir))
-			);
-			mod.files.entries = root;
+
+			// each of these helmet dirs is a whole helmet model in itself.
+			// They can be treated as a single mod
+			const root = FolderStructureBuilder.build(helmetDir);
+			entries.subfolders[path.basename(helmetDir)] = root.getEntries();
+		}
+
+		const root: FolderEntries = {
+			files: [],
+			subfolders: {
+				rider: {
+					files: [],
+					subfolders: {
+						helmets: {
+							files: [],
+							subfolders: entries.subfolders,
+						},
+					},
+				},
+			},
+		};
+
+		mod.files.setEntries(root);
+		return mod;
+	}
+
+	private makeHelmetFolder(name: string) {
+		const folderDest = path.join(this.modsFolder, "rider", "helmets", name);
+		try {
+			fs.mkdirSync(folderDest);
+			fs.mkdirSync(path.join(folderDest, "goggles"));
+			fs.mkdirSync(path.join(folderDest, "paints"));
+		} catch (e) {
+			console.error(e);
 		}
 	}
 
@@ -419,27 +601,34 @@ export default class ModInstaller {
 	private findHelmetEdfs(source: string): string[] {
 		console.log("Finding helmet efs in ", source);
 		const helmetDirs: string[] = [];
-		const subfolders = fs.readdirSync(source);
-		console.log(subfolders);
+		let folderEntries;
+		try {
+			folderEntries = fs.readdirSync(source);
+		} catch (e) {
+			console.error(e);
+			return [];
+		}
+		console.log(folderEntries);
 
-		for (const subfolder of subfolders) {
-			const subfolderPath = path.join(source, subfolder);
-			const ext = path.extname(subfolder);
+		for (const entry of folderEntries) {
+			const subfolderPath = path.join(source, entry);
+			const ext = path.extname(entry);
 
 			// NOTE: This is a workaround for now, this should be refactored later
 			// IF we find a pkz, that needs to be moved into the helmets dir just like a folder
 			// These concerns should probably be separated
 			if (ext === ".pkz") helmetDirs.push(subfolderPath);
 
-			if (subfolder === "helmet.edf" || subfolder === "paints") {
+			if (entry === "helmet.edf") {
 				console.log("Found helmet path in ", subfolderPath);
 				helmetDirs.push(source);
 			} else if (isDir(subfolderPath)) {
-				console.log("Found subdirectory...", subfolder);
+				console.log("Found subdirectory...", entry);
 				const result = this.findHelmetEdfs(subfolderPath);
 				helmetDirs.push(...result);
 			}
 		}
+
 		return helmetDirs;
 	}
 
@@ -482,13 +671,9 @@ export default class ModInstaller {
 		return files;
 	}
 
-	public async uninstallMod(
-		modsFolder: string,
-		mods: ModsData,
-		modName: string
-	) {
+	public async uninstallMod(mods: ModsData, modName: string) {
 		const modToRemove = mods.get(modName);
-		modToRemove.files.delete(modsFolder);
+		FolderStructureDeleter.delete(modToRemove.files, this.modsFolder);
 	}
 
 	private async selectRiderModType(modName: string): Promise<RiderModType> {

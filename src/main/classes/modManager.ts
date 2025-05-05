@@ -20,9 +20,15 @@ export default class ModManager {
 	private mods: ModsData;
 	private installer: ModInstaller;
 	private extractionProgress: number;
+	private dataFile: string;
 
 	constructor() {
 		this.extractionProgress = 0;
+
+		this.dataFile =
+			process.env.NODE_ENV === "development"
+				? path.join(__dirname, "data", "mods.json")
+				: path.join(app.getPath("userData"), "ModsData", "mods.json");
 
 		// Bind the function to ensure correct context when calling from other classes
 		this.setExtractionProgress = this.setExtractionProgress.bind(this);
@@ -82,17 +88,18 @@ export default class ModManager {
 	}
 
 	private getModsData(): ModsData {
-		const filePath = path.join(app.getPath("userData"), "mods.json");
-		const dir = path.dirname(filePath);
+		const dir = path.dirname(this.dataFile);
 		if (!fs.existsSync(dir)) {
 			fs.mkdirSync(dir);
 		}
 
-		if (!fs.existsSync(filePath)) {
-			fs.writeFileSync(filePath, "{}");
+		if (!fs.existsSync(this.dataFile)) {
+			fs.writeFileSync(this.dataFile, "{}");
 		}
 
-		const modsDataFileContents = fs.readFileSync(filePath, "utf-8").trim();
+		const modsDataFileContents = fs
+			.readFileSync(this.dataFile, "utf-8")
+			.trim();
 
 		const modsDataObject = JSON.parse(modsDataFileContents);
 
@@ -153,11 +160,7 @@ export default class ModManager {
 	}
 
 	public async uninstallMod(modName: string) {
-		await this.installer.uninstallMod(
-			this.config.modsFolder,
-			this.mods,
-			modName
-		);
+		await this.installer.uninstallMod(this.mods, modName);
 		this.mods.delete(modName);
 		this.writeModsToDisk();
 	}
@@ -167,8 +170,7 @@ export default class ModManager {
 	}
 
 	private writeModsToDisk() {
-		const dataDir = app.getPath("userData");
-		console.log("Data dir: ", dataDir);
+		const dataDir = path.dirname(this.dataFile);
 		if (!existsSync(dataDir)) {
 			fs.mkdirSync(dataDir, { recursive: true });
 		}

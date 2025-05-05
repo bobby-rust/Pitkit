@@ -1,6 +1,6 @@
 import path from "path";
 
-import FolderStructure from "src/main/classes/FolderStructure";
+import FolderStructure from "../main/models/FolderStructure";
 
 export type TrackType = "motocross" | "supercross" | "enduro" | "supermoto";
 export type RiderModType = "boots" | "gloves" | "helmet" | "rider"; // "riders" is a whole rider, such as Rider+ or Rider+ Rolled Up
@@ -22,7 +22,7 @@ export const Mod = {
 	async from(source: string): Promise<Mod> {
 		return {
 			name: path.parse(source).name,
-			files: null,
+			files: new FolderStructure(),
 			installDate: new Date().toLocaleString(),
 			type: null,
 			trackType: null,

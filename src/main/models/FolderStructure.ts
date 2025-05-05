@@ -1,7 +1,7 @@
 import { FolderEntries } from "src/types";
 
 export class FolderStructure {
-	public entries: FolderEntries;
+	private entries: FolderEntries;
 
 	constructor(entries: FolderEntries = { files: [], subfolders: {} }) {
 		this.entries = entries;

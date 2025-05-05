@@ -26,6 +26,8 @@ const WHITELISTED_DIRS: Set<string> = new Set([
 
 export class FolderStructureDeleter {
 	static delete(structure: FolderStructure, currentDirectory: string): void {
+		console.log("Deleting: ", structure);
+		console.log("From current directory: ", currentDirectory);
 		const entries = structure.getEntries();
 
 		for (const file of entries.files) {
@@ -38,14 +40,11 @@ export class FolderStructureDeleter {
 			}
 		}
 
-		for (const [subdir, substructure] of Object.entries(
-			entries.subfolders
-		)) {
-			const subDirPath = path.join(currentDirectory, subdir);
-			// this.delete(
-			// 	new FolderStructure(structure.getModsFolder(), substructure),
-			// 	subDirPath
-			// );
+		for (const [k, v] of Object.entries(entries.subfolders)) {
+			const subdirPath = path.join(currentDirectory, k);
+			const substruct = new FolderStructure();
+			substruct.setEntries(v);
+			this.delete(substruct, subdirPath);
 		}
 
 		try {

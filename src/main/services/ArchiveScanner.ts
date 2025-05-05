@@ -14,7 +14,7 @@ export class ArchiveScanner {
 			case "":
 				return this.subdirExistsFolder(source, target);
 			default:
-				throw new Error("Unrecognized archive type: " + ext);
+				return null;
 		}
 	}
 
