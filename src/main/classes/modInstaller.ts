@@ -26,8 +26,13 @@ import FolderStructureDeleter from "../services/FolderStructureDeleter";
  * [ ] - accept password inputs during extraction process
  * [ ] - Search for the correct files instead of trusting that
  * 		 mods passed with a mods subdir have the correct structure
- *
- *
+ * [ ] - Rider install
+ * [ ] - Rider gear install
+ * [ ] - Protections install
+ * [ ] - helmet cams install
+ * [ ] - Boots install that aren't pkzs
+ * [ ] - animations install
+ * [ ] - fonts install
  *
  * For cases where there is no mods subdir, it is fine to build folder
  * entries manually since we're installing the mod manually,
@@ -162,7 +167,7 @@ export default class ModInstaller {
 				throw new Error("Unrecognized file type " + ext);
 		}
 
-		cpRecurse(modSource, dest);
+		await cpRecurse(modSource, dest);
 		mod.files = FolderStructureBuilder.build(modSource);
 		mod.type = getModTypeFromModsSubdir(modSource);
 
@@ -199,7 +204,7 @@ export default class ModInstaller {
 		switch (ft) {
 			case ".pkz":
 				// Extract the file name, removing the file type suffix
-				cpRecurse(source, dest);
+				await cpRecurse(source, dest);
 				const bikeFolderDest = path.join(dest, modName);
 				fs.mkdirSync(bikeFolderDest);
 				const paintsFolderDest = path.join(bikeFolderDest, "paints");
@@ -329,14 +334,14 @@ export default class ModInstaller {
 			if (path.extname(source) === ".zip") {
 				await this.decompressor.extract(source, dest);
 			} else {
-				cpRecurse(source, dest);
+				await cpRecurse(source, dest);
 			}
 		}
 
 		// must be a pkz, if not idk
 		if (path.extname(source) === ".pkz") {
 			const dest = path.join(this.modsFolder, "rider", "boots");
-			cpRecurse(source, dest);
+			await cpRecurse(source, dest);
 		}
 
 		const entries: FolderEntries = {
@@ -377,13 +382,33 @@ export default class ModInstaller {
 
 		const ridersDir = path.join(this.modsFolder, "rider", "riders");
 
+		const glovesDir = path.join(ridersDir, rider, "gloves");
 		const fileType = path.extname(source);
 
+		let pnts: string[];
 		if (!(fileType === ".pnt")) {
-			throw new Error("Gloves should be a .pnt file");
+			if (fileType === ".zip" || fileType === ".rar") {
+				const tmpDest = path.join(this.tmpDir, mod.name);
+				await this.decompressor.extract(source, tmpDest);
+				pnts = this.findPnts(tmpDest);
+				console.log("Found pnts: ", pnts);
+				for (const pnt of pnts) {
+					await cpRecurse(pnt, glovesDir);
+				}
+			} else if (fs.statSync(source).isDirectory()) {
+				pnts = this.findPnts(source);
+				for (const pnt of pnts) {
+					await cpRecurse(pnt, glovesDir);
+				}
+			}
+		} else {
+			await cpRecurse(source, glovesDir);
 		}
 
-		await cpRecurse(source, path.join(ridersDir, rider, "gloves"));
+		// If we got a bunch of pnts, use that, else if source was a single pnt, use that
+		const glovesFiles = pnts
+			? pnts.map((pnt) => path.basename(pnt))
+			: [path.basename(source)];
 
 		const entries: FolderEntries = {
 			files: [],
@@ -398,7 +423,7 @@ export default class ModInstaller {
 									files: [],
 									subfolders: {
 										gloves: {
-											files: [path.basename(source)],
+											files: glovesFiles,
 											subfolders: {},
 										},
 									},
@@ -412,6 +437,34 @@ export default class ModInstaller {
 
 		mod.files.setEntries(entries);
 		return mod;
+	}
+
+	// Returns an array of absolute paths to pnt files recursively within source
+	// Source must be a directory
+	private findPnts(source: string): string[] {
+		console.log("Findint pnts: ", source);
+		if (!fs.statSync(source).isDirectory()) {
+			return [];
+		}
+
+		const pnts: string[] = [];
+		const entries = fs.readdirSync(source);
+		console.log("Got entries: ", entries);
+		entries.forEach((entry) => {
+			const fullPath = path.join(source, entry);
+			if (fs.statSync(fullPath).isDirectory()) {
+				pnts.push(...this.findPnts(fullPath));
+			} else {
+				const ft = path.extname(entry);
+				if (ft === ".pnt") {
+					pnts.push(fullPath);
+				}
+				// Maybe check for more compressed files here cause ya never know with these ppl
+				// im just too lazy to do that rn
+			}
+		});
+
+		return pnts;
 	}
 
 	/**
@@ -446,10 +499,11 @@ export default class ModInstaller {
 		switch (ext) {
 			case ".pkz":
 				// New helmet model
-				return await this.installHelmetPkz(mod, source, helmetsDir);
+				await this.installHelmetPkz(mod, source, helmetsDir);
+				break;
 			case ".pnt":
 				// Paint for existing helmet
-				await this.installHelmetPnt(source);
+				await this.installHelmetPnt(mod, source);
 				break;
 			case ".rar":
 				// Helmet pack, must be extracted and the folders containing
@@ -632,7 +686,7 @@ export default class ModInstaller {
 		return helmetDirs;
 	}
 
-	private async installHelmetPnt(source: string) {
+	private async installHelmetPnt(mod: Mod, source: string) {
 		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
 		// Helmet paint for existing helmet model
 		// cpRecurse will create the paints folder automatically
@@ -643,11 +697,45 @@ export default class ModInstaller {
 		const message = "Select a helmet to install the paint on";
 		const helmetFile = await promptQuestion(title, message, helmets);
 
-		const ext = path.extname(helmetFile);
-		const helmetFolder = helmetFile.split(ext)[0];
+		const fullPath = path.join(helmetsDir, helmetFile);
+		let helmetFolder;
+		if (fs.statSync(fullPath).isDirectory()) {
+			helmetFolder = helmetFile;
+		} else {
+			helmetFolder = path.basename(helmetFile, ".pnt");
+		}
+
 		const paintsFolder = path.join(helmetsDir, helmetFolder, "paints");
 		console.log("installing to paints folder: ", paintsFolder);
-		cpRecurse(source, paintsFolder);
+		await cpRecurse(source, paintsFolder);
+
+		const entries: FolderEntries = {
+			files: [],
+			subfolders: {
+				rider: {
+					files: [],
+					subfolders: {
+						helmets: {
+							files: [],
+							subfolders: {
+								[helmetFolder]: {
+									files: [],
+									subfolders: {
+										paints: {
+											files: [path.basename(source)],
+											subfolders: {},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		mod.files.setEntries(entries);
+		return mod;
 	}
 
 	private async installOtherMod(
