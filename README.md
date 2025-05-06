@@ -1,5 +1,6 @@
 # Initial Beta Release Features
-
+-   Input custom name when installing a mod
+-   Prompting for password when compressed files are locked
 -   Install Track
 -   Install Bike pack
 -   Install bike skins
