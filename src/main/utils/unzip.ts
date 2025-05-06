@@ -174,7 +174,7 @@ export default async function unzip(
 								console.log(
 									"Extraction completed successfully"
 								);
-								sendProgress(100);
+								sendProgress(99);
 								resolve();
 							});
 

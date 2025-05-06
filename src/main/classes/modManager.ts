@@ -101,7 +101,14 @@ export default class ModManager {
 			.readFileSync(this.dataFile, "utf-8")
 			.trim();
 
-		const modsDataObject = JSON.parse(modsDataFileContents);
+		let modsDataObject;
+		try {
+			modsDataObject = JSON.parse(modsDataFileContents);
+		} catch (err) {
+			// If the file exists but does not contain valid json, TERMINATE
+			fs.writeFileSync(this.dataFile, "{}");
+			modsDataObject = {};
+		}
 
 		const modsData: ModsData = new Map<string, Mod>();
 

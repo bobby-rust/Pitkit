@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { isDirEmpty } from "../utils/FileSystemUtils";
 import FolderStructure from "../models/FolderStructure";
+import { FolderEntries } from "src/types";
 
 const WHITELISTED_DIRS: Set<string> = new Set([
 	"bikes",
@@ -28,7 +29,13 @@ export class FolderStructureDeleter {
 	static delete(structure: FolderStructure, currentDirectory: string): void {
 		console.log("Deleting: ", structure);
 		console.log("From current directory: ", currentDirectory);
-		const entries = structure.getEntries();
+		let entries;
+		try {
+			entries = structure.getEntries();
+		} catch (err) {
+			// wrong data type, assume it's a folder entries ig...
+			entries = structure as unknown as FolderEntries;
+		}
 
 		for (const file of entries.files) {
 			try {

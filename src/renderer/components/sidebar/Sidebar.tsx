@@ -19,7 +19,7 @@ export default function Sidebar() {
 								<Folder /> All Mods
 							</button>
 						</li>
-						<li>
+						{/* <li>
 							<button className="sidebar-button">
 								<Folder /> Bikes
 							</button>
@@ -39,16 +39,16 @@ export default function Sidebar() {
 								<Folder />
 								Other
 							</button>
-						</li>
+						</li> */}
 					</div>
 				</div>
-				<div className="sidebar-lower">
+				{/* <div className="sidebar-lower">
 					<li>
 						<button className="sidebar-button">
 							<Settings /> Settings
 						</button>
 					</li>
-				</div>
+				</div> */}
 			</ul>
 		</div>
 	);
