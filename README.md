@@ -1,6 +1,5 @@
 # Initial Beta Release Features
 -   Input custom name when installing a mod
--   Prompting for password when compressed files are locked
 -   Install Track
 -   Install Bike pack
 -   Install bike skins
@@ -11,6 +10,8 @@
 -   Delete any installed mod
 -   Drag and drop install any mod
 -   Install ZIP mods, pkz mods, or unzipped folders
+-   Prompting for password when compressed files are locked
+
 
 # Future Roadmap
 -   Searching for mods, filtering mods by type/category
