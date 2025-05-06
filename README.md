@@ -4,6 +4,8 @@
 -   Install Bike pack
 -   Install bike skins
 -   Install Rider mod
+-   Install boots
+-   Install helmets
 -   Install MaxHUD
 -   Delete any installed mod
 -   Drag and drop install any mod
