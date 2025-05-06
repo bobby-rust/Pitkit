@@ -22,6 +22,7 @@ import FolderStructureDeleter from "../services/FolderStructureDeleter";
 
 /**
  * TODO:
+ * This class is grossly in need of a refactor.
  * [ ] - Bike paints install
  * [ ] - Rider install
  * [ ] - Rider gear install
@@ -114,6 +115,7 @@ export default class ModInstaller {
 			await this.installWithModsSubdir(mod, source, pathToModsSubdir);
 			sendProgress(100);
 
+			fs.rmSync(this.tmpDir, { recursive: true });
 			return mod;
 		}
 
@@ -123,14 +125,21 @@ export default class ModInstaller {
 		mod.type = modType;
 		switch (modType) {
 			case "bike":
-				return await this.installBikeMod(mod, source);
+				await this.installBikeMod(mod, source);
+				break;
 			case "track":
-				return await this.installTrackMod(mod, source);
+				await this.installTrackMod(mod, source);
+				break;
 			case "rider":
-				return await this.installRiderMod(mod, source);
+				await this.installRiderMod(mod, source);
+				break;
 			case "other":
-				return await this.installOtherMod(mod, source);
+				await this.installOtherMod(mod, source);
+				break;
 		}
+
+		fs.rmSync(this.tmpDir, { recursive: true });
+		return mod;
 	}
 
 	public setModsFolder(modsFolder: string) {
@@ -787,8 +796,6 @@ export default class ModInstaller {
 		// If a directory contains a helmet.edf, that directory goes in modsFolder/rider/helmets
 
 		await this.installHelmetsFolder(mod, this.tmpDir);
-
-		fs.rmSync(this.tmpDir, { recursive: true });
 	}
 
 	private async installHelmetsFolder(mod: Mod, source: string) {
