@@ -45,7 +45,7 @@ async function cpRecurse(source: string, dest: string) {
 		fs.mkdirSync(dest, { recursive: true });
 	}
 
-	console.log("Copying to dest: ", dest);
+	console.log("Copying " + source + " to dest: ", dest);
 
 	const fileName = path.basename(source);
 	const destFile = path.join(dest, fileName);

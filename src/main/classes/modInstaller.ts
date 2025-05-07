@@ -23,8 +23,8 @@ import FolderStructureDeleter from "../services/FolderStructureDeleter";
 /**
  * TODO:
  * This class is grossly in need of a refactor.
- * [ ] - Bike paints install
- * [ ] - Rider install
+ * [x] - Bike paints install
+ * [x] - Rider install
  * [ ] - Rider gear install
  * [ ] - Protections install
  * [ ] - helmet cams install
@@ -114,8 +114,13 @@ export default class ModInstaller {
 		if (pathToModsSubdir) {
 			await this.installWithModsSubdir(mod, source, pathToModsSubdir);
 			sendProgress(100);
-
-			fs.rmSync(this.tmpDir, { recursive: true });
+			try {
+				// Throws an error if this.tmpDir does not exist
+				fs.rmSync(this.tmpDir, { recursive: true });
+			} catch (err) {
+				// The error is fine to continue.
+				console.error(err);
+			}
 			return mod;
 		}
 
@@ -138,7 +143,13 @@ export default class ModInstaller {
 				break;
 		}
 
-		fs.rmSync(this.tmpDir, { recursive: true });
+		try {
+			fs.rmSync(this.tmpDir, { recursive: true });
+		} catch (err) {
+			// tmpDir does not exist when the passed file/folder is not compressed.
+			// rmSync throws an error in this case, so we can safely proceed and assume that is the case.
+			console.error(err);
+		}
 		return mod;
 	}
 
@@ -414,10 +425,20 @@ export default class ModInstaller {
 			console.log("Rider subdirectory exists.");
 			// Could be a zip here
 			const dest = this.modsFolder; // rider exists under mods/
-			if (path.extname(source) === ".zip") {
-				await this.decompressor.extract(source, dest);
+			if (
+				path.extname(source) === ".zip" ||
+				path.extname(source) === ".rar"
+			) {
+				const modPath = path.join(this.tmpDir, mod.name);
+				await this.decompressor.extract(source, modPath);
+				const folderStruct = FolderStructureBuilder.build(modPath);
+				mod.files = folderStruct;
+				await cpRecurse(path.join(modPath, riderSubdir), dest);
 			} else if (isDir(source)) {
-				await cpRecurse(source, dest);
+				// riderSubdir is an absolute path here
+				await cpRecurse(riderSubdir, dest);
+				const folderStruct = FolderStructureBuilder.build(source);
+				mod.files = folderStruct;
 			}
 
 			// Done!
@@ -526,7 +547,7 @@ export default class ModInstaller {
 	}
 
 	private async installBootsFolder(mod: Mod, source: string) {
-		const bootsDirs = this.findEdfs(source, "helmet");
+		const bootsDirs = this.findEdfs(source, "boots");
 
 		const entries: FolderEntries = { files: [], subfolders: {} };
 
@@ -734,8 +755,78 @@ export default class ModInstaller {
 		return mod;
 	}
 
+	private async installRiderModelPkz(mod: Mod, source: string) {
+		const ridersDir = path.join(this.modsFolder, "rider", "riders");
+		await cpRecurse(source, path.join(ridersDir, mod.name));
+		const entries: FolderEntries = {
+			files: [],
+			subfolders: {
+				rider: {
+					files: [],
+					subfolders: {
+						riders: {
+							files: [],
+							subfolders: {
+								[mod.name]: {
+									files: [path.basename(source)],
+									subfolders: {},
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+		mod.files.setEntries(entries);
+		return mod;
+	}
+
+	// install a rider model that does not include a "rider" subfolder
 	private async installRider(mod: Mod, source: string): Promise<Mod> {
-		throw new Error("Method not implemented");
+		const ridersDir = path.join(this.modsFolder, "rider", "riders");
+		const modTmpPath = path.join(this.tmpDir, mod.name);
+		if (fs.statSync(source).isDirectory()) {
+			await cpRecurse(source, modTmpPath);
+		}
+		const ft = path.extname(source);
+		switch (ft) {
+			case ".zip":
+			case ".rar":
+				await this.decompressor.extract(source, modTmpPath);
+				break;
+			case ".pkz":
+				return this.installRiderModelPkz(mod, source);
+		}
+
+		const entries: FolderEntries = { files: [], subfolders: {} };
+
+		// Look for a rider.edf
+		const riderDirs = this.findEdfs(modTmpPath, "rider");
+		for (const riderDir of riderDirs) {
+			await cpRecurse(riderDir, ridersDir);
+			// each of these rider dirs is a whole rider model in itself.
+			// They can be treated as a single mod
+			const root = FolderStructureBuilder.build(riderDir);
+			entries.subfolders[path.basename(riderDir)] = root.getEntries();
+		}
+
+		const root: FolderEntries = {
+			files: [],
+			subfolders: {
+				rider: {
+					files: [],
+					subfolders: {
+						riders: {
+							files: [],
+							subfolders: entries.subfolders,
+						},
+					},
+				},
+			},
+		};
+		mod.files.setEntries(root);
+
+		return mod;
 	}
 
 	private async installHelmetPkz(mod: Mod, source: string, dest: string) {
@@ -858,7 +949,7 @@ export default class ModInstaller {
 	 * Given a path to a directory, returns a list of all folders containing a helmet.edf
 	 */
 	private findEdfs(source: string, target: string): string[] {
-		console.log("Finding helmet efs in ", source);
+		console.log("Finding " + target + " edfs in ", source);
 		const edfDirs: string[] = [];
 		let folderEntries;
 		try {

@@ -51,7 +51,7 @@ export class ArchiveScanner {
 
 	private async subdirExistsRar(
 		source: string,
-		target: string // e.g. "mods"
+		target: string // e.g. "mods" or "rider"
 	): Promise<string | null> {
 		return new Promise((resolve, reject) => {
 			const rarPath =
@@ -59,11 +59,10 @@ export class ArchiveScanner {
 					? path.join(__dirname, "resources", "bin", "rar.exe")
 					: path.join(process.resourcesPath, "bin", "rar.exe");
 
-			// 1) call `rar l` with *no* mask to list every entry
 			const child = spawn(rarPath, ["l", source]);
-
 			let output = "",
 				err = "";
+
 			child.stdout.setEncoding("utf8");
 			child.stdout.on("data", (c) => (output += c));
 			child.stderr.setEncoding("utf8");
@@ -71,29 +70,26 @@ export class ArchiveScanner {
 
 			child.on("error", reject);
 			child.on("close", (code) => {
-				// console.log("output: ", output);
-				// console.log("err: ", err);
 				if (code !== 0) {
 					return reject(new Error(`RAR failed (${code}): ${err}`));
 				}
 
-				// strip the first 3 lines (banner + headers) and the trailing summary
+				// 1. Grab just the file-list lines
 				const lines = output
 					.split(/\r?\n/)
-					.slice(3)
-					.filter((l) => !!l.trim() && !/^\s*\d+\s+files?/.test(l))
-					.map((l) => {
-						const parts = l.trim().split(/\s+/);
-						return parts.slice(4).join(" ");
-					});
+					.slice(3) // drop banner + headers
+					.filter((l) => l.trim() && !/^\s*\d+\s+files?/.test(l))
+					.map((l) => l.trim().split(/\s+/).slice(4).join(" ")); // get the path
 
-				// find the first entry containing target
-				for (const name of lines) {
-					console.log("name: ", name);
-					const idx = name.indexOf(`${target}`);
+				// 2. Scan each file for a path segment === target
+				for (const filePath of lines) {
+					// split on either slash
+					const segments = filePath.split(/[/\\]+/);
+					const idx = segments.indexOf(target);
 					if (idx !== -1) {
-						// return up to and including target
-						return resolve(name.substring(0, idx + target.length));
+						// 3. build "path/to/target"
+						const dirPath = segments.slice(0, idx + 1).join("/");
+						return resolve(dirPath);
 					}
 				}
 
@@ -110,25 +106,27 @@ export class ArchiveScanner {
 		zipPath: string,
 		target: string
 	): Promise<string | null> {
+		console.log("Checking ", zipPath, " for mods subdir");
 		return new Promise((resolve, reject) => {
 			yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
 				if (err || !zipfile) return reject(err);
 
+				let found = false;
+
 				zipfile.readEntry();
 
 				zipfile.on("entry", (entry) => {
-					// Check if it's a directory exactly named target
-					const entryName = path.basename(entry.fileName);
-					if (entryName === target) {
+					if (entry.fileName.startsWith(`${target}/`)) {
+						found = true;
 						zipfile.close(); // stop reading more entries
-						return resolve(entry.fileName);
+						return resolve(`${target}/`);
 					}
 
 					zipfile.readEntry();
 				});
 
 				zipfile.on("end", () => {
-					resolve(null);
+					if (!found) resolve(null);
 				});
 
 				zipfile.on("error", reject);
