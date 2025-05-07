@@ -12,6 +12,7 @@ import FolderStructureDeleter from "../services/FolderStructureDeleter";
 /**
  * TODO:
  * [ ] - Recursive extraction
+ * [ ] - Extract files with passwords
  * [ ] - helmet cameras can be either pkz or <any string>.edf, so now we need to handle unrecognized edfs
  * [ ] - Install fonts
  * [ ] - Install stands

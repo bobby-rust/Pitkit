@@ -10,7 +10,7 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 const config: ForgeConfig = {
 	packagerConfig: {
 		asar: true,
-		extraResource: "./src/renderer/assets",
+		extraResource: ["./src/renderer/assets", "./public/resources/bin"],
 		icon: "./src/renderer/assets/favicon",
 	},
 	rebuildConfig: {},
