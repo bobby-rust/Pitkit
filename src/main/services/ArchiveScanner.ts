@@ -4,21 +4,21 @@ import yauzl from "yauzl";
 import path from "path";
 
 export class ArchiveScanner {
-	async subdirExists(source: string, target: string): Promise<string | null> {
-		const ext = path.extname(source);
-		switch (ext) {
-			case ".zip":
-				return this.subdirExistsZip(source, target);
-			case ".rar":
-				return this.subdirExistsRar(source, target);
-			case "":
-				return this.subdirExistsFolder(source, target);
-			default:
-				return null;
-		}
-	}
+	// async subdirExists(source: string, target: string): Promise<string | null> {
+	// 	const ext = path.extname(source);
+	// 	switch (ext) {
+	// 		case ".zip":
+	// 			return this.subdirExistsZip(source, target);
+	// 		case ".rar":
+	// 			return this.subdirExistsRar(source, target);
+	// 		case "":
+	// 			return this.subdirExistsFolder(source, target);
+	// 		default:
+	// 			return null;
+	// 	}
+	// }
 
-	private async subdirExistsFolder(source: string, target: string) {
+	async subdirExists(source: string, target: string): Promise<string | null> {
 		let entries;
 		try {
 			entries = fs.readdirSync(source);
@@ -102,10 +102,7 @@ export class ArchiveScanner {
 	 * Returns the path of target relative to zipPath if found, else null
 	 * Ex. target = mods, zipPath = C:/Downloads/foo.zip, and foo.zip contains subfolder bar/mods, mods location relative to zipPath is bar/mods
 	 */
-	private subdirExistsZip(
-		zipPath: string,
-		target: string
-	): Promise<string | null> {
+	private subdirExistsZip(zipPath: string, target: string): Promise<string | null> {
 		console.log("Checking ", zipPath, " for mods subdir");
 		return new Promise((resolve, reject) => {
 			yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {

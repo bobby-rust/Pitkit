@@ -2,21 +2,14 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 
-import {
-	FolderEntries,
-	Mod,
-	ModsData,
-	ModType,
-	RiderModType,
-	TrackType,
-} from "../../types";
+import { FolderEntries, Mod, ModsData, ModType, RiderModType, TrackType } from "../../types";
 
 import { promptQuestion, promptSelectFile } from "../utils/dialogHelper";
 
 import Decompressor from "./Decompressor";
 import FolderStructureBuilder from "../services/FolderStructureBuilder";
 import { ArchiveScanner } from "../services/ArchiveScanner";
-import { cpRecurse, isDir } from "../utils/FileSystemUtils";
+import { cpRecurse } from "../utils/FileSystemUtils";
 import { getModTypeFromModsSubdir } from "../services/ModClassifier";
 import FolderStructureDeleter from "../services/FolderStructureDeleter";
 
@@ -67,9 +60,7 @@ export default class ModInstaller {
 	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
 		this.modsFolder = modsFolder;
 		this.tmpDir =
-			process.env.NODE_ENV === "development"
-				? path.join(__dirname, "tmp")
-				: path.join(os.tmpdir(), "PitkitExtract");
+			process.env.NODE_ENV === "development" ? path.join(__dirname, "tmp") : path.join(os.tmpdir(), "PitkitExtract");
 
 		console.log("Temp dir: ", this.tmpDir);
 		this.decompressor = new Decompressor(sendProgress);
@@ -81,10 +72,7 @@ export default class ModInstaller {
 	 * @param modsFolder The folder where the user's mods are located
 	 * @param sendProgress A function to update the frontend with install progress
 	 */
-	public async installMod(
-		sendProgress: (progress: number) => void,
-		source?: string
-	): Promise<Mod | void> {
+	public async installMod(sendProgress: (progress: number) => void, source?: string): Promise<Mod | void> {
 		// Stage 1: File selection
 		if (!source) {
 			source = await this.selectMod();
@@ -94,7 +82,7 @@ export default class ModInstaller {
 		}
 
 		// NOTE: Mod.from() does not set the track type.
-		const mod: Mod = await Mod.from(source);
+		const mod: Mod = Mod.from(source);
 
 		// Stage 2: Add a custom name if desired (Skip for now, QoL feature).
 		// Can set mod.name if a custom name is desired
@@ -105,10 +93,7 @@ export default class ModInstaller {
 
 		// If source is a folder, this will hold an absolute path.
 		// If it is a rar or zip, this will hold a path relative to source.
-		const pathToModsSubdir = await this.archiveScanner.subdirExists(
-			source,
-			"mods"
-		);
+		const pathToModsSubdir = await this.archiveScanner.subdirExists(source, "mods");
 
 		console.log("Mods subdir location: ", pathToModsSubdir);
 		if (pathToModsSubdir) {
@@ -157,11 +142,7 @@ export default class ModInstaller {
 		this.modsFolder = modsFolder;
 	}
 
-	private async installWithModsSubdir(
-		mod: Mod,
-		source: string,
-		modsSubdirLocation: string
-	) {
+	private async installWithModsSubdir(mod: Mod, source: string, modsSubdirLocation: string) {
 		// path.dirname will do C:\Users\bob\Documents\PiBoSo\MX Bikes\mods -> C:\Users\bob\Documents\PiBoSo\MX Bikes
 		const dest = path.dirname(this.modsFolder);
 
@@ -175,11 +156,7 @@ export default class ModInstaller {
 				await this.decompressor.extract(source, tmpDest);
 				// If the mod source was a compressed file, modsSubdirLocation is a relative path,
 				// so build the absolute path
-				modSource = path.join(
-					this.tmpDir,
-					mod.name,
-					modsSubdirLocation
-				);
+				modSource = path.join(this.tmpDir, mod.name, modsSubdirLocation);
 				break;
 			case "":
 				// Already a folder, no need to extract
@@ -211,10 +188,7 @@ export default class ModInstaller {
 	 * if a bike mod does not contain that, this method will be used. Bikes just have a pkz file in the bikes directory,
 	 * and a folder with the same name as the pkz file to store paints
 	 */
-	private async installBikeMod(
-		mod: Mod,
-		source: string
-	): Promise<void | Mod> {
+	private async installBikeMod(mod: Mod, source: string): Promise<void | Mod> {
 		// Search for a pkz.
 		// When a pkz is found, it goes in mods/bikes/<bike.pkz>
 		// Furthermore, a folder is created with the same name as the pkz file
@@ -262,12 +236,7 @@ export default class ModInstaller {
 				const bikes = this.getBikes();
 				const bike = await promptQuestion(title, message, bikes);
 				if (bike) {
-					const paintsDir = path.join(
-						this.modsFolder,
-						"bikes",
-						bike.split(".pkz")[0],
-						"paints"
-					);
+					const paintsDir = path.join(this.modsFolder, "bikes", bike.split(".pkz")[0], "paints");
 					await cpRecurse(source, paintsDir);
 				} else {
 					throw new Error("Unable to install bike paint");
@@ -305,12 +274,7 @@ export default class ModInstaller {
 					const bikes = this.getBikes();
 					const bike = await promptQuestion(title, message, bikes);
 					if (bike) {
-						const paintsDir = path.join(
-							this.modsFolder,
-							"bikes",
-							bike.split(".pkz")[0],
-							"paints"
-						);
+						const paintsDir = path.join(this.modsFolder, "bikes", bike.split(".pkz")[0], "paints");
 						for (const pnt of paints) {
 							await cpRecurse(pnt, paintsDir);
 						}
@@ -328,9 +292,7 @@ export default class ModInstaller {
 										files: [],
 										subfolders: {
 											paints: {
-												files: paints.map((pnt) =>
-													path.basename(pnt)
-												),
+												files: paints.map((pnt) => path.basename(pnt)),
 												subfolders: {},
 											},
 										},
@@ -368,10 +330,7 @@ export default class ModInstaller {
 	 * Tracks could be a pkz or (rarely) a zip or a rar, but they do not need to
 	 * be extracted, the file can simply be copied to the destination.
 	 */
-	private async installTrackMod(
-		mod: Mod,
-		source: string
-	): Promise<void | Mod> {
+	private async installTrackMod(mod: Mod, source: string): Promise<void | Mod> {
 		// TODO: to make this function more robust, search for a pkz file,
 		// and handle cases where it is not a pkz
 		const trackType = await this.selectTrackType(mod.name);
@@ -410,31 +369,22 @@ export default class ModInstaller {
 	 * Or if its a zip, it will need to be unzipped, but there must be a directory within the zip
 	 * Some rider mods contain a "rider" directory that can simply be moved into the mods folder
 	 */
-	private async installRiderMod(
-		mod: Mod,
-		source: string
-	): Promise<void | Mod> {
+	private async installRiderMod(mod: Mod, source: string): Promise<void | Mod> {
 		mod.type = "rider";
 		console.log("Installing rider mod");
-		const riderSubdir = await this.archiveScanner.subdirExists(
-			source,
-			"rider"
-		);
+		const riderSubdir = await this.archiveScanner.subdirExists(source, "rider");
 		console.log("Rider subdir: ", riderSubdir);
 		if (riderSubdir) {
 			console.log("Rider subdirectory exists.");
 			// Could be a zip here
 			const dest = this.modsFolder; // rider exists under mods/
-			if (
-				path.extname(source) === ".zip" ||
-				path.extname(source) === ".rar"
-			) {
+			if (path.extname(source) === ".zip" || path.extname(source) === ".rar") {
 				const modPath = path.join(this.tmpDir, mod.name);
 				await this.decompressor.extract(source, modPath);
 				const folderStruct = FolderStructureBuilder.build(modPath);
 				mod.files = folderStruct;
 				await cpRecurse(path.join(modPath, riderSubdir), dest);
-			} else if (isDir(source)) {
+			} else if (fs.statSync(source).isDirectory()) {
 				// riderSubdir is an absolute path here
 				await cpRecurse(riderSubdir, dest);
 				const folderStruct = FolderStructureBuilder.build(source);
@@ -446,9 +396,7 @@ export default class ModInstaller {
 		}
 		console.log("Rider subdirectory does not exist.");
 
-		const riderModType: RiderModType = await this.selectRiderModType(
-			mod.name
-		);
+		const riderModType: RiderModType = await this.selectRiderModType(mod.name);
 
 		switch (riderModType) {
 			case "boots":
@@ -464,10 +412,7 @@ export default class ModInstaller {
 
 	private async installBoots(mod: Mod, source: string): Promise<Mod> {
 		console.log("Installing boots");
-		const bootsSubdir = await this.archiveScanner.subdirExists(
-			source,
-			"boots"
-		);
+		const bootsSubdir = await this.archiveScanner.subdirExists(source, "boots");
 		if (bootsSubdir) {
 			// Copy boots to rider
 			const dest = path.join(this.modsFolder, "rider");
@@ -505,9 +450,7 @@ export default class ModInstaller {
 								files: [],
 								subfolders: {
 									boots: {
-										files: pkzs.map((pkz) =>
-											path.basename(pkz)
-										),
+										files: pkzs.map((pkz) => path.basename(pkz)),
 										subfolders: {},
 									},
 								},
@@ -561,10 +504,7 @@ export default class ModInstaller {
 				fs.mkdirSync(paintsPath);
 			}
 
-			await cpRecurse(
-				bootsDir,
-				path.join(this.modsFolder, "rider", "boots")
-			);
+			await cpRecurse(bootsDir, path.join(this.modsFolder, "rider", "boots"));
 
 			// each of these helmet dirs is a whole helmet model in itself.
 			// They can be treated as a single mod
@@ -633,9 +573,7 @@ export default class ModInstaller {
 		}
 
 		// If we got a bunch of pnts, use that, else if source was a single pnt, use that
-		const glovesFiles = pnts
-			? pnts.map((pnt) => path.basename(pnt))
-			: [path.basename(source)];
+		const glovesFiles = pnts ? pnts.map((pnt) => path.basename(pnt)) : [path.basename(source)];
 
 		const entries: FolderEntries = {
 			files: [],
@@ -743,13 +681,8 @@ export default class ModInstaller {
 				break;
 
 			default:
-				console.error(
-					"Unrecognized file type for helmet model or paint: ",
-					ext
-				);
-				throw new Error(
-					"Unrecognized file type for helmet model or paint: " + ext
-				);
+				console.error("Unrecognized file type for helmet model or paint: ", ext);
+				throw new Error("Unrecognized file type for helmet model or paint: " + ext);
 		}
 
 		return mod;
@@ -864,10 +797,7 @@ export default class ModInstaller {
 
 		mod.files.setEntries(entries);
 
-		fs.writeFileSync(
-			"entries.json",
-			JSON.stringify(mod.files.getEntries())
-		);
+		fs.writeFileSync("entries.json", JSON.stringify(mod.files.getEntries()));
 		await cpRecurse(source, dest);
 
 		this.makeHelmetFolder(fileName);
@@ -904,10 +834,7 @@ export default class ModInstaller {
 				fs.mkdirSync(paintsPath);
 			}
 
-			await cpRecurse(
-				helmetDir,
-				path.join(this.modsFolder, "rider", "helmets")
-			);
+			await cpRecurse(helmetDir, path.join(this.modsFolder, "rider", "helmets"));
 
 			// each of these helmet dirs is a whole helmet model in itself.
 			// They can be treated as a single mod
@@ -972,7 +899,7 @@ export default class ModInstaller {
 			if (entry === target + ".edf") {
 				console.log("Found edf path in ", subfolderPath);
 				edfDirs.push(source);
-			} else if (isDir(subfolderPath)) {
+			} else if (fs.statSync(subfolderPath).isDirectory()) {
 				console.log("Found subdirectory...", entry);
 				const result = this.findEdfs(subfolderPath, target);
 				edfDirs.push(...result);
@@ -1034,24 +961,17 @@ export default class ModInstaller {
 		return mod;
 	}
 
-	private async installOtherMod(
-		mod: Mod,
-		source: string
-	): Promise<void | Mod> {
+	private async installOtherMod(mod: Mod, source: string): Promise<void | Mod> {
 		throw new Error("Method not implemented.");
 	}
 
 	private getHelmets(): string[] {
-		const files = fs.readdirSync(
-			path.join(this.modsFolder, "rider", "helmets")
-		);
+		const files = fs.readdirSync(path.join(this.modsFolder, "rider", "helmets"));
 		return files;
 	}
 
 	private getRiders(): string[] {
-		const files = fs.readdirSync(
-			path.join(this.modsFolder, "rider", "riders")
-		);
+		const files = fs.readdirSync(path.join(this.modsFolder, "rider", "riders"));
 		return files;
 	}
 
@@ -1062,11 +982,7 @@ export default class ModInstaller {
 
 	private async selectRiderModType(modName: string): Promise<RiderModType> {
 		const types: RiderModType[] = ["boots", "gloves", "helmet", "rider"];
-		const riderModType = await promptQuestion(
-			"Select Rider Mod Type",
-			`What type of rider mod is ${modName}?`,
-			types
-		);
+		const riderModType = await promptQuestion("Select Rider Mod Type", `What type of rider mod is ${modName}?`, types);
 		return riderModType as RiderModType;
 	}
 
@@ -1085,15 +1001,8 @@ export default class ModInstaller {
 		return result as ModType;
 	}
 
-	private async selectTrackType(
-		trackName: string
-	): Promise<TrackType | null> {
-		const trackTypes: TrackType[] = [
-			"supercross",
-			"motocross",
-			"supermoto",
-			"enduro",
-		];
+	private async selectTrackType(trackName: string): Promise<TrackType | null> {
+		const trackTypes: TrackType[] = ["supercross", "motocross", "supermoto", "enduro"];
 		const title = "Select Track Type";
 		const message = `What kind of track is ${trackName}?`;
 		const trackType = await promptQuestion(title, message, trackTypes);
@@ -1102,12 +1011,7 @@ export default class ModInstaller {
 	}
 
 	private async selectMod() {
-		const modPath = await promptSelectFile("Select A Mod To Install", [
-			"zip",
-			"pkz",
-			"pnt",
-			"rar",
-		]);
+		const modPath = await promptSelectFile("Select A Mod To Install", ["zip", "pkz", "pnt", "rar"]);
 		return modPath;
 	}
 }

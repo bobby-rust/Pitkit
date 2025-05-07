@@ -5,7 +5,8 @@ import os from "os";
 import { dialog, app } from "electron";
 import { mainWindow } from "../main";
 import { Mod, ModsData } from "src/types";
-import ModInstaller from "./ModInstaller";
+import ModInstallerV2 from "./ModInstallerV2";
+import { promptSelectFile } from "../utils/dialogHelper";
 
 interface Config {
 	modsFolder: string;
@@ -18,7 +19,7 @@ export default class ModManager {
 		baseGameFolder: "",
 	};
 	private mods: ModsData;
-	private installer: ModInstaller;
+	private installer: ModInstallerV2;
 	private extractionProgress: number;
 	private dataFile: string;
 
@@ -36,10 +37,7 @@ export default class ModManager {
 
 		this.loadMods();
 
-		this.installer = new ModInstaller(
-			this.config.modsFolder,
-			this.sendProgressToRenderer
-		);
+		this.installer = new ModInstallerV2(this.config.modsFolder, this.sendProgressToRenderer);
 	}
 
 	public getExtractionProgress() {
@@ -54,15 +52,11 @@ export default class ModManager {
 
 		const cfgContents = ini.parse(cfgFile);
 		if (!cfgContents.base_game_folder) {
-			cfgContents.base_game_folder =
-				"C:\\Program Files (x86)\\Steam\\steamapps\\common\\MX Bikes";
+			cfgContents.base_game_folder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\MX Bikes";
 		}
 
 		// No base game directory set, get base game directory from user
-		if (
-			!cfgContents.base_game_folder ||
-			!this.verifyBaseGameDirectory(cfgContents.base_game_folder)
-		) {
+		if (!cfgContents.base_game_folder || !this.verifyBaseGameDirectory(cfgContents.base_game_folder)) {
 			cfgContents.base_game_folder = await this.getBaseGameDirectory();
 		}
 		this.config.baseGameFolder = cfgContents.base_game_folder;
@@ -97,9 +91,7 @@ export default class ModManager {
 			fs.writeFileSync(this.dataFile, "{}");
 		}
 
-		const modsDataFileContents = fs
-			.readFileSync(this.dataFile, "utf-8")
-			.trim();
+		const modsDataFileContents = fs.readFileSync(this.dataFile, "utf-8").trim();
 
 		let modsDataObject;
 		try {
@@ -132,9 +124,14 @@ export default class ModManager {
 	public async installMod(filePaths: string[] | null) {
 		let mod;
 		if (!filePaths) {
-			const mod = await this.installer.installMod(
-				this.sendProgressToRenderer
-			);
+			// Stage 1: File selection
+			const source = await this.selectMod();
+
+			if (!source) {
+				throw new Error("Cancelled mod install");
+			}
+
+			const mod = await this.installer.install(source);
 			if (!mod) {
 				this.setExtractionProgress(0);
 				throw new Error("Mod installation failed");
@@ -142,10 +139,7 @@ export default class ModManager {
 			this.addModToModsData(mod);
 		} else {
 			for (const source of filePaths) {
-				mod = await this.installer.installMod(
-					this.sendProgressToRenderer,
-					source
-				);
+				mod = await this.installer.install(source);
 				if (!mod) {
 					console.error("Unable to install mod");
 					this.setExtractionProgress(0);
@@ -167,7 +161,8 @@ export default class ModManager {
 	}
 
 	public async uninstallMod(modName: string) {
-		await this.installer.uninstallMod(this.mods, modName);
+		const modToRemove = this.mods.get(modName);
+		await this.installer.uninstall(modToRemove);
 		this.mods.delete(modName);
 		this.writeModsToDisk();
 	}
@@ -182,18 +177,14 @@ export default class ModManager {
 			fs.mkdirSync(dataDir, { recursive: true });
 		}
 
-		fs.writeFileSync(
-			path.join(dataDir, "mods.json"),
-			JSON.stringify(Object.fromEntries(this.mods))
-		);
+		fs.writeFileSync(path.join(dataDir, "mods.json"), JSON.stringify(Object.fromEntries(this.mods)));
 	}
 
 	private async showGetBaseGameDirectoryPrompt(): Promise<number> {
 		const messageResult = await dialog.showMessageBox(mainWindow, {
 			type: "info",
 			title: "Select base game folder",
-			message:
-				"You must select the base game folder for MX Bikes to use the mod manager",
+			message: "You must select the base game folder for MX Bikes to use the mod manager",
 			buttons: ["OK", "Cancel"],
 
 			defaultId: 0,
@@ -241,9 +232,7 @@ export default class ModManager {
 
 			switch (choice) {
 				case 1:
-					console.log(
-						"Quitting due to cancelled base game dir selection!"
-					);
+					console.log("Quitting due to cancelled base game dir selection!");
 					app.quit();
 			}
 			const result = await dialog.showOpenDialog({
@@ -276,27 +265,23 @@ export default class ModManager {
 	}
 
 	private getModsPathFromBaseGameConfig() {
-		const baseGameConfigPath = path.join(
-			this.config.baseGameFolder,
-			"mxbikes.ini"
-		);
+		const baseGameConfigPath = path.join(this.config.baseGameFolder, "mxbikes.ini");
 
 		if (!fs.existsSync(baseGameConfigPath)) {
 			return null;
 		}
 
-		const baseGameConfigContents = fs.readFileSync(
-			baseGameConfigPath,
-			"utf-8"
-		);
+		const baseGameConfigContents = fs.readFileSync(baseGameConfigPath, "utf-8");
 
 		const baseGameConfig = ini.parse(baseGameConfigContents);
 		if (!baseGameConfig.mods.folder) {
-			return path.join(
-				os.homedir(),
-				path.normalize("Documents/PiBoSo/MX Bikes/mods")
-			);
+			return path.join(os.homedir(), path.normalize("Documents/PiBoSo/MX Bikes/mods"));
 		}
 		return baseGameConfig.mods.folder;
+	}
+
+	private async selectMod() {
+		const modPath = await promptSelectFile("Select A Mod To Install", ["zip", "pkz", "pnt", "rar"]);
+		return modPath;
 	}
 }

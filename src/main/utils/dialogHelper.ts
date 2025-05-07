@@ -9,24 +9,15 @@ import { dialog } from "electron";
  * @param buttons The buttons to select from the dialog
  * @returns The selected button, null if cancelled
  */
-export async function promptQuestion(
-	title: string,
-	message: string,
-	buttons: string[]
-): Promise<string> {
+export async function promptQuestion(title: string, message: string, buttons: string[]): Promise<string> {
 	const result = await dialog.showMessageBox({
 		type: "question",
-		buttons: [
-			...buttons.map(
-				(button) => button[0].toUpperCase() + button.slice(1)
-			),
-			"Cancel",
-		],
+		buttons: [...buttons.map((button) => button[0].toUpperCase() + button.slice(1)), "Cancel"],
 		title: title,
 		message: message,
 		cancelId: buttons.length, // If the user presses ESC or closes, it selects "Cancel"
 	});
-	if (result.response === 4) {
+	if (result.response === buttons.length) {
 		console.log("User canceled question prompt.");
 		return null;
 	}
@@ -41,10 +32,7 @@ export async function promptQuestion(
  * @param extensions The file extensions that are shown in the dialog. The user can only select these filetypes.
  * @returns The absolute path of the selected file, or null if the user cancelled.
  */
-export async function promptSelectFile(
-	title: string,
-	extensions: string[]
-): Promise<string> {
+export async function promptSelectFile(title: string, extensions: string[]): Promise<string> {
 	const result = await dialog.showOpenDialog({
 		properties: ["openFile"],
 		filters: [{ name: "Files", extensions }],

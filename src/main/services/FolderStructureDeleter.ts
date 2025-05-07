@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { isDirEmpty } from "../utils/FileSystemUtils";
 import FolderStructure from "../models/FolderStructure";
 import { FolderEntries } from "src/types";
 
@@ -55,7 +54,7 @@ export class FolderStructureDeleter {
 		}
 
 		try {
-			const isDirectoryEmpty = isDirEmpty(currentDirectory);
+			const isDirectoryEmpty: boolean = fs.readdirSync(currentDirectory).length === 0;
 			const basename = path.basename(currentDirectory);
 			const isWhitelisted = WHITELISTED_DIRS.has(basename);
 			if (isDirectoryEmpty && !isWhitelisted) {

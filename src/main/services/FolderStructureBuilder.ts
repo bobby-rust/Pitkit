@@ -2,12 +2,11 @@ import path from "path";
 import fs from "fs";
 import FolderStructure from "../models/FolderStructure";
 import { FolderEntries } from "src/types";
-import { isDir } from "../utils/FileSystemUtils";
 
 class FolderStructureBuilder {
 	// this funcion should....
 	// take in a location where the mod exists WITH a mods folder ALWAYS
-	// so `location`/mods ALWAYS EXISTS
+	// so mods/`location` ALWAYS EXISTS
 	// And location is ONLY THE MOD, NOT THE MOD IN THE MODSFOLDER,
 	// So if a mod with a mods subfolder was installed, from a folder, we pass the location of that folder,
 	// not the location of the installed mod.
@@ -31,7 +30,7 @@ class FolderStructureBuilder {
 		const currentEntries = fs.readdirSync(location);
 		for (const e of currentEntries) {
 			const entryPath = path.join(location, e);
-			if (isDir(entryPath)) {
+			if (fs.statSync(entryPath).isDirectory()) {
 				root.subfolders[e.toLowerCase()] = this.buildEntries(entryPath);
 			} else {
 				root.files.push(e);

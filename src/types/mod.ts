@@ -19,7 +19,7 @@ export const Mod = {
 	/**
 	 * Does not set the track type, even if modType is track.
 	 */
-	async from(source: string): Promise<Mod> {
+	from(source: string): Mod {
 		return {
 			name: path.parse(source).name,
 			files: new FolderStructure(),
