@@ -12,6 +12,7 @@ import FolderStructureDeleter from "../services/FolderStructureDeleter";
 /**
  * TODO:
  * [ ] - Recursive extraction
+ * [ ] - helmet cameras can be either pkz or <any string>.edf, so now we need to handle unrecognized edfs
  * [ ] - Install fonts
  * [ ] - Install stands
  * [ ] - Install rider animations
@@ -184,6 +185,12 @@ class ModInstallerV2 {
 		const folderStruct = FolderStructureBuilder.build(tmpModsLocation);
 		mod.files = folderStruct;
 
+		try {
+			fs.rmSync(this.tmpDir, { recursive: true });
+		} catch (err) {
+			console.error(err);
+		}
+
 		return mod;
 	}
 
@@ -208,7 +215,7 @@ class ModInstallerV2 {
 
 		const entries = fs.readdirSync(helmetsDir);
 		entries.forEach((entry: string) => {
-			if (fs.statSync(entry).isDirectory()) {
+			if (fs.statSync(path.join(helmetsDir, entry)).isDirectory()) {
 				helmets.add(entry);
 			} else if (path.extname(entry) === ".pkz") {
 				helmets.add(entry.split(".pkz")[0]);
@@ -277,7 +284,7 @@ class ModInstallerV2 {
 		if (pnts?.length) {
 			const title = "Select paint type";
 			const message = "What type of paints are you installing?";
-			const buttons = ["helmets", "boots", "gloves", "riders", "bikes", "protections"];
+			const buttons = ["helmets", "goggles", "boots", "gloves", "riders", "bikes", "protections"];
 			paintType = await promptQuestion(title, message, buttons);
 		}
 
@@ -289,6 +296,7 @@ class ModInstallerV2 {
 		let builtPaintsLocation: string;
 		let title: string, message: string;
 		let rider: string, riders: string[];
+		let helmet: string, helmets: Set<string>, helmetFolder: string;
 		switch (paintType) {
 			case "bikes":
 				mod.type = "bike";
@@ -313,20 +321,39 @@ class ModInstallerV2 {
 				title = "Select a helmet";
 				message =
 					pnts.length === 1 ? "Which helmet does this paint belong to?" : "What helmets do these paints belong to?";
-				const helmets = this.getHelmets();
+				helmets = this.getHelmets();
 				if (!helmets.size) {
 					throw new Error("No helmets installed, unable to install helmet paints");
 				}
-				const helmet = await promptQuestion(title, message, Array.from(helmets));
+				helmet = await promptQuestion(title, message, Array.from(helmets));
 
-				let helmetsFolder: string;
 				if (path.extname(helmet) === ".pkz") {
-					helmetsFolder = helmet.split(".pkz")[0];
+					helmetFolder = helmet.split(".pkz")[0];
 				} else {
-					helmetsFolder = helmet;
+					helmetFolder = helmet;
 				}
 
-				builtPaintsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmets", helmetsFolder, "paints");
+				builtPaintsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmets", helmetFolder, "paints");
+				break;
+
+			case "goggles":
+				mod.type = "rider";
+				title = "Select a helmet";
+				message =
+					pnts.length === 1 ? "Which helmet are these goggles for?" : "What helmet is this pair of goggles for?";
+				helmets = this.getHelmets();
+				if (!helmets.size) {
+					throw new Error("No helmets installed, unable to install goggles");
+				}
+				helmet = await promptQuestion(title, message, Array.from(helmets));
+
+				if (path.extname(helmet) === ".pkz") {
+					helmetFolder = helmet.split(".pkz")[0];
+				} else {
+					helmetFolder = helmet;
+				}
+
+				builtPaintsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmets", helmetFolder, "goggles");
 				break;
 			case "boots":
 				mod.type = "rider";
@@ -383,6 +410,7 @@ class ModInstallerV2 {
 				const protection = await promptQuestion(title, message, protections);
 
 				builtPaintsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "protections", protection, "paints");
+				break;
 		}
 
 		// Now we can copy all paints to the correct bike.
@@ -402,7 +430,7 @@ class ModInstallerV2 {
 		if (pkzs?.length) {
 			const title = "Select mod type";
 			const message = "What type of models are you installing?";
-			const buttons = ["helmets", "boots", "bikes", "tracks", "tyres", "protections"];
+			const buttons = ["helmets", "boots", "bikes", "tracks", "tyres", "protections", "helmet addon"];
 			pkzType = await promptQuestion(title, message, buttons);
 		}
 
@@ -436,6 +464,9 @@ class ModInstallerV2 {
 				mod.type = "other";
 				builtPkzsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "protections");
 				break;
+			case "helmet addon":
+				mod.type = "rider";
+				builtPkzsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmetcams");
 		}
 
 		for (const pkz of pkzs) {
