@@ -1,8 +1,11 @@
 import { app, BrowserWindow, dialog, IpcMainInvokeEvent } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
+import { updateElectronApp } from "update-electron-app";
 
 const IS_DEV = !app.isPackaged;
+
+updateElectronApp();
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -27,12 +30,7 @@ const createWindow = () => {
 	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 		mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
 	} else {
-		mainWindow.loadFile(
-			path.join(
-				__dirname,
-				`../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
-			)
-		);
+		mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
 	}
 	// --- IPC Handlers for Window Controls ---
 	ipcMain.on("minimize-window", (event) => {
@@ -126,27 +124,18 @@ process.on("uncaughtException", (err) => {
 	console.error("UNCAUGHT EXCEPTION:", err);
 
 	// show a system dialog so the user sees it
-	dialog.showErrorBox(
-		"An unhandled error occurred",
-		err.stack || err.message
-	);
+	dialog.showErrorBox("An unhandled error occurred", err.stack || err.message);
 });
 
 let modManager: ModManager;
 
-ipcMain.handle(
-	"install-mod",
-	async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
-		await modManager.installMod(filePaths || null);
-	}
-);
+ipcMain.handle("install-mod", async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
+	await modManager.installMod(filePaths || null);
+});
 
-ipcMain.handle(
-	"uninstall-mod",
-	async (_event: IpcMainInvokeEvent, modName: string) => {
-		modManager.uninstallMod(modName);
-	}
-);
+ipcMain.handle("uninstall-mod", async (_event: IpcMainInvokeEvent, modName: string) => {
+	modManager.uninstallMod(modName);
+});
 
 ipcMain.handle("request-mods-data", (_event: IpcMainInvokeEvent) => {
 	return modManager.getMods();
@@ -156,9 +145,7 @@ ipcMain.handle("request-extraction-progress", (_event: IpcMainInvokeEvent) => {
 	return modManager.getExtractionProgress();
 });
 
-const assetsPath = IS_DEV
-	? "src/renderer/assets"
-	: path.join(process.resourcesPath, "assets");
+const assetsPath = IS_DEV ? "src/renderer/assets" : path.join(process.resourcesPath, "assets");
 
 ipcMain.handle("get-assets-path", (_event: IpcMainInvokeEvent) => {
 	return assetsPath;

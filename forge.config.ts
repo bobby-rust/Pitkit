@@ -22,6 +22,20 @@ const config: ForgeConfig = {
 		new MakerRpm({}),
 		new MakerDeb({}),
 	],
+
+	publishers: [
+		{
+			name: "@electron-forge/publisher-github",
+			config: {
+				repository: {
+					owner: "bobby-rust",
+					name: "Pitkit",
+				},
+				prerelease: true, // true if this is an alpha/beta channel
+				draft: false, // true to create a draft release
+			},
+		},
+	],
 	plugins: [
 		new VitePlugin({
 			// `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
