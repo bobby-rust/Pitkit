@@ -4,17 +4,14 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { ModsData } from "src/types";
 
 contextBridge.exposeInMainWorld("modManagerAPI", {
-	installMod: (filePaths?: string[]) =>
-		ipcRenderer.invoke("install-mod", filePaths),
+	installMod: (filePaths?: string[]) => ipcRenderer.invoke("install-mod", filePaths),
 	uninstallMod: (modName: string) => {
 		ipcRenderer.invoke("uninstall-mod", modName);
 	},
 
-	requestModsData: (): Promise<ModsData> =>
-		ipcRenderer.invoke("request-mods-data"),
+	requestModsData: (): Promise<ModsData> => ipcRenderer.invoke("request-mods-data"),
 
-	requestExtractionProgress: (): Promise<number> =>
-		ipcRenderer.invoke("request-extraction-progress"),
+	requestExtractionProgress: (): Promise<number> => ipcRenderer.invoke("request-extraction-progress"),
 
 	onMessage: (channel: any, callback: any) => {
 		ipcRenderer.on(channel, (_event, data) => callback(data));
@@ -31,8 +28,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getAssetsPath: () => ipcRenderer.invoke("get-assets-path"),
 	// Function to setup listener for Main -> Renderer events
 	onWindowStateChange: (callback: (arg0: any) => any) => {
-		const subscription = (_event: any, isMaximized: any) =>
-			callback(isMaximized);
+		const subscription = (_event: any, isMaximized: any) => callback(isMaximized);
 		ipcRenderer.on("window-state-changed", subscription);
 
 		// Return a cleanup function
@@ -47,7 +43,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		return [];
 	},
 	// Function to remove all listeners (e.g., on unload)
-	removeAllListeners: () =>
-		ipcRenderer.removeAllListeners("window-state-changed"),
+	removeAllListeners: () => ipcRenderer.removeAllListeners("window-state-changed"),
 });
 console.log("Preload script loaded.");

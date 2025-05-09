@@ -3,6 +3,8 @@ import path from "path";
 import FolderStructure from "../models/FolderStructure";
 import { FolderEntries } from "src/types";
 
+import log from "electron-log/main";
+
 const WHITELISTED_DIRS: Set<string> = new Set([
 	"bikes",
 	"tracks",
@@ -26,8 +28,8 @@ const WHITELISTED_DIRS: Set<string> = new Set([
 
 export class FolderStructureDeleter {
 	static delete(structure: FolderStructure, currentDirectory: string): void {
-		console.log("Deleting: ", structure);
-		console.log("From current directory: ", currentDirectory);
+		log.info("Deleting: ", structure);
+		log.info("From current directory: ", currentDirectory);
 		let entries;
 		try {
 			entries = structure.getEntries();
@@ -42,7 +44,7 @@ export class FolderStructureDeleter {
 					recursive: true,
 				});
 			} catch (err) {
-				console.error(err);
+				log.error(err);
 			}
 		}
 
@@ -61,7 +63,7 @@ export class FolderStructureDeleter {
 				fs.rmSync(currentDirectory, { recursive: true });
 			}
 		} catch (err) {
-			console.error(err);
+			log.error(err);
 		}
 	}
 }

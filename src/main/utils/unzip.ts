@@ -1,6 +1,7 @@
 import yauzl from "yauzl";
 import path from "path";
 import fs from "fs";
+import log from "electron-log/main";
 
 export default async function unzip(
 	source: string,
@@ -14,7 +15,7 @@ export default async function unzip(
 
 		yauzl.open(normalizedSource, { lazyEntries: true }, (openErr, zipfile) => {
 			if (openErr || !zipfile) {
-				console.error("Failed to open zip file:", openErr);
+				log.error("Failed to open zip file:", openErr);
 				reject(openErr || new Error("Failed to open zip file"));
 				return;
 			}
@@ -31,12 +32,12 @@ export default async function unzip(
 			});
 
 			zipfile.on("end", () => {
-				console.log(`Found ${entryCount} entries with total size ${totalBytes} bytes`);
+				log.info(`Found ${entryCount} entries with total size ${totalBytes} bytes`);
 
 				// Second pass: Actual extraction
 				yauzl.open(normalizedSource, { lazyEntries: true }, async (err, innerZip) => {
 					if (err || !innerZip) {
-						console.error("Failed to open zip for extraction:", err);
+						log.error("Failed to open zip for extraction:", err);
 						return reject(err || new Error("Failed to open zip for extraction"));
 					}
 
@@ -63,14 +64,14 @@ export default async function unzip(
 								// Check if the file already exists and handle accordingly
 								try {
 									await fs.promises.access(entryPath, fs.constants.F_OK);
-									console.log(`File already exists: ${entryPath}, will overwrite`);
+									log.info(`File already exists: ${entryPath}, will overwrite`);
 								} catch (accessErr) {
 									// File doesn't exist, which is fine for extraction
 								}
 
 								innerZip.openReadStream(entry, (readErr, readStream) => {
 									if (readErr || !readStream) {
-										console.error(`Failed to open read stream for ${entry.fileName}:`, readErr);
+										log.error(`Failed to open read stream for ${entry.fileName}:`, readErr);
 
 										return reject(readErr || new Error(`Failed to read file from zip: ${entry.fileName}`));
 									}
@@ -90,30 +91,30 @@ export default async function unzip(
 									});
 
 									writeStream.on("error", (writeErr) => {
-										console.error(`Error writing to ${entryPath}:`, writeErr);
+										log.error(`Error writing to ${entryPath}:`, writeErr);
 										reject(writeErr);
 									});
 
 									readStream.on("error", (streamErr) => {
-										console.error(`Error reading from zip for ${entry.fileName}:`, streamErr);
+										log.error(`Error reading from zip for ${entry.fileName}:`, streamErr);
 										reject(streamErr);
 									});
 								});
 							}
 						} catch (processingErr) {
-							console.error(`Error processing entry ${entry.fileName}:`, processingErr);
+							log.error(`Error processing entry ${entry.fileName}:`, processingErr);
 							reject(processingErr);
 						}
 					});
 
 					innerZip.on("end", () => {
-						console.log("Extraction completed successfully");
+						log.info("Extraction completed successfully");
 						sendProgress(99);
 						resolve();
 					});
 
 					innerZip.on("error", (zipErr) => {
-						console.error("Zip extraction error:", zipErr);
+						log.error("Zip extraction error:", zipErr);
 						reject(zipErr);
 					});
 				});
@@ -122,7 +123,7 @@ export default async function unzip(
 			zipfile.readEntry();
 
 			zipfile.on("error", (err) => {
-				console.error("Error during initial zip reading:", err);
+				log.error("Error during initial zip reading:", err);
 				reject(err);
 			});
 		});

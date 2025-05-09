@@ -1,5 +1,5 @@
 import React from "react";
-import { ModsData } from "src/types/types";
+import { ModsData } from "src/types";
 import ModCard from "../mod-card/ModCard";
 import "./ModsGrid.css";
 

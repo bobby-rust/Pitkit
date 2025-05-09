@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, IpcMainInvokeEvent } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
 import { updateElectronApp } from "update-electron-app";
+import log from "electron-log/main";
 
 const IS_DEV = !app.isPackaged;
 
@@ -83,7 +84,7 @@ const createWindow = () => {
 async function init() {
 	modManager = new ModManager();
 	await modManager.loadConfig();
-	console.log("Mods: ", modManager.getMods());
+	log.info("Mods: ", modManager.getMods());
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
 	});
@@ -121,7 +122,7 @@ import { ipcMain } from "electron";
 
 process.on("uncaughtException", (err) => {
 	// write to stderr (will appear in the console)
-	console.error("UNCAUGHT EXCEPTION:", err);
+	log.error("UNCAUGHT EXCEPTION:", err);
 
 	// show a system dialog so the user sees it
 	dialog.showErrorBox("An unhandled error occurred", err.stack || err.message);

@@ -2,7 +2,6 @@ import React from "react";
 import "./Sidebar.css";
 import Logo from "../../Logo";
 import { Folder } from "lucide-react";
-import { Settings } from "lucide-react";
 
 export default function Sidebar() {
 	return (

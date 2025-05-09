@@ -8,6 +8,8 @@ import { Mod, ModsData } from "src/types";
 import ModInstallerV2 from "./ModInstallerV2";
 import { promptSelectFile } from "../utils/dialogHelper";
 
+import log from "electron-log/main";
+
 interface Config {
 	modsFolder: string;
 	baseGameFolder: string;
@@ -71,7 +73,7 @@ export default class ModManager {
 
 		this.installer.setModsFolder(this.config.modsFolder);
 
-		console.log("Loaded config: ", this.config);
+		log.info("Loaded config: ", this.config);
 	}
 
 	public loadMods() {
@@ -108,7 +110,7 @@ export default class ModManager {
 			modsData.set(key, value as Mod);
 		});
 
-		console.log("Loaded mods data: ", modsData);
+		log.info("Loaded mods data: ", modsData);
 
 		return modsData;
 	}
@@ -141,11 +143,11 @@ export default class ModManager {
 			for (const source of filePaths) {
 				mod = await this.installer.install(source);
 				if (!mod) {
-					console.error("Unable to install mod");
+					log.error("Unable to install mod");
 					this.setExtractionProgress(0);
 					return;
 				}
-				console.log("Installed mod: ", mod);
+				log.info("Installed mod: ", mod);
 				this.addModToModsData(mod);
 			}
 		}
@@ -232,7 +234,7 @@ export default class ModManager {
 
 			switch (choice) {
 				case 1:
-					console.log("Quitting due to cancelled base game dir selection!");
+					log.info("Quitting due to cancelled base game dir selection!");
 					app.quit();
 			}
 			const result = await dialog.showOpenDialog({
@@ -241,7 +243,7 @@ export default class ModManager {
 			});
 
 			if (result.canceled || result.filePaths.length === 0) {
-				console.error("No folder selected");
+				log.error("No folder selected");
 				app.quit();
 			}
 

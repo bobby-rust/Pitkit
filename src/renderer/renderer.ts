@@ -28,9 +28,9 @@
 
 import "./index.css";
 import "./main";
-console.log(
-	'👋 This message is being logged by "renderer.ts", included via Vite'
-);
+import log from "electron-log/renderer";
+
+log.info('👋 This message is being logged by "renderer.ts", included via Vite');
 // When document has loaded, initialize
 document.onreadystatechange = async (event) => {
 	// Make async for initial state check
@@ -104,12 +104,10 @@ async function handleWindowControls() {
 		const initialState = await window.electronAPI.getInitialWindowState();
 		toggleMaxRestoreButtons(initialState);
 	} catch (error) {
-		console.error("Failed to get initial window state:", error);
+		log.error("Failed to get initial window state:", error);
 		toggleMaxRestoreButtons(false); // Default to non-maximized on error
 	}
 
 	// Listen for state changes from the main process
-	cleanupWindowStateListener = window.electronAPI.onWindowStateChange(
-		toggleMaxRestoreButtons
-	);
+	cleanupWindowStateListener = window.electronAPI.onWindowStateChange(toggleMaxRestoreButtons);
 }

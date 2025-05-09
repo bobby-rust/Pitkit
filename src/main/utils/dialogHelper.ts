@@ -1,4 +1,5 @@
 import { dialog } from "electron";
+import log from "electron-log/main";
 
 /**
  * A helper function to show a dialog message box
@@ -18,7 +19,7 @@ export async function promptQuestion(title: string, message: string, buttons: st
 		cancelId: buttons.length, // If the user presses ESC or closes, it selects "Cancel"
 	});
 	if (result.response === buttons.length) {
-		console.log("User canceled question prompt.");
+		log.info("User canceled question prompt.");
 		return null;
 	}
 

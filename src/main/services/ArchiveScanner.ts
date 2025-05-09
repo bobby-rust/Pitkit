@@ -3,6 +3,8 @@ import fs from "fs";
 import yauzl from "yauzl";
 import path from "path";
 
+import log from "electron-log/main";
+
 export class ArchiveScanner {
 	// async subdirExists(source: string, target: string): Promise<string | null> {
 	// 	const ext = path.extname(source);
@@ -24,19 +26,19 @@ export class ArchiveScanner {
 			entries = fs.readdirSync(source);
 		} catch (err) {
 			// must not be a file
-			console.error("Source is a file or does not exist");
+			log.error("Source is a file or does not exist");
 			return null;
 		}
 
-		console.log("Checking entries: ", entries);
+		log.info("Checking entries: ", entries);
 
 		for (const entry of entries) {
 			const fullPath = path.join(source, entry);
 			const stat = fs.statSync(fullPath);
 
 			if (stat.isDirectory()) {
-				console.log("Found subdirectory: ", fullPath);
-				console.log("Comparing ", entry, " to ", target);
+				log.info("Found subdirectory: ", fullPath);
+				log.info("Comparing ", entry, " to ", target);
 				if (entry.toLowerCase() === target.toLowerCase()) {
 					return fullPath;
 				}
@@ -103,7 +105,7 @@ export class ArchiveScanner {
 	 * Ex. target = mods, zipPath = C:/Downloads/foo.zip, and foo.zip contains subfolder bar/mods, mods location relative to zipPath is bar/mods
 	 */
 	private subdirExistsZip(zipPath: string, target: string): Promise<string | null> {
-		console.log("Checking ", zipPath, " for mods subdir");
+		log.info("Checking ", zipPath, " for mods subdir");
 		return new Promise((resolve, reject) => {
 			yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
 				if (err || !zipfile) return reject(err);

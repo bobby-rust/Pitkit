@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import log from "electron-log/main";
 
 /**
  * Copies a file from source to dest. Will create the directory recursively
@@ -10,20 +11,17 @@ import path from "path";
  */
 async function cpRecurse(source: string, dest: string) {
 	if (!fs.existsSync(dest)) {
-		console.log("Directory does not exist, creating directory:", dest);
+		log.info("Directory does not exist, creating directory:", dest);
 		fs.mkdirSync(dest, { recursive: true });
 	}
 
-	console.log("Copying " + source + " to dest: ", dest);
+	log.info("Copying " + source + " to dest: ", dest);
 
 	const fileName = path.basename(source);
 	const destFile = path.join(dest, fileName);
-	try {
-		await fs.promises.cp(source, destFile, { recursive: true }).catch((err) => console.error("Error in cp: ", err));
-	} catch (err) {
-		console.log("Error in copy func: ", err);
-		throw new Error("Unable to install mod: ", err);
-	}
+	await fs.promises
+		.cp(source, destFile, { recursive: true })
+		.catch((err) => log.error("cpRecurse: Error copying file: ", err));
 }
 
 /**
@@ -33,26 +31,26 @@ async function cpRecurse(source: string, dest: string) {
  * Used to find important files that reveal the type of mod
  */
 function findDirectoriesContainingFileName(source: string, fileName: string) {
-	console.log("Finding " + fileName + " in ", source);
+	log.info("Finding " + fileName + " in ", source);
 	const dirs: string[] = [];
 	let folderEntries;
 	try {
 		folderEntries = fs.readdirSync(source);
 	} catch (e) {
-		console.error(e);
+		log.error(e);
 		return [];
 	}
-	console.log(folderEntries);
+	log.info(folderEntries);
 
 	for (const entry of folderEntries) {
 		const subfolderPath = path.join(source, entry);
 
-		console.log("Comparing ", entry, " to ", fileName);
+		log.info("Comparing ", entry, " to ", fileName);
 		if (entry === fileName) {
-			console.log("Found " + fileName + " in ", subfolderPath);
+			log.info("Found " + fileName + " in ", subfolderPath);
 			dirs.push(source);
 		} else if (fs.statSync(subfolderPath).isDirectory()) {
-			console.log("Found subdirectory...", entry);
+			log.info("Found subdirectory...", entry);
 			const result = findDirectoriesContainingFileName(subfolderPath, fileName);
 			dirs.push(...result);
 		}
@@ -71,7 +69,7 @@ function findFilesByType(source: string, ft: string, excludeDirs?: string[]): st
 	// Prepend the dot to the file type if it does not exist
 	if (!(ft[0] === ".")) ft = "." + ft;
 
-	console.log("Finding files of type " + ft + " in ", source);
+	log.info("Finding files of type " + ft + " in ", source);
 	if (!fs.statSync(source).isDirectory()) {
 		return [];
 	}
@@ -81,7 +79,7 @@ function findFilesByType(source: string, ft: string, excludeDirs?: string[]): st
 	try {
 		entries = fs.readdirSync(source);
 	} catch (err) {
-		console.error(err);
+		log.error(err);
 		return [];
 	}
 
@@ -108,19 +106,19 @@ function findSubdir(source: string, target: string): string | null {
 		entries = fs.readdirSync(source);
 	} catch (err) {
 		// must not be a file
-		console.error("Source is a file or does not exist");
+		log.error("Source is a file or does not exist");
 		return null;
 	}
 
-	console.log("Checking entries: ", entries);
+	log.info("Checking entries: ", entries);
 
 	for (const entry of entries) {
 		const fullPath = path.join(source, entry);
 		const stat = fs.statSync(fullPath);
 
 		if (stat.isDirectory()) {
-			console.log("Found subdirectory: ", fullPath);
-			console.log("Comparing ", entry, " to ", target);
+			log.info("Found subdirectory: ", fullPath);
+			log.info("Comparing ", entry, " to ", target);
 			if (entry.toLowerCase() === target.toLowerCase()) {
 				return fullPath;
 			}

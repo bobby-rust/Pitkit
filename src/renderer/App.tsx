@@ -5,6 +5,7 @@ import { ModsData } from "src/types";
 import { FolderPlus } from "lucide-react";
 import ModsGrid from "./components/mods-grid/ModsGrid";
 import { setupWindowControls } from "./utils/windowControls";
+import log from "electron-log/renderer";
 
 export default function App() {
 	const [progress, setProgress] = useState(null);
@@ -17,9 +18,9 @@ export default function App() {
 		 */
 		try {
 			await window.modManagerAPI.installMod(filePaths);
-			console.log("Installation complete");
+			log.info("Installation complete");
 		} catch (error) {
-			console.error("Installation failed:", error);
+			log.error("Installation failed:", error);
 		}
 	}
 
@@ -36,13 +37,13 @@ export default function App() {
 	};
 
 	async function handleUninstallMod(modName: string) {
-		console.log("Uninstalling mod in App.tsx: ", modName);
+		log.info("Uninstalling mod in App.tsx: ", modName);
 		await window.modManagerAPI.uninstallMod(modName);
 		await fetchModsData();
 	}
 
 	async function fetchModsData() {
-		console.log("Fetching mods data...");
+		log.info("Fetching mods data...");
 		const mods = await window.modManagerAPI.requestModsData();
 		setModsData(mods);
 	}
@@ -52,7 +53,7 @@ export default function App() {
 		// Only refresh data when both conditions are met
 		(async () => {
 			if (progress === 100 && isInstalling) {
-				console.log("Both progress complete and installation complete, refreshing data");
+				log.info("Both progress complete and installation complete, refreshing data");
 				setIsInstalling(false);
 				setProgress(null);
 				await fetchModsData();
@@ -66,11 +67,11 @@ export default function App() {
 		const filePaths = [];
 		for (const file of files) {
 			const filePath = window.electronAPI.getFilePath(file);
-			console.log("Got file path: ", filePath);
+			log.info("Got file path: ", filePath);
 			filePaths.push(filePath);
 		}
 
-		console.log("Got dropped file paths: ", filePaths);
+		log.info("Got dropped file paths: ", filePaths);
 		if (filePaths.length > 0) {
 			handleInstallMod(filePaths);
 		}
@@ -88,7 +89,7 @@ export default function App() {
 
 		// Listen for main context sending mods data
 		window.modManagerAPI.onMessage("send-mods-data", (data: ModsData) => {
-			console.log("Recieved mods data message: ", data);
+			log.info("Recieved mods data message: ", data);
 			// Can't receive a Map, we receive an object, so convert it to a Map
 			setModsData(new Map(Object.entries(data)));
 		});

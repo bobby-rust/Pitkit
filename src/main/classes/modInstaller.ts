@@ -1,6 +1,7 @@
 import path from "path";
 import os from "os";
 import fs from "fs";
+import log from "electron-log/main";
 
 import { FolderEntries, Mod, ModsData, ModType, RiderModType, TrackType } from "../../types";
 
@@ -62,7 +63,7 @@ export default class ModInstaller {
 		this.tmpDir =
 			process.env.NODE_ENV === "development" ? path.join(__dirname, "tmp") : path.join(os.tmpdir(), "PitkitExtract");
 
-		console.log("Temp dir: ", this.tmpDir);
+		log.info("Temp dir: ", this.tmpDir);
 		this.decompressor = new Decompressor(sendProgress);
 		this.archiveScanner = new ArchiveScanner();
 	}
@@ -89,13 +90,13 @@ export default class ModInstaller {
 		// const modName = path.parse(source).name;
 
 		// Stage 3: Check for a mods subdirectory IF the file type is zip or a folder.
-		console.log("Checking for mods subdir");
+		log.info("Checking for mods subdir");
 
 		// If source is a folder, this will hold an absolute path.
 		// If it is a rar or zip, this will hold a path relative to source.
 		const pathToModsSubdir = await this.archiveScanner.subdirExists(source, "mods");
 
-		console.log("Mods subdir location: ", pathToModsSubdir);
+		log.info("Mods subdir location: ", pathToModsSubdir);
 		if (pathToModsSubdir) {
 			await this.installWithModsSubdir(mod, source, pathToModsSubdir);
 			sendProgress(100);
@@ -104,14 +105,14 @@ export default class ModInstaller {
 				fs.rmSync(this.tmpDir, { recursive: true });
 			} catch (err) {
 				// The error is fine to continue.
-				console.error(err);
+				log.error(err);
 			}
 			return mod;
 		}
 
 		// Stage 4: No mods subdir, continue with manual install
 		const modType = await this.selectModType(mod.name);
-		console.log("Mod type selected: ", modType);
+		log.info("Mod type selected: ", modType);
 		mod.type = modType;
 		switch (modType) {
 			case "bike":
@@ -133,7 +134,7 @@ export default class ModInstaller {
 		} catch (err) {
 			// tmpDir does not exist when the passed file/folder is not compressed.
 			// rmSync throws an error in this case, so we can safely proceed and assume that is the case.
-			console.error(err);
+			log.error(err);
 		}
 		return mod;
 	}
@@ -163,7 +164,7 @@ export default class ModInstaller {
 				modSource = modsSubdirLocation;
 				break;
 			default:
-				console.error("Unrecognized file type: ", ext);
+				log.error("Unrecognized file type: ", ext);
 				throw new Error("Unrecognized file type " + ext);
 		}
 
@@ -173,7 +174,7 @@ export default class ModInstaller {
 
 		// Done! - All mod creators should structure their mod releases like this.
 		// Unfortunately, they don't, so our job is harder
-		console.log("Returning mod: ", mod);
+		log.info("Returning mod: ", mod);
 		return mod;
 	}
 
@@ -339,7 +340,7 @@ export default class ModInstaller {
 		try {
 			await cpRecurse(source, dest);
 		} catch (err) {
-			console.error(err);
+			log.error(err);
 		}
 
 		// The FolderStructure of the mod is unknown up until this point for a track pkz
@@ -371,11 +372,11 @@ export default class ModInstaller {
 	 */
 	private async installRiderMod(mod: Mod, source: string): Promise<void | Mod> {
 		mod.type = "rider";
-		console.log("Installing rider mod");
+		log.info("Installing rider mod");
 		const riderSubdir = await this.archiveScanner.subdirExists(source, "rider");
-		console.log("Rider subdir: ", riderSubdir);
+		log.info("Rider subdir: ", riderSubdir);
 		if (riderSubdir) {
-			console.log("Rider subdirectory exists.");
+			log.info("Rider subdirectory exists.");
 			// Could be a zip here
 			const dest = this.modsFolder; // rider exists under mods/
 			if (path.extname(source) === ".zip" || path.extname(source) === ".rar") {
@@ -394,7 +395,7 @@ export default class ModInstaller {
 			// Done!
 			return mod;
 		}
-		console.log("Rider subdirectory does not exist.");
+		log.info("Rider subdirectory does not exist.");
 
 		const riderModType: RiderModType = await this.selectRiderModType(mod.name);
 
@@ -411,7 +412,7 @@ export default class ModInstaller {
 	}
 
 	private async installBoots(mod: Mod, source: string): Promise<Mod> {
-		console.log("Installing boots");
+		log.info("Installing boots");
 		const bootsSubdir = await this.archiveScanner.subdirExists(source, "boots");
 		if (bootsSubdir) {
 			// Copy boots to rider
@@ -538,14 +539,14 @@ export default class ModInstaller {
 	private async installGloves(mod: Mod, source: string): Promise<Mod> {
 		// Get the available riders
 		const riders = this.getRiders();
-		console.log("Got riders: ", riders);
+		log.info("Got riders: ", riders);
 		// Then prompt the user to select a rider or riders to install the gloves to
 		const title = "Select a rider";
 		const message = "Select a rider for which to install the gloves";
 
 		const rider = await promptQuestion(title, message, riders);
 
-		console.log("Selected rider: ", rider);
+		log.info("Selected rider: ", rider);
 
 		const ridersDir = path.join(this.modsFolder, "rider", "riders");
 
@@ -558,7 +559,7 @@ export default class ModInstaller {
 				const tmpDest = path.join(this.tmpDir, mod.name);
 				await this.decompressor.extract(source, tmpDest);
 				pnts = this.findFilesByType(tmpDest, "pnt");
-				console.log("Found pnts: ", pnts);
+				log.info("Found pnts: ", pnts);
 				for (const pnt of pnts) {
 					await cpRecurse(pnt, glovesDir);
 				}
@@ -608,14 +609,14 @@ export default class ModInstaller {
 	// Source must be a directory
 	// Do not pass the "."
 	private findFilesByType(source: string, target: string): string[] {
-		console.log("Finding files of type " + target + " in ", source);
+		log.info("Finding files of type " + target + " in ", source);
 		if (!fs.statSync(source).isDirectory()) {
 			return [];
 		}
 
 		const files: string[] = [];
 		const entries = fs.readdirSync(source);
-		console.log("Got entries: ", entries);
+		log.info("Got entries: ", entries);
 		entries.forEach((entry) => {
 			const fullPath = path.join(source, entry);
 			if (fs.statSync(fullPath).isDirectory()) {
@@ -681,7 +682,7 @@ export default class ModInstaller {
 				break;
 
 			default:
-				console.error("Unrecognized file type for helmet model or paint: ", ext);
+				log.error("Unrecognized file type for helmet model or paint: ", ext);
 				throw new Error("Unrecognized file type for helmet model or paint: " + ext);
 		}
 
@@ -764,7 +765,7 @@ export default class ModInstaller {
 
 	private async installHelmetPkz(mod: Mod, source: string, dest: string) {
 		const fileName = path.basename(source, ".pkz");
-		console.log("File name: ", fileName);
+		log.info("File name: ", fileName);
 		const entries: FolderEntries = {
 			files: [],
 			subfolders: {
@@ -868,7 +869,7 @@ export default class ModInstaller {
 			fs.mkdirSync(path.join(folderDest, "goggles"));
 			fs.mkdirSync(path.join(folderDest, "paints"));
 		} catch (e) {
-			console.error(e);
+			log.error(e);
 		}
 	}
 
@@ -876,16 +877,16 @@ export default class ModInstaller {
 	 * Given a path to a directory, returns a list of all folders containing a helmet.edf
 	 */
 	private findEdfs(source: string, target: string): string[] {
-		console.log("Finding " + target + " edfs in ", source);
+		log.info("Finding " + target + " edfs in ", source);
 		const edfDirs: string[] = [];
 		let folderEntries;
 		try {
 			folderEntries = fs.readdirSync(source);
 		} catch (e) {
-			console.error(e);
+			log.error(e);
 			return [];
 		}
-		console.log(folderEntries);
+		log.info(folderEntries);
 
 		for (const entry of folderEntries) {
 			const subfolderPath = path.join(source, entry);
@@ -897,10 +898,10 @@ export default class ModInstaller {
 			if (ext === ".pkz") edfDirs.push(subfolderPath);
 
 			if (entry === target + ".edf") {
-				console.log("Found edf path in ", subfolderPath);
+				log.info("Found edf path in ", subfolderPath);
 				edfDirs.push(source);
 			} else if (fs.statSync(subfolderPath).isDirectory()) {
-				console.log("Found subdirectory...", entry);
+				log.info("Found subdirectory...", entry);
 				const result = this.findEdfs(subfolderPath, target);
 				edfDirs.push(...result);
 			}
@@ -929,7 +930,7 @@ export default class ModInstaller {
 		}
 
 		const paintsFolder = path.join(helmetsDir, helmetFolder, "paints");
-		console.log("installing to paints folder: ", paintsFolder);
+		log.info("installing to paints folder: ", paintsFolder);
 		await cpRecurse(source, paintsFolder);
 
 		const entries: FolderEntries = {
