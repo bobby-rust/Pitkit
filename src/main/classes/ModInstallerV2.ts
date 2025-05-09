@@ -122,11 +122,7 @@ class ModInstallerV2 {
 			const protectionModels = findDirectoriesContainingFileName(tmpSrc, "protection.edf");
 			log.info("install: found protectionModels", protectionModels);
 
-			// Install each model type...
-			// ... existing loops with logs omitted for brevity
-
 			// install all found edf files
-
 			for (const bootModel of bootModels) {
 				mod.type = "rider";
 				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "rider", "boots");
