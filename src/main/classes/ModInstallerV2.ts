@@ -302,7 +302,7 @@ class ModInstallerV2 {
 		log.info("installPNTs: found pnt files", pnts);
 
 		let paintType: string;
-		if (pnts.length) {
+		if (pnts?.length) {
 			log.info("installPNTs: prompting for paint type");
 			paintType = await promptQuestion("Select paint type", "What type of paints are you installing?", [
 				"helmets",
@@ -322,7 +322,7 @@ class ModInstallerV2 {
 				log.info("installPNTs: handling paintType 'bikes'");
 				mod.type = "bike";
 				const bikes = this.getBikes();
-				if (!bikes.length) {
+				if (!bikes?.length) {
 					log.error("installPNTs: no bikes available for paints");
 					throw new Error("Unable to install bike paints, no available bikes");
 				}
@@ -339,7 +339,7 @@ class ModInstallerV2 {
 				log.info("installPNTs: handling paintType 'helmets'");
 				mod.type = "rider";
 				const helmets = this.getHelmets();
-				if (!helmets.size) {
+				if (!helmets?.size) {
 					log.error("installPNTs: no helmets available for paints");
 					throw new Error("No helmets installed, unable to install helmet paints");
 				}
@@ -357,7 +357,7 @@ class ModInstallerV2 {
 				log.info("installPNTs: handling paintType 'goggles'");
 				mod.type = "rider";
 				const gogHelmets = this.getHelmets();
-				if (!gogHelmets.size) {
+				if (!gogHelmets?.size) {
 					log.error("installPNTs: no helmets for goggles");
 					throw new Error("No helmets installed, unable to install goggles");
 				}
@@ -377,7 +377,7 @@ class ModInstallerV2 {
 				mod.type = "rider";
 				const bootSet = this.getBoots();
 				log.info("installPNTs: found boots", Array.from(bootSet));
-				if (!bootSet.size) {
+				if (!bootSet?.size) {
 					log.error("installPNTs: no boots available for paints");
 					throw new Error("No boots installed, unable to install boot paints");
 				}
@@ -456,7 +456,7 @@ class ModInstallerV2 {
 		log.info("installPKZs: found pkz files", pkzs);
 
 		let pkzType: string;
-		if (pkzs.length) {
+		if (pkzs?.length) {
 			log.info("installPKZs: prompting for pkz type");
 			pkzType = await promptQuestion("Select mod type", "What type of models are you installing?", [
 				"helmets",
