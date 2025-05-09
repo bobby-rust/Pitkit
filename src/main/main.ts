@@ -84,7 +84,6 @@ const createWindow = () => {
 async function init() {
 	modManager = new ModManager();
 	await modManager.loadConfig();
-	log.info("Mods: ", modManager.getMods());
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
 	});
@@ -96,6 +95,8 @@ async function init() {
 app.on("ready", async () => {
 	createWindow();
 	await init();
+
+	log.info(`Started PitKit version ${app.getVersion()}`);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

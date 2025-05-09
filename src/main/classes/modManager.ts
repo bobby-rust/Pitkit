@@ -110,8 +110,6 @@ export default class ModManager {
 			modsData.set(key, value as Mod);
 		});
 
-		log.info("Loaded mods data: ", modsData);
-
 		return modsData;
 	}
 
@@ -277,7 +275,7 @@ export default class ModManager {
 
 		const baseGameConfig = ini.parse(baseGameConfigContents);
 		if (!baseGameConfig.mods.folder) {
-			return path.join(os.homedir(), path.normalize("Documents/PiBoSo/MX Bikes/mods"));
+			return path.join(app.getPath("documents"), "PiBoSo", "MX Bikes", "mods");
 		}
 		return baseGameConfig.mods.folder;
 	}
