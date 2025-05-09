@@ -11,7 +11,7 @@ const config: ForgeConfig = {
 	packagerConfig: {
 		asar: true,
 		extraResource: ["./src/renderer/assets", "./public/resources/bin"],
-		icon: "./src/renderer/assets/favicon",
+		icon: "./src/renderer/assets/favicon.ico",
 	},
 	rebuildConfig: {},
 	makers: [
@@ -31,8 +31,8 @@ const config: ForgeConfig = {
 					owner: "bobby-rust",
 					name: "Pitkit",
 				},
-				prerelease: true, // true if this is an alpha/beta channel
-				draft: false, // true to create a draft release
+				prerelease: false,
+				draft: false,
 			},
 		},
 	],

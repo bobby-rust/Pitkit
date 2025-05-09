@@ -10,7 +10,7 @@ export default function Sidebar() {
 			<ul>
 				<div>
 					<li className="logo">
-						<Logo /> PitKit Mod Manager
+						<Logo />
 					</li>
 					<div className="divider"></div>
 					<div className="sidebar-upper">
