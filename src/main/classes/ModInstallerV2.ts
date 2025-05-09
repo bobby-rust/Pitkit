@@ -125,6 +125,72 @@ class ModInstallerV2 {
 			// Install each model type...
 			// ... existing loops with logs omitted for brevity
 
+			// install all found edf files
+
+			for (const bootModel of bootModels) {
+				mod.type = "rider";
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "rider", "boots");
+				await cpRecurse(bootModel, tmpdest);
+			}
+
+			for (const riderModel of riderModels) {
+				mod.type = "rider";
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "rider", "riders");
+				await cpRecurse(riderModel, tmpdest);
+			}
+
+			for (const helmetModel of helmetModels) {
+				mod.type = "rider";
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "rider", "helmets");
+				await cpRecurse(helmetModel, tmpdest);
+			}
+
+			for (const bikeModel of bikeModels) {
+				mod.type = "rider";
+				const title = "Select a bike";
+				const message = "Which bike is " + mod.name + " for?";
+				const bikes = this.getBikes();
+				const bike = await promptQuestion(title, message, bikes);
+				if (!bike) continue;
+				const bikeModelFiles = fs.readdirSync(bikeModel);
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "bikes", bike?.split(".pkz")[0]);
+				for (const file of bikeModelFiles) {
+					await cpRecurse(path.join(bikeModel, file), tmpdest);
+				}
+			}
+
+			for (const soundMod of soundMods) {
+				mod.type = "bike";
+				const title = "Select a bike";
+				const message = "Which bike is " + mod.name + " for?";
+				const bikes = this.getBikes();
+				const bike = await promptQuestion(title, message, bikes);
+				if (!bike) continue;
+				const bikeModelFiles = fs.readdirSync(soundMod);
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "bikes", bike?.split(".pkz")[0]);
+				for (const file of bikeModelFiles) {
+					await cpRecurse(path.join(soundMod, file), tmpdest);
+				}
+			}
+
+			for (const wheelModel of wheelModels) {
+				mod.type = "bike";
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "tyres");
+				await cpRecurse(wheelModel, tmpdest);
+			}
+
+			for (const tyreMod of tyreMods) {
+				mod.type = "bike";
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "tyres");
+				await cpRecurse(path.dirname(tyreMod), tmpdest);
+			}
+
+			for (const protectionModel of protectionModels) {
+				mod.type = "other";
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "rider", "protections");
+				await cpRecurse(protectionModel, tmpdest);
+			}
+
 			// Now install PNTs and PKZs
 			await this.installPNTs(mod, tmpSrc, [...bootModels, ...riderModels, ...helmetModels, ...protectionModels]);
 			log.info("install: installPNTs completed");
