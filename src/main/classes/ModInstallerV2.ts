@@ -215,6 +215,84 @@ class ModInstallerV2 {
 		}
 	}
 
+	/* ============================== Get Available Mods By Type =========================== */
+
+	private getBikes(): string[] {
+		const bikesDir = path.join(this.modsFolder, "bikes");
+		const entries = fs.readdirSync(bikesDir);
+		const bikes = [];
+		for (const entry of entries) {
+			// I don't think bikes can be a directory... but I could be wrong...
+			if (path.extname(entry) === ".pkz") {
+				bikes.push(entry);
+			}
+		}
+
+		return bikes;
+	}
+
+	private getHelmets(): Set<string> {
+		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
+		const helmets: Set<string> = new Set();
+		const entries = fs.readdirSync(helmetsDir);
+		entries.forEach((entry: string) => {
+			if (fs.statSync(entry).isDirectory()) {
+				helmets.add(entry);
+			} else if (path.extname(entry) === ".pkz") {
+				helmets.add(entry.split(".pkz")[0]);
+			}
+		});
+
+		return helmets;
+	}
+
+	private getBoots(): Set<string> {
+		const bootsDir = path.join(this.modsFolder, "rider", "boots");
+		const boots: Set<string> = new Set();
+		const entries = fs.readdirSync(bootsDir);
+		entries.forEach((entry: string) => {
+			if (fs.statSync(path.join(bootsDir, entry)).isDirectory()) {
+				boots.add(entry);
+			} else if (path.extname(entry) === ".pkz") {
+				boots.add(entry.split(".pkz")[0]);
+			}
+		});
+
+		return boots;
+	}
+
+	// Used for both rider gear and gloves
+
+	private getRiders(): string[] {
+		const ridersDir = path.join(this.modsFolder, "rider", "riders");
+		const entries = fs.readdirSync(ridersDir);
+		const riders = [];
+		for (const entry of entries) {
+			// I don't think a rider can be a pkz, but I could be wrong so this may need to be changed at some point to include pkzs
+
+			if (fs.statSync(path.join(ridersDir, entry)).isDirectory()) {
+				riders.push(entry);
+			}
+		}
+
+		return riders;
+	}
+
+	private getProtections(): string[] {
+		const protectionsDir = path.join(this.modsFolder, "rider", "protections");
+		const entries = fs.readdirSync(protectionsDir);
+		const protections: string[] = [];
+		entries.forEach((entry) => {
+			if (fs.statSync(path.join(protectionsDir, entry)).isDirectory()) {
+				protections.push(entry);
+			} else if (path.extname(entry) === ".pkz") {
+				protections.push(entry.split(".pkz")[0]);
+			}
+		});
+
+		return protections;
+	}
+
 	/* ============================== Install by type ================================ */
 
 	// Installs PNTs to tmp; still must be copied over later
