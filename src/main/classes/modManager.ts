@@ -1,11 +1,10 @@
 import ini from "ini";
 import fs, { existsSync } from "fs";
 import path from "path";
-import os from "os";
 import { dialog, app } from "electron";
 import { mainWindow } from "../main";
 import { Mod, ModsData } from "src/types";
-import ModInstallerV2 from "./ModInstallerV2";
+import ModInstaller from "./ModInstaller";
 import { promptSelectFile } from "../utils/dialogHelper";
 
 import log from "electron-log/main";
@@ -21,7 +20,7 @@ export default class ModManager {
 		baseGameFolder: "",
 	};
 	private mods: ModsData;
-	private installer: ModInstallerV2;
+	private installer: ModInstaller;
 	private extractionProgress: number;
 	private dataFile: string;
 
@@ -39,7 +38,7 @@ export default class ModManager {
 
 		this.loadMods();
 
-		this.installer = new ModInstallerV2(this.config.modsFolder, this.sendProgressToRenderer);
+		this.installer = new ModInstaller(this.config.modsFolder, this.sendProgressToRenderer);
 	}
 
 	public getExtractionProgress() {

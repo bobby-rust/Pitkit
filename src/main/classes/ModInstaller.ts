@@ -2,7 +2,7 @@ import Decompressor from "./Decompressor";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import { Mod, TrackType } from "../../types/";
+import { Mod, TrackType } from "../../types";
 import { cpRecurse, findDirectoriesContainingFileName, findFilesByType, findDeepestSubdir } from "../utils/FileSystemUtils";
 import { promptQuestion } from "../utils/dialogHelper";
 import FolderStructureBuilder from "../services/FolderStructureBuilder";
