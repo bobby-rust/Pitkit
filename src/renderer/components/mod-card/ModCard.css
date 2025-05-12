@@ -28,7 +28,7 @@
 	min-width: 70%;
 
 	overflow-x: scroll;
-	overflow-y: visible;
+	overflow-y: hidden;
 }
 
 .delete-button:hover {
@@ -40,7 +40,6 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	overflow: ellipsis;
 }
 
 .mod-card-footer {
