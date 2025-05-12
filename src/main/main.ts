@@ -1,16 +1,16 @@
 import { app, autoUpdater, BrowserWindow, dialog, IpcMainInvokeEvent } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
-import { updateElectronApp, UpdateSourceType } from "update-electron-app";
+import { updateElectronApp } from "update-electron-app";
 import log from "electron-log/main";
 
 const IS_DEV = !app.isPackaged;
 
 updateElectronApp({
-	updateSource: {
-		type: UpdateSourceType.ElectronPublicUpdateService,
-	},
+	// 10 minutes is the default and is a bit excessive.
 	updateInterval: "1 hour",
+
+	// Custom changelog update notification
 	onNotifyUser: ({ releaseNotes, releaseName }) => {
 		dialog
 			.showMessageBox({
