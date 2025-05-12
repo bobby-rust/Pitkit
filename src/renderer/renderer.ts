@@ -31,6 +31,7 @@ import "./main";
 import log from "electron-log/renderer";
 
 log.info('👋 This message is being logged by "renderer.ts", included via Vite');
+
 // When document has loaded, initialize
 document.onreadystatechange = async (event) => {
 	// Make async for initial state check

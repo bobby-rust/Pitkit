@@ -2,7 +2,7 @@ import Decompressor from "./Decompressor";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import { Mod, ModType, TrackType } from "../../types";
+import { Mod, ModType } from "../../types";
 import { cpRecurse, findDirectoriesContainingFileName, findFilesByType, findDeepestSubdir } from "../utils/FileSystemUtils";
 import { promptQuestion } from "../utils/dialogHelper";
 
@@ -37,10 +37,10 @@ class ModInstallerV2 {
 		this.tmpDir =
 			process.env.NODE_ENV === "development" ? path.join(__dirname, "tmp") : path.join(os.tmpdir(), "PitkitExtract");
 
-		log.info("ModInstallerV2 constructor: temp dir set to", this.tmpDir);
+		log.info("ModInstaller constructor: temp dir set to", this.tmpDir);
 
 		this.decompressor = new Decompressor(sendProgress);
-		log.info("ModInstallerV2 constructor: Decompressor initialized");
+		log.info("ModInstaller constructor: Decompressor initialized");
 	}
 
 	public setModsFolder(modsFolder: string) {
@@ -105,18 +105,25 @@ class ModInstallerV2 {
 			// Collect model files/directories
 			const bootModels = findDirectoriesContainingFileName(tmpSrc, "boots.edf");
 			log.info("install: found bootModels", bootModels);
+
 			const riderModels = findDirectoriesContainingFileName(tmpSrc, "rider.edf");
 			log.info("install: found riderModels", riderModels);
+
 			const helmetModels = findDirectoriesContainingFileName(tmpSrc, "helmet.edf");
 			log.info("install: found helmetModels", helmetModels);
+
 			const bikeModels = findDirectoriesContainingFileName(tmpSrc, "model.edf");
 			log.info("install: found bikeModels", bikeModels);
+
 			const soundMods = findDirectoriesContainingFileName(tmpSrc, "engine.scl");
 			log.info("install: found soundMods", soundMods);
+
 			const wheelModels = findDirectoriesContainingFileName(tmpSrc, "p_mx.edf");
 			log.info("install: found wheelModels", wheelModels);
+
 			const tyreMods = findFilesByType(tmpSrc, "tyre");
 			log.info("install: found tyreMods", tyreMods);
+
 			const protectionModels = findDirectoriesContainingFileName(tmpSrc, "protection.edf");
 			log.info("install: found protectionModels", protectionModels);
 
@@ -229,6 +236,20 @@ class ModInstallerV2 {
 		return bikes;
 	}
 
+	private getTrackFolders(): string[] {
+		const tracksDir = path.join(this.modsFolder, "tracks");
+		const entries = fs.readdirSync(tracksDir);
+		const tracks: string[] = [];
+		entries.forEach((entry) => {
+			const fullPath = path.join(tracksDir, entry);
+			if (fs.statSync(fullPath).isDirectory()) {
+				tracks.push(entry);
+			}
+		});
+
+		return tracks;
+	}
+
 	private getHelmets(): Set<string> {
 		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
 		const helmets: Set<string> = new Set();
@@ -260,7 +281,6 @@ class ModInstallerV2 {
 	}
 
 	// Used for both rider gear and gloves
-
 	private getRiders(): string[] {
 		const ridersDir = path.join(this.modsFolder, "rider", "riders");
 		const entries = fs.readdirSync(ridersDir);
@@ -488,9 +508,9 @@ class ModInstallerV2 {
 			case "tracks":
 				log.info("installPKZs: handling pkzType 'tracks'");
 				mod.type = "track";
-				mod.trackType = await this.selectTrackType(mod.name);
-				log.info("installPKZs: trackType determined", mod.trackType);
-				builtPkzsLocation = path.join(path.dirname(tmpSrc), "mods", "tracks", mod.trackType);
+				const trackFolder = await this.selectTrackFolder(mod.name);
+				log.info("installPKZs: track folder determined", trackFolder);
+				builtPkzsLocation = path.join(path.dirname(tmpSrc), "mods", "tracks", trackFolder);
 				break;
 			case "bikes":
 				log.info("installPKZs: handling pkzType 'bikes'");
@@ -525,12 +545,12 @@ class ModInstallerV2 {
 		log.info("installPKZs: completed for mod", mod.name);
 	}
 
-	private async selectTrackType(trackName: string): Promise<TrackType | null> {
+	private async selectTrackFolder(trackName: string): Promise<string | null> {
 		log.info("selectTrackType: prompting for track type for", trackName);
-		const trackTypes: TrackType[] = ["supercross", "motocross", "supermoto", "enduro"];
-		const trackType = await promptQuestion("Select Track Type", `What kind of track is ${trackName}?`, trackTypes);
-		log.info("selectTrackType: selected track type", trackType);
-		return trackType as TrackType;
+		const trackFolders: string[] = [...this.getTrackFolders(), "Enter Custom"];
+		const trackFolder = await promptQuestion("Select Track Type", `What kind of track is ${trackName}?`, trackFolders);
+		log.info("selectTrackType: selected track folder", trackFolder);
+		return trackFolder;
 	}
 
 	private getModTypeFromModsSubdir(source: string): ModType {

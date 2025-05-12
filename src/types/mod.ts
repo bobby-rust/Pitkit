@@ -2,7 +2,6 @@ import path from "path";
 
 import FolderStructure from "../main/models/FolderStructure";
 
-export type TrackType = "motocross" | "supercross" | "enduro" | "supermoto";
 export type RiderModType = "boots" | "gloves" | "helmet" | "rider"; // "riders" is a whole rider, such as Rider+ or Rider+ Rolled Up
 export type ModType = "bike" | "track" | "rider" | "other";
 
@@ -11,7 +10,6 @@ export interface Mod {
 	files: FolderStructure;
 	installDate: string;
 	type: ModType;
-	trackType?: TrackType;
 }
 
 // Types and values live in separate namespaces
@@ -25,7 +23,6 @@ export const Mod = {
 			files: new FolderStructure(),
 			installDate: new Date().toLocaleString(),
 			type: null,
-			trackType: null,
 		};
 	},
 };

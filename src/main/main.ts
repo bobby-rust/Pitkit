@@ -8,6 +8,10 @@ const IS_DEV = !app.isPackaged;
 
 updateElectronApp();
 
+log.initialize();
+
+const modalManager = new ModalManager();
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
 	app.quit();
@@ -83,6 +87,7 @@ const createWindow = () => {
 
 async function init() {
 	modManager = new ModManager();
+
 	await modManager.loadConfig();
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
@@ -120,6 +125,7 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 import ModManager from "./classes/ModManager";
 import { ipcMain } from "electron";
+import { ModalManager } from "./classes/ModalManager";
 
 process.on("uncaughtException", (err) => {
 	// write to stderr (will appear in the console)
