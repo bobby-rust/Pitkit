@@ -19,7 +19,7 @@ autoUpdater.on("error", (err: Error) => {
 });
 
 autoUpdater.on("checking-for-update", () => {
-	log.info("Checking for update...");
+	log.info("Checking for update at ", autoUpdater.getFeedURL(), "...");
 });
 
 autoUpdater.on("update-downloaded", () => {
@@ -52,8 +52,6 @@ updateElectronApp({
 			});
 	},
 });
-
-log.info("Auto updater feed: ", autoUpdater.getFeedURL());
 
 log.info("Initializing logger");
 log.initialize();
