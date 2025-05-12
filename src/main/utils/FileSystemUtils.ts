@@ -123,7 +123,7 @@ function findSubdir(source: string, target: string): string | null {
 				return fullPath;
 			}
 
-			const result = this.subdirExists(fullPath, target);
+			const result = findSubdir(fullPath, target);
 			if (result) return result;
 		}
 	}

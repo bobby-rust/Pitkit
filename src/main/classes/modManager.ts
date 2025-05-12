@@ -1,5 +1,5 @@
 import ini from "ini";
-import fs, { existsSync } from "fs";
+import fs from "fs";
 import path from "path";
 import { dialog, app } from "electron";
 import { mainWindow } from "../main";
@@ -172,7 +172,7 @@ export default class ModManager {
 
 	private writeModsToDisk() {
 		const dataDir = path.dirname(this.dataFile);
-		if (!existsSync(dataDir)) {
+		if (!fs.existsSync(dataDir)) {
 			fs.mkdirSync(dataDir, { recursive: true });
 		}
 

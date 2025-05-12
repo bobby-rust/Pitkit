@@ -5,11 +5,10 @@ import fs from "fs";
 import { Mod, TrackType } from "../../types";
 import { cpRecurse, findDirectoriesContainingFileName, findFilesByType, findDeepestSubdir } from "../utils/FileSystemUtils";
 import { promptQuestion } from "../utils/dialogHelper";
-import FolderStructureBuilder from "../services/FolderStructureBuilder";
 import { getModTypeFromModsSubdir } from "../services/ModClassifier";
-import FolderStructureDeleter from "../services/FolderStructureDeleter";
 
 import log from "electron-log/main";
+import FolderStructure from "../models/FolderStructure";
 
 /**
  * TODO:
@@ -52,7 +51,7 @@ class ModInstallerV2 {
 
 	async uninstall(mod: Mod) {
 		log.info("uninstall: deleting files for mod", mod.name);
-		FolderStructureDeleter.delete(mod.files, this.modsFolder);
+		mod.files.delete(this.modsFolder);
 		log.info("uninstall: completed for mod", mod.name);
 	}
 
@@ -96,7 +95,7 @@ class ModInstallerV2 {
 				log.info("install: mod type determined", mod.type);
 				await cpRecurse(modsSubdirLocation, path.dirname(this.modsFolder));
 				log.info("install: copied mods subdir to modsFolder");
-				const folderStruct = FolderStructureBuilder.build(modsSubdirLocation);
+				const folderStruct = FolderStructure.build(modsSubdirLocation);
 				mod.files = folderStruct;
 				log.info("install: installation complete for mod", mod.name);
 				return mod;
@@ -197,7 +196,7 @@ class ModInstallerV2 {
 			log.info("install: final copy from", tmpModsLocation, "to", path.dirname(this.modsFolder));
 			await cpRecurse(tmpModsLocation, path.dirname(this.modsFolder));
 
-			const folderStruct = FolderStructureBuilder.build(tmpModsLocation);
+			const folderStruct = FolderStructure.build(tmpModsLocation);
 			mod.files = folderStruct;
 
 			try {
