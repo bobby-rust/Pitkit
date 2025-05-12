@@ -1,4 +1,4 @@
-import { app, BrowserWindow, IpcMainInvokeEvent } from "electron";
+import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
 import { updateElectronApp } from "update-electron-app";
@@ -6,30 +6,54 @@ import log from "electron-log/main";
 
 const IS_DEV = !app.isPackaged;
 
-// updateElectronApp({
-// 	// 10 minutes is the default and is a bit excessive.
-// 	updateInterval: "1 hour",
+autoUpdater.on("update-not-available", () => {
+	log.info("No updates available");
+});
 
-// 	// Custom changelog update notification
-// 	onNotifyUser: ({ releaseNotes, releaseName }) => {
-// 		dialog
-// 			.showMessageBox({
-// 				type: "info",
-// 				buttons: ["Restart & Install", "Later"],
-// 				title: `What's new in ${releaseName}`,
-// 				message: releaseName,
-// 				detail: releaseNotes,
-// 				noLink: true,
-// 			})
-// 			.then(({ response }) => {
-// 				if (response === 0) {
-// 					autoUpdater.quitAndInstall();
-// 				}
-// 			});
-// 	},
-// });
+autoUpdater.on("update-available", () => {
+	log.info("New version available");
+});
 
-updateElectronApp();
+autoUpdater.on("error", (err: Error) => {
+	log.error("Error updating application: " + err);
+});
+
+autoUpdater.on("checking-for-update", () => {
+	log.info("Checking for update...");
+});
+
+autoUpdater.on("update-downloaded", () => {
+	log.info("Update downloaded");
+});
+
+autoUpdater.on("before-quit-for-update", () => {
+	log.info("Restarting application to apply update");
+});
+
+updateElectronApp({
+	// 10 minutes is the default and is a bit excessive.
+	updateInterval: "1 hour",
+
+	// Custom changelog update notification
+	onNotifyUser: ({ releaseNotes, releaseName }) => {
+		dialog
+			.showMessageBox({
+				type: "info",
+				buttons: ["Restart & Install", "Later"],
+				title: `What's new in ${releaseName}`,
+				message: releaseName,
+				detail: releaseNotes,
+				noLink: true,
+			})
+			.then(({ response }) => {
+				if (response === 0) {
+					autoUpdater.quitAndInstall();
+				}
+			});
+	},
+});
+
+log.info("Auto updater feed: ", autoUpdater.getFeedURL());
 
 log.initialize();
 
