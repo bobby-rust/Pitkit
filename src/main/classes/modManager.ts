@@ -15,34 +15,33 @@ interface Config {
 }
 
 export default class ModManager {
-	private config: Config = {
+	#config: Config = {
 		modsFolder: "",
 		baseGameFolder: "",
 	};
-	private mods: ModsData;
-	private installer: ModInstaller;
-	private extractionProgress: number;
-	private dataFile: string;
+	#mods: ModsData;
+	#installer: ModInstaller;
+	#extractionProgress: number;
+	#dataFile: string;
 
 	constructor() {
-		this.extractionProgress = 0;
+		this.#extractionProgress = 0;
 
-		this.dataFile =
+		this.#dataFile =
 			process.env.NODE_ENV === "development"
 				? path.join(__dirname, "data", "mods.json")
 				: path.join(app.getPath("userData"), "ModsData", "mods.json");
 
 		// Bind the function to ensure correct context when calling from other classes
-		this.setExtractionProgress = this.setExtractionProgress.bind(this);
 		this.sendProgressToRenderer = this.sendProgressToRenderer.bind(this);
 
 		this.loadMods();
 
-		this.installer = new ModInstaller(this.config.modsFolder, this.sendProgressToRenderer);
+		this.#installer = new ModInstaller(this.#config.modsFolder, this.sendProgressToRenderer);
 	}
 
 	public getExtractionProgress() {
-		return this.extractionProgress;
+		return this.#extractionProgress;
 	}
 
 	public async loadConfig() {
@@ -57,49 +56,49 @@ export default class ModManager {
 		}
 
 		// No base game directory set, get base game directory from user
-		if (!cfgContents.base_game_folder || !this.verifyBaseGameDirectory(cfgContents.base_game_folder)) {
-			cfgContents.base_game_folder = await this.getBaseGameDirectory();
+		if (!cfgContents.base_game_folder || !this.#verifyBaseGameDirectory(cfgContents.base_game_folder)) {
+			cfgContents.base_game_folder = await this.#getBaseGameDirectory();
 		}
-		this.config.baseGameFolder = cfgContents.base_game_folder;
-		const modsPath = this.getModsPathFromBaseGameConfig();
+		this.#config.baseGameFolder = cfgContents.base_game_folder;
+		const modsPath = this.#getModsPathFromBaseGameConfig();
 		cfgContents.mods_folder = modsPath;
 		fs.writeFileSync("config.ini", ini.encode(cfgContents));
 
-		this.config = {
+		this.#config = {
 			modsFolder: cfgContents.mods_folder,
 			baseGameFolder: cfgContents.base_game_folder,
 		};
 
-		this.installer.setModsFolder(this.config.modsFolder);
+		this.#installer.setModsFolder(this.#config.modsFolder);
 
-		log.info("Loaded config: ", this.config);
+		log.info("Loaded config: ", this.#config);
 	}
 
 	public loadMods() {
-		this.mods = this.getModsData();
+		this.#mods = this.#getModsData();
 		// Send mods to renderer as soon as we load them
 		const modsObject = Object.fromEntries(this.getMods());
 		mainWindow.webContents.send("send-mods-data", modsObject);
 	}
 
-	private getModsData(): ModsData {
-		const dir = path.dirname(this.dataFile);
+	#getModsData(): ModsData {
+		const dir = path.dirname(this.#dataFile);
 		if (!fs.existsSync(dir)) {
 			fs.mkdirSync(dir);
 		}
 
-		if (!fs.existsSync(this.dataFile)) {
-			fs.writeFileSync(this.dataFile, "{}");
+		if (!fs.existsSync(this.#dataFile)) {
+			fs.writeFileSync(this.#dataFile, "{}");
 		}
 
-		const modsDataFileContents = fs.readFileSync(this.dataFile, "utf-8").trim();
+		const modsDataFileContents = fs.readFileSync(this.#dataFile, "utf-8").trim();
 
 		let modsDataObject;
 		try {
 			modsDataObject = JSON.parse(modsDataFileContents);
 		} catch (err) {
 			// If the file exists but does not contain valid json, TERMINATE
-			fs.writeFileSync(this.dataFile, "{}");
+			fs.writeFileSync(this.#dataFile, "{}");
 			modsDataObject = {};
 		}
 
@@ -117,69 +116,69 @@ export default class ModManager {
 	}
 
 	public getMods() {
-		return this.mods;
+		return this.#mods;
 	}
 
 	public async installMod(filePaths: string[] | null) {
 		let mod;
 		if (!filePaths) {
 			// Stage 1: File selection
-			const source = await this.selectMod();
+			const source = await this.#selectMod();
 
 			if (!source) {
 				throw new Error("Cancelled mod install");
 			}
 
-			const mod = await this.installer.install(source);
+			const mod = await this.#installer.install(source);
 			if (!mod) {
-				this.setExtractionProgress(0);
+				this.#setExtractionProgress(0);
 				throw new Error("Mod installation failed");
 			}
-			this.addModToModsData(mod);
+			this.#addModToModsData(mod);
 		} else {
 			for (const source of filePaths) {
-				mod = await this.installer.install(source);
+				mod = await this.#installer.install(source);
 				if (!mod) {
 					log.error("Unable to install mod");
-					this.setExtractionProgress(0);
+					this.#setExtractionProgress(0);
 					return;
 				}
 				log.info("Installed mod: ", mod);
-				this.addModToModsData(mod);
+				this.#addModToModsData(mod);
 			}
 		}
 
-		this.setExtractionProgress(0);
-		this.writeModsToDisk();
+		this.#setExtractionProgress(0);
+		this.#writeModsToDisk();
 
 		return mod;
 	}
 
-	private setExtractionProgress(progress: number) {
-		this.extractionProgress = progress;
+	#setExtractionProgress(progress: number) {
+		this.#extractionProgress = progress;
 	}
 
 	public async uninstallMod(modName: string) {
-		const modToRemove = this.mods.get(modName);
-		await this.installer.uninstall(modToRemove);
-		this.mods.delete(modName);
-		this.writeModsToDisk();
+		const modToRemove = this.#mods.get(modName);
+		await this.#installer.uninstall(modToRemove);
+		this.#mods.delete(modName);
+		this.#writeModsToDisk();
 	}
 
-	private addModToModsData(mod: Mod) {
-		this.mods.set(mod.name, mod);
+	#addModToModsData(mod: Mod) {
+		this.#mods.set(mod.name, mod);
 	}
 
-	private writeModsToDisk() {
-		const dataDir = path.dirname(this.dataFile);
+	#writeModsToDisk() {
+		const dataDir = path.dirname(this.#dataFile);
 		if (!fs.existsSync(dataDir)) {
 			fs.mkdirSync(dataDir, { recursive: true });
 		}
 
-		fs.writeFileSync(path.join(dataDir, "mods.json"), JSON.stringify(Object.fromEntries(this.mods)));
+		fs.writeFileSync(path.join(dataDir, "mods.json"), JSON.stringify(Object.fromEntries(this.#mods)));
 	}
 
-	private async showGetBaseGameDirectoryPrompt(): Promise<number> {
+	async #showGetBaseGameDirectoryPrompt(): Promise<number> {
 		const messageResult = await dialog.showMessageBox(mainWindow, {
 			type: "info",
 			title: "Select base game folder",
@@ -193,7 +192,7 @@ export default class ModManager {
 		return messageResult.response;
 	}
 
-	private verifyBaseGameDirectory(baseGameDir: string) {
+	#verifyBaseGameDirectory(baseGameDir: string) {
 		const mxbConfigPath = path.join(baseGameDir, "mxbikes.ini");
 		const mxbPath = path.join(baseGameDir, "mxbikes.exe");
 
@@ -211,7 +210,7 @@ export default class ModManager {
 	 *
 	 * @returns {string} The base game directory for MX Bikes
 	 */
-	private async getBaseGameDirectory(): Promise<string> {
+	async #getBaseGameDirectory(): Promise<string> {
 		// If they fail after 100 attempts, that's on them :)
 
 		for (let i = 0; i < 100; ++i) {
@@ -227,7 +226,7 @@ export default class ModManager {
 				}
 			}
 
-			const choice = await this.showGetBaseGameDirectoryPrompt();
+			const choice = await this.#showGetBaseGameDirectoryPrompt();
 
 			switch (choice) {
 				case 1:
@@ -246,7 +245,7 @@ export default class ModManager {
 
 			const baseGameDir = result.filePaths[0];
 
-			const validBaseGameDir = this.verifyBaseGameDirectory(baseGameDir);
+			const validBaseGameDir = this.#verifyBaseGameDirectory(baseGameDir);
 
 			if (validBaseGameDir) {
 				dialog.showMessageBox(mainWindow, {
@@ -263,8 +262,8 @@ export default class ModManager {
 		app.quit();
 	}
 
-	private getModsPathFromBaseGameConfig() {
-		const baseGameConfigPath = path.join(this.config.baseGameFolder, "mxbikes.ini");
+	#getModsPathFromBaseGameConfig() {
+		const baseGameConfigPath = path.join(this.#config.baseGameFolder, "mxbikes.ini");
 
 		if (!fs.existsSync(baseGameConfigPath)) {
 			return null;
@@ -279,7 +278,7 @@ export default class ModManager {
 		return baseGameConfig.mods.folder;
 	}
 
-	private async selectMod() {
+	async #selectMod() {
 		const modPath = await promptSelectFile("Select A Mod To Install", ["zip", "pkz", "pnt", "rar"]);
 		return modPath;
 	}

@@ -4,10 +4,10 @@ import { spawn } from "child_process";
 import unzip from "../utils/unzip";
 
 class Decompressor {
-	private sendProgress: (progress: number) => void;
+	#sendProgress: (progress: number) => void;
 
 	constructor(sendProgress: (progress: number) => void) {
-		this.sendProgress = sendProgress;
+		this.#sendProgress = sendProgress;
 	}
 
 	/**
@@ -18,17 +18,17 @@ class Decompressor {
 		const ft = path.extname(source);
 		switch (ft) {
 			case ".zip":
-				await this.extractZip(source, dest);
+				await this.#extractZip(source, dest);
 				break;
 			case ".rar":
-				await this.extractRar(source, dest);
+				await this.#extractRar(source, dest);
 				break;
 			default:
 				throw new Error("Unrecognized compression type: '" + ft + "'");
 		}
 	}
 
-	private async extractRar(rarPath: string, extractPath: string) {
+	async #extractRar(rarPath: string, extractPath: string) {
 		await fs.promises.mkdir(extractPath, { recursive: true });
 
 		// Path to bundled unrar.exe
@@ -60,8 +60,8 @@ class Decompressor {
 		});
 	}
 
-	private async extractZip(source: string, dest: string) {
-		await unzip(source, dest, this.sendProgress);
+	async #extractZip(source: string, dest: string) {
+		await unzip(source, dest, this.#sendProgress);
 	}
 }
 

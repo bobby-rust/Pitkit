@@ -19,7 +19,7 @@ import { mainWindow } from "../main";
  * [ ] - Install fonts
  * [ ] - Install stands
  * [ ] - Install rider animations
- * [ ] - Install modpacks
+ * [ ] - Install modpacks ( bike packs that contain multiple pnts for different bikes, need to ask if all pnts are for same object or different )
  * [ ] - Install menu backgrounds
  * [ ] - Install MaxHUD
  * [ ] - Install Reshade presets

@@ -26,6 +26,8 @@
 
 	max-width: 70%;
 	min-width: 70%;
+
+	overflow: ellipsis;
 }
 
 .delete-button:hover {
