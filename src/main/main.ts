@@ -55,6 +55,7 @@ updateElectronApp({
 
 log.info("Auto updater feed: ", autoUpdater.getFeedURL());
 
+log.info("Initializing logger");
 log.initialize();
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
