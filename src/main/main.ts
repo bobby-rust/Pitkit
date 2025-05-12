@@ -10,8 +10,6 @@ updateElectronApp();
 
 log.initialize();
 
-const modalManager = new ModalManager();
-
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
 	app.quit();
@@ -125,15 +123,6 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 import ModManager from "./classes/ModManager";
 import { ipcMain } from "electron";
-import { ModalManager } from "./classes/ModalManager";
-
-process.on("uncaughtException", (err) => {
-	// write to stderr (will appear in the console)
-	log.error("UNCAUGHT EXCEPTION:", err);
-
-	// show a system dialog so the user sees it
-	dialog.showErrorBox("An unhandled error occurred", err.stack || err.message);
-});
 
 let modManager: ModManager;
 

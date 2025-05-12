@@ -8,6 +8,8 @@ import { promptQuestion } from "../utils/dialogHelper";
 
 import log from "electron-log/main";
 import FolderStructure from "../models/FolderStructure";
+import { ModalManager } from "./ModalManager";
+import { mainWindow } from "../main";
 
 /**
  * TODO:
@@ -26,38 +28,41 @@ import FolderStructure from "../models/FolderStructure";
  * [ ] - Custom mod name
  * [ ] - Custom track folder
  */
-
 class ModInstallerV2 {
-	private modsFolder: string;
-	private tmpDir: string;
-	private decompressor: Decompressor;
+	#modsFolder: string;
+	#tmpDir: string;
+	#decompressor: Decompressor;
+	#modalManager: ModalManager;
 
 	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
-		this.modsFolder = modsFolder;
-		this.tmpDir =
+		this.#modsFolder = modsFolder;
+		this.#tmpDir =
 			process.env.NODE_ENV === "development" ? path.join(__dirname, "tmp") : path.join(os.tmpdir(), "PitkitExtract");
 
-		log.info("ModInstaller constructor: temp dir set to", this.tmpDir);
+		log.info("ModInstaller constructor: temp dir set to", this.#tmpDir);
 
-		this.decompressor = new Decompressor(sendProgress);
+		this.#decompressor = new Decompressor(sendProgress);
 		log.info("ModInstaller constructor: Decompressor initialized");
+
+		this.#modalManager = new ModalManager();
+		log.info("ModInstaller constructor: ModalManager initialized");
 	}
 
 	public setModsFolder(modsFolder: string) {
-		this.modsFolder = modsFolder;
+		this.#modsFolder = modsFolder;
 		log.info("setModsFolder: modsFolder updated to", modsFolder);
 	}
 
 	async uninstall(mod: Mod) {
 		log.info("uninstall: deleting files for mod", mod.name);
-		mod.files.delete(this.modsFolder);
+		mod.files.delete(this.#modsFolder);
 		log.info("uninstall: completed for mod", mod.name);
 	}
 
 	async install(source: string) {
 		log.info("install: starting installation for source", source);
 		const mod: Mod = Mod.from(source);
-		let tmpSrc: string = path.join(this.tmpDir, mod.name);
+		let tmpSrc: string = path.join(this.#tmpDir, mod.name);
 
 		try {
 			if (!fs.statSync(source).isDirectory()) {
@@ -67,7 +72,7 @@ class ModInstallerV2 {
 					case ".zip":
 					case ".rar":
 						log.info("install: extracting archive", source, "to", tmpSrc);
-						await this.decompressor.extract(source, tmpSrc);
+						await this.#decompressor.extract(source, tmpSrc);
 						log.info("install: extraction successful");
 						break;
 					case ".pnt":
@@ -90,9 +95,9 @@ class ModInstallerV2 {
 			log.info("install: modsSubdirLocation found", modsSubdirLocation);
 
 			if (modsSubdirLocation) {
-				mod.type = this.getModTypeFromModsSubdir(modsSubdirLocation);
+				mod.type = this.#getModTypeFromModsSubdir(modsSubdirLocation);
 				log.info("install: mod type determined", mod.type);
-				await cpRecurse(modsSubdirLocation, path.dirname(this.modsFolder));
+				await cpRecurse(modsSubdirLocation, path.dirname(this.#modsFolder));
 				log.info("install: copied mods subdir to modsFolder");
 				const folderStruct = FolderStructure.build(modsSubdirLocation);
 				mod.files = folderStruct;
@@ -150,7 +155,7 @@ class ModInstallerV2 {
 				mod.type = "rider";
 				const title = "Select a bike";
 				const message = "Which bike is " + mod.name + " for?";
-				const bikes = this.getBikes();
+				const bikes = this.#getBikes();
 				const bike = await promptQuestion(title, message, bikes);
 				if (!bike) continue;
 				const bikeModelFiles = fs.readdirSync(bikeModel);
@@ -164,7 +169,7 @@ class ModInstallerV2 {
 				mod.type = "bike";
 				const title = "Select a bike";
 				const message = "Which bike is " + mod.name + " for?";
-				const bikes = this.getBikes();
+				const bikes = this.#getBikes();
 				const bike = await promptQuestion(title, message, bikes);
 				if (!bike) continue;
 				const bikeModelFiles = fs.readdirSync(soundMod);
@@ -193,21 +198,21 @@ class ModInstallerV2 {
 			}
 
 			// Now install PNTs and PKZs
-			await this.installPNTs(mod, tmpSrc, [...bootModels, ...riderModels, ...helmetModels, ...protectionModels]);
+			await this.#installPNTs(mod, tmpSrc, [...bootModels, ...riderModels, ...helmetModels, ...protectionModels]);
 			log.info("install: installPNTs completed");
-			await this.installPKZs(mod, tmpSrc);
+			await this.#installPKZs(mod, tmpSrc);
 			log.info("install: installPKZs completed");
 
 			const tmpModsLocation = path.join(path.dirname(tmpSrc), "mods");
-			log.info("install: final copy from", tmpModsLocation, "to", path.dirname(this.modsFolder));
-			await cpRecurse(tmpModsLocation, path.dirname(this.modsFolder));
+			log.info("install: final copy from", tmpModsLocation, "to", path.dirname(this.#modsFolder));
+			await cpRecurse(tmpModsLocation, path.dirname(this.#modsFolder));
 
 			const folderStruct = FolderStructure.build(tmpModsLocation);
 			mod.files = folderStruct;
 
 			try {
-				fs.rmSync(this.tmpDir, { recursive: true });
-				log.info("install: temp directory removed", this.tmpDir);
+				fs.rmSync(this.#tmpDir, { recursive: true });
+				log.info("install: temp directory removed", this.#tmpDir);
 			} catch (err) {
 				log.error("install: error removing temp directory", err);
 			}
@@ -222,8 +227,8 @@ class ModInstallerV2 {
 
 	/* ============================== Get Available Mods By Type =========================== */
 
-	private getBikes(): string[] {
-		const bikesDir = path.join(this.modsFolder, "bikes");
+	#getBikes(): string[] {
+		const bikesDir = path.join(this.#modsFolder, "bikes");
 		const entries = fs.readdirSync(bikesDir);
 		const bikes = [];
 		for (const entry of entries) {
@@ -236,8 +241,8 @@ class ModInstallerV2 {
 		return bikes;
 	}
 
-	private getTrackFolders(): string[] {
-		const tracksDir = path.join(this.modsFolder, "tracks");
+	#getTrackFolders(): string[] {
+		const tracksDir = path.join(this.#modsFolder, "tracks");
 		const entries = fs.readdirSync(tracksDir);
 		const tracks: string[] = [];
 		entries.forEach((entry) => {
@@ -250,8 +255,8 @@ class ModInstallerV2 {
 		return tracks;
 	}
 
-	private getHelmets(): Set<string> {
-		const helmetsDir = path.join(this.modsFolder, "rider", "helmets");
+	#getHelmets(): Set<string> {
+		const helmetsDir = path.join(this.#modsFolder, "rider", "helmets");
 		const helmets: Set<string> = new Set();
 		const entries = fs.readdirSync(helmetsDir);
 		entries.forEach((entry: string) => {
@@ -265,8 +270,8 @@ class ModInstallerV2 {
 		return helmets;
 	}
 
-	private getBoots(): Set<string> {
-		const bootsDir = path.join(this.modsFolder, "rider", "boots");
+	#getBoots(): Set<string> {
+		const bootsDir = path.join(this.#modsFolder, "rider", "boots");
 		const boots: Set<string> = new Set();
 		const entries = fs.readdirSync(bootsDir);
 		entries.forEach((entry: string) => {
@@ -281,8 +286,8 @@ class ModInstallerV2 {
 	}
 
 	// Used for both rider gear and gloves
-	private getRiders(): string[] {
-		const ridersDir = path.join(this.modsFolder, "rider", "riders");
+	#getRiders(): string[] {
+		const ridersDir = path.join(this.#modsFolder, "rider", "riders");
 		const entries = fs.readdirSync(ridersDir);
 		const riders = [];
 		for (const entry of entries) {
@@ -296,8 +301,8 @@ class ModInstallerV2 {
 		return riders;
 	}
 
-	private getProtections(): string[] {
-		const protectionsDir = path.join(this.modsFolder, "rider", "protections");
+	#getProtections(): string[] {
+		const protectionsDir = path.join(this.#modsFolder, "rider", "protections");
 		const entries = fs.readdirSync(protectionsDir);
 		const protections: string[] = [];
 		entries.forEach((entry) => {
@@ -314,7 +319,7 @@ class ModInstallerV2 {
 	/* ============================== Install by type ================================ */
 
 	// Installs PNTs to tmp; still must be copied over later
-	private async installPNTs(mod: Mod, tmpSrc: string, excludeDirs: string[]) {
+	async #installPNTs(mod: Mod, tmpSrc: string, excludeDirs: string[]) {
 		log.info("installPNTs: starting for mod", mod.name);
 		const pnts = findFilesByType(tmpSrc, "pnt", excludeDirs);
 		log.info("installPNTs: found pnt files", pnts);
@@ -339,7 +344,7 @@ class ModInstallerV2 {
 			case "bikes":
 				log.info("installPNTs: handling paintType 'bikes'");
 				mod.type = "bike";
-				const bikes = this.getBikes();
+				const bikes = this.#getBikes();
 				if (!bikes?.length) {
 					log.error("installPNTs: no bikes available for paints");
 					throw new Error("Unable to install bike paints, no available bikes");
@@ -356,7 +361,7 @@ class ModInstallerV2 {
 			case "helmets":
 				log.info("installPNTs: handling paintType 'helmets'");
 				mod.type = "rider";
-				const helmets = this.getHelmets();
+				const helmets = this.#getHelmets();
 				if (!helmets?.size) {
 					log.error("installPNTs: no helmets available for paints");
 					throw new Error("No helmets installed, unable to install helmet paints");
@@ -374,7 +379,7 @@ class ModInstallerV2 {
 			case "goggles":
 				log.info("installPNTs: handling paintType 'goggles'");
 				mod.type = "rider";
-				const gogHelmets = this.getHelmets();
+				const gogHelmets = this.#getHelmets();
 				if (!gogHelmets?.size) {
 					log.error("installPNTs: no helmets for goggles");
 					throw new Error("No helmets installed, unable to install goggles");
@@ -393,7 +398,7 @@ class ModInstallerV2 {
 			case "boots":
 				log.info("installPNTs: handling paintType 'boots'");
 				mod.type = "rider";
-				const bootSet = this.getBoots();
+				const bootSet = this.#getBoots();
 				log.info("installPNTs: found boots", Array.from(bootSet));
 				if (!bootSet?.size) {
 					log.error("installPNTs: no boots available for paints");
@@ -412,7 +417,7 @@ class ModInstallerV2 {
 			case "gloves":
 				log.info("installPNTs: handling paintType 'gloves'");
 				mod.type = "rider";
-				const riderChoices = this.getRiders();
+				const riderChoices = this.#getRiders();
 				const riderChoice = await promptQuestion(
 					"Select a rider",
 					"Which rider do these gloves belong to?",
@@ -425,7 +430,7 @@ class ModInstallerV2 {
 			case "riders":
 				log.info("installPNTs: handling paintType 'riders'");
 				mod.type = "rider";
-				const riderPaintChoices = this.getRiders();
+				const riderPaintChoices = this.#getRiders();
 				const riderPaintChoice = await promptQuestion(
 					"Select a rider",
 					pnts.length === 1 ? "Which rider does this paint belong to?" : "Which rider do these paints belong to?",
@@ -438,7 +443,7 @@ class ModInstallerV2 {
 			case "protections":
 				log.info("installPNTs: handling paintType 'protections'");
 				mod.type = "rider";
-				const protections = this.getProtections();
+				const protections = this.#getProtections();
 				const protectionChoice = await promptQuestion(
 					"Select a protection",
 					pnts.length === 1 ? "Which protection is this paint for?" : "Which protection are these paints for?",
@@ -468,7 +473,7 @@ class ModInstallerV2 {
 		log.info("installPNTs: completed for mod", mod.name);
 	}
 
-	private async installPKZs(mod: Mod, tmpSrc: string) {
+	async #installPKZs(mod: Mod, tmpSrc: string) {
 		log.info("installPKZs: starting for mod", mod.name);
 		const pkzs = findFilesByType(tmpSrc, "pkz");
 		log.info("installPKZs: found pkz files", pkzs);
@@ -508,7 +513,7 @@ class ModInstallerV2 {
 			case "tracks":
 				log.info("installPKZs: handling pkzType 'tracks'");
 				mod.type = "track";
-				const trackFolder = await this.selectTrackFolder(mod.name);
+				const trackFolder = await this.#selectTrackFolder(mod.name);
 				log.info("installPKZs: track folder determined", trackFolder);
 				builtPkzsLocation = path.join(path.dirname(tmpSrc), "mods", "tracks", trackFolder);
 				break;
@@ -545,15 +550,25 @@ class ModInstallerV2 {
 		log.info("installPKZs: completed for mod", mod.name);
 	}
 
-	private async selectTrackFolder(trackName: string): Promise<string | null> {
+	async #selectTrackFolder(trackName: string): Promise<string | null> {
 		log.info("selectTrackType: prompting for track type for", trackName);
-		const trackFolders: string[] = [...this.getTrackFolders(), "Enter Custom"];
-		const trackFolder = await promptQuestion("Select Track Type", `What kind of track is ${trackName}?`, trackFolders);
+		const trackFolders: string[] = [...this.#getTrackFolders(), "Create New"];
+		let trackFolder = await promptQuestion("Select Track Type", `What kind of track is ${trackName}?`, trackFolders);
 		log.info("selectTrackType: selected track folder", trackFolder);
+
+		if (trackFolder === "Create New") {
+			trackFolder = await this.#modalManager.promptText(
+				mainWindow,
+				"Create new track folder",
+				"Enter a name for the new track folder"
+			);
+			console.log("Response from selecting track folder: ", trackFolder);
+		}
+
 		return trackFolder;
 	}
 
-	private getModTypeFromModsSubdir(source: string): ModType {
+	#getModTypeFromModsSubdir(source: string): ModType {
 		if (!fs.statSync(source).isDirectory()) return null;
 		const subfolders = fs.readdirSync(source);
 
