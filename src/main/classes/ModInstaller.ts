@@ -28,7 +28,7 @@ import { mainWindow } from "../main";
  * [ ] - Custom mod name
  * [ ] - Custom track folder
  */
-class ModInstallerV2 {
+class ModInstaller {
 	#modsFolder: string;
 	#tmpDir: string;
 	#decompressor: Decompressor;
@@ -62,6 +62,15 @@ class ModInstallerV2 {
 	async install(source: string) {
 		log.info("install: starting installation for source", source);
 		const mod: Mod = Mod.from(source);
+
+		const modName = await this.#modalManager.promptText(
+			mainWindow,
+			"Enter mod name",
+			"Enter a name for this mod",
+			mod.name
+		);
+		mod.name = modName;
+
 		let tmpSrc: string = path.join(this.#tmpDir, mod.name);
 
 		try {
@@ -260,7 +269,7 @@ class ModInstallerV2 {
 		const helmets: Set<string> = new Set();
 		const entries = fs.readdirSync(helmetsDir);
 		entries.forEach((entry: string) => {
-			if (fs.statSync(entry).isDirectory()) {
+			if (fs.statSync(path.join(helmetsDir, entry)).isDirectory()) {
 				helmets.add(entry);
 			} else if (path.extname(entry) === ".pkz") {
 				helmets.add(entry.split(".pkz")[0]);
@@ -587,4 +596,4 @@ class ModInstallerV2 {
 	}
 }
 
-export default ModInstallerV2;
+export default ModInstaller;
