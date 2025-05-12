@@ -2,10 +2,9 @@ import Decompressor from "./Decompressor";
 import path from "path";
 import os from "os";
 import fs from "fs";
-import { Mod, TrackType } from "../../types";
+import { Mod, ModType, TrackType } from "../../types";
 import { cpRecurse, findDirectoriesContainingFileName, findFilesByType, findDeepestSubdir } from "../utils/FileSystemUtils";
 import { promptQuestion } from "../utils/dialogHelper";
-import { getModTypeFromModsSubdir } from "../services/ModClassifier";
 
 import log from "electron-log/main";
 import FolderStructure from "../models/FolderStructure";
@@ -91,7 +90,7 @@ class ModInstallerV2 {
 			log.info("install: modsSubdirLocation found", modsSubdirLocation);
 
 			if (modsSubdirLocation) {
-				mod.type = getModTypeFromModsSubdir(modsSubdirLocation);
+				mod.type = this.getModTypeFromModsSubdir(modsSubdirLocation);
 				log.info("install: mod type determined", mod.type);
 				await cpRecurse(modsSubdirLocation, path.dirname(this.modsFolder));
 				log.info("install: copied mods subdir to modsFolder");
@@ -532,6 +531,24 @@ class ModInstallerV2 {
 		const trackType = await promptQuestion("Select Track Type", `What kind of track is ${trackName}?`, trackTypes);
 		log.info("selectTrackType: selected track type", trackType);
 		return trackType as TrackType;
+	}
+
+	private getModTypeFromModsSubdir(source: string): ModType {
+		if (!fs.statSync(source).isDirectory()) return null;
+		const subfolders = fs.readdirSync(source);
+
+		for (const f of subfolders) {
+			switch (f.toLowerCase()) {
+				case "bikes":
+					return "bike";
+				case "tracks":
+					return "track";
+				case "rider":
+					return "rider";
+			}
+		}
+
+		return "other";
 	}
 }
 
