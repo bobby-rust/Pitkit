@@ -27,7 +27,7 @@
 	max-width: 70%;
 	min-width: 70%;
 
-	overflow: scroll;
+	overflow-x: scroll;
 }
 
 .delete-button:hover {
