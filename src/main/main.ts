@@ -39,10 +39,9 @@ updateElectronApp({
 		dialog
 			.showMessageBox({
 				type: "info",
-				buttons: ["Restart & Install", "Later"],
+				buttons: ["Restart Now", "Restart Later"],
 				title: `What's new in ${releaseName}`,
-				message: releaseName,
-				detail: releaseNotes,
+				message: releaseNotes,
 				noLink: true,
 			})
 			.then(({ response }) => {
