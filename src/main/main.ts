@@ -1,12 +1,33 @@
-import { app, BrowserWindow, dialog, IpcMainInvokeEvent } from "electron";
+import { app, autoUpdater, BrowserWindow, dialog, IpcMainInvokeEvent } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
-import { updateElectronApp } from "update-electron-app";
+import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import log from "electron-log/main";
 
 const IS_DEV = !app.isPackaged;
 
-updateElectronApp();
+updateElectronApp({
+	updateSource: {
+		type: UpdateSourceType.ElectronPublicUpdateService,
+	},
+	updateInterval: "1 hour",
+	onNotifyUser: ({ releaseNotes, releaseName }) => {
+		dialog
+			.showMessageBox({
+				type: "info",
+				buttons: ["Restart & Install", "Later"],
+				title: `What's new in ${releaseName}`,
+				message: releaseName,
+				detail: releaseNotes,
+				noLink: true,
+			})
+			.then(({ response }) => {
+				if (response === 0) {
+					autoUpdater.quitAndInstall();
+				}
+			});
+	},
+});
 
 log.initialize();
 
