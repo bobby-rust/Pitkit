@@ -27,7 +27,7 @@ import { mainWindow } from "../main";
  * [ ] - Install translations
  * [x] - Custom mod name
  * [x] - Custom track folder
- * [ ] - Attempt to convert pkz to zip to read contents to determine mod type
+ * [x] - Attempt to convert pkz to zip to read contents to determine mod type
  */
 class ModInstaller {
 	#modsFolder: string;
