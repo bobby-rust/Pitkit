@@ -63,9 +63,11 @@ function findDirectoriesContainingFileName(source: string, fileName: string) {
  * Given a source location and a file type, returns an array of
  * absolute paths to all files of type ft, except the ones present in
  * excluded directories
+ *
+ * @param {string[]} excludeFiles an array of absolute paths to files to ignore
  */
-function findFilesByType(source: string, ft: string, excludeDirs?: string[]): string[] {
-	if (excludeDirs?.includes(source)) return [];
+function findFilesByType(source: string, ft: string, excludeDirs?: string[], excludeFiles?: string[]): string[] {
+	if (excludeDirs?.includes(source) || excludeFiles?.includes(source)) return [];
 	// Prepend the dot to the file type if it does not exist
 	if (!(ft[0] === ".")) ft = "." + ft;
 

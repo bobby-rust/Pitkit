@@ -28,7 +28,7 @@ import { mainWindow } from "../main";
  * [x] - Custom mod name
  * [x] - Custom track folder
  * [x] - Attempt to convert pkz to zip to read contents to determine mod type
- * [ ] - Unable to install certain pkz tracks after new pkz to zip conversion technique (see Malvern / Marata [I forget which one of these has an issue])
+ * [x] - Unable to install certain pkz tracks after new pkz to zip conversion technique (see Malvern / Marata [I forget which one of these has an issue])
  */
 class ModInstaller {
 	#modsFolder: string;
@@ -158,6 +158,88 @@ class ModInstaller {
 
 			const trackMaps = findFilesByType(tmpSrc, "map");
 			log.info("install: found trackMaps", trackMaps);
+
+			// Handle unrecognized edfs as if they were pkzs
+			const unrecognizedEdfs = findFilesByType(tmpSrc, "edf", [
+				...bootModels,
+				...riderModels,
+				...helmetModels,
+				...bikeModels,
+				...wheelModels,
+				...protectionModels,
+			]);
+
+			// Create a set to keep track of which mods have been installed
+			// A single mod can contain multiple EDFs in the same folder, so if EDFs
+			// are in the same folder, they belong to the same mod.
+			const unrecognizedEdfSourceSet = new Set();
+			for (const unrecognizedEdf of unrecognizedEdfs) {
+				const source = path.dirname(unrecognizedEdf);
+				if (unrecognizedEdfSourceSet.has(source)) continue;
+				unrecognizedEdfSourceSet.add(source);
+
+				log.info("install: handling unrecognized edf ", unrecognizedEdf);
+				const edfType = await promptQuestion("Select mod type", `What type of mod is ${path.basename(source)}?`, [
+					"helmets",
+					"boots",
+					"bikes",
+					"tracks",
+					"tyres",
+					"protections",
+					"helmet addon",
+				]);
+				log.info("install: edfType selected", edfType);
+				let builtEdfsLocation: string;
+				switch (edfType) {
+					case "helmets":
+						log.info("installPKZs: handling pkzType 'helmets'");
+						mod.type = "rider";
+						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmets");
+						break;
+					case "boots":
+						log.info("installPKZs: handling pkzType 'boots'");
+						mod.type = "rider";
+						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "boots");
+						break;
+					case "riders":
+						log.info("installPKZs: handling pkzType 'riders'");
+						mod.type = "rider";
+						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "riders");
+						break;
+					case "tracks":
+						log.info("installPKZs: handling pkzType 'tracks'");
+						mod.type = "track";
+						const trackFolder = await this.#selectTrackFolder(mod.name);
+						log.info("installPKZs: track folder determined", trackFolder);
+						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "tracks", trackFolder);
+						break;
+					case "bikes":
+						log.info("installPKZs: handling pkzType 'bikes'");
+						mod.type = "bike";
+						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "bikes");
+						break;
+					case "tyres":
+						log.info("installPKZs: handling pkzType 'tyres'");
+						mod.type = "bike";
+						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "tyres");
+						break;
+					case "protections":
+						log.info("installPKZs: handling pkzType 'protections'");
+						mod.type = "other";
+						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "protections");
+						break;
+					case "helmet addon":
+						log.info("installPKZs: handling pkzType 'helmet addon'");
+						mod.type = "rider";
+						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmetcams");
+						break;
+					default:
+						log.warn("installPKZs: no valid pkz type selected, skipping PKZ installation");
+						return;
+				}
+				log.info("install: unrecognized edf installing to location", builtEdfsLocation);
+				await cpRecurse(path.dirname(unrecognizedEdf), builtEdfsLocation);
+			}
 
 			for (const trackMap of trackMaps) {
 				log.info("tmpSrc with track map:", tmpSrc);
@@ -384,6 +466,18 @@ class ModInstaller {
 
 	/* ============================== Install by type ================================ */
 
+	async #installUnrecognizedEDF(mod: Mod, tmpSrc: string) {
+		const pkzType = await promptQuestion("Select mod type", `What type of mod is ${mod.name}?`, [
+			"helmets",
+			"boots",
+			"bikes",
+			"tracks",
+			"tyres",
+			"protections",
+			"helmet addon",
+		]);
+	}
+
 	// Installs PNTs to tmp; still must be copied over later
 	async #installPNTs(mod: Mod, tmpSrc: string, excludeDirs: string[]) {
 		log.info("installPNTs: starting for mod", mod.name);
@@ -547,7 +641,7 @@ class ModInstaller {
 		let pkzType: string;
 		if (pkzs?.length) {
 			log.info("installPKZs: prompting for pkz type");
-			pkzType = await promptQuestion("Select mod type", "What type of models are you installing?", [
+			pkzType = await promptQuestion("Select mod type", `What type of mod is ${mod.name}?`, [
 				"helmets",
 				"boots",
 				"bikes",
