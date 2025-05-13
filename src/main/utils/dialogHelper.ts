@@ -1,5 +1,7 @@
 import { dialog } from "electron";
 import log from "electron-log/main";
+import { ModalManager } from "../classes/ModalManager";
+import { mainWindow } from "../main";
 
 /**
  * A helper function to show a dialog message box
@@ -10,20 +12,17 @@ import log from "electron-log/main";
  * @param buttons The buttons to select from the dialog
  * @returns The selected button, null if cancelled
  */
-export async function promptQuestion(title: string, message: string, buttons: string[]): Promise<string> {
-	const result = await dialog.showMessageBox({
-		type: "question",
-		buttons: [...buttons.map((button) => button[0].toUpperCase() + button.slice(1)), "Cancel"],
-		title: title,
-		message: message,
-		cancelId: buttons.length, // If the user presses ESC or closes, it selects "Cancel"
-	});
-	if (result.response === buttons.length) {
-		log.info("User canceled question prompt.");
-		return null;
-	}
+export async function promptQuestion(
+	modalManager: ModalManager,
+	title: string,
+	message: string,
+	buttons: string[]
+): Promise<string> {
+	const result = await modalManager.selectOption(mainWindow, title, message, [
+		...buttons.map((button) => button[0].toUpperCase() + button.slice(1)),
+	]);
 
-	return buttons[result.response];
+	return result.toLowerCase();
 }
 
 /**

@@ -15,7 +15,6 @@ import { mainWindow } from "../main";
  * TODO:
  * [ ] - Recursive extraction
  * [ ] - Extract files with passwords
- * [ ] - helmet cameras can be either pkz or <any string>.edf, so now we need to handle unrecognized edfs
  * [ ] - Install fonts
  * [ ] - Install stands
  * [ ] - Install rider animations
@@ -25,10 +24,6 @@ import { mainWindow } from "../main";
  * [ ] - Install Reshade presets
  * [ ] - Install UI mods
  * [ ] - Install translations
- * [x] - Custom mod name
- * [x] - Custom track folder
- * [x] - Attempt to convert pkz to zip to read contents to determine mod type
- * [x] - Unable to install certain pkz tracks after new pkz to zip conversion technique (see Malvern / Marata [I forget which one of these has an issue])
  */
 class ModInstaller {
 	#modsFolder: string;
@@ -167,6 +162,8 @@ class ModInstaller {
 				...bikeModels,
 				...wheelModels,
 				...protectionModels,
+				// Track maps are absolute file paths, we want to exclude the whole directory
+				...trackMaps.map((trackMap) => path.dirname(trackMap)),
 			]);
 
 			// Create a set to keep track of which mods have been installed
@@ -179,15 +176,12 @@ class ModInstaller {
 				unrecognizedEdfSourceSet.add(source);
 
 				log.info("install: handling unrecognized edf ", unrecognizedEdf);
-				const edfType = await promptQuestion("Select mod type", `What type of mod is ${path.basename(source)}?`, [
-					"helmets",
-					"boots",
-					"bikes",
-					"tracks",
-					"tyres",
-					"protections",
-					"helmet addon",
-				]);
+				const edfType = await promptQuestion(
+					this.#modalManager,
+					"Select mod type",
+					`What type of mod is ${path.basename(source)}?`,
+					["helmets", "boots", "bikes", "tracks", "tyres", "protections", "helmet addon"]
+				);
 				log.info("install: edfType selected", edfType);
 				let builtEdfsLocation: string;
 				switch (edfType) {
@@ -275,7 +269,7 @@ class ModInstaller {
 				const title = "Select a bike";
 				const message = "Which bike is " + mod.name + " for?";
 				const bikes = this.#getBikes();
-				const bike = await promptQuestion(title, message, bikes);
+				const bike = await promptQuestion(this.#modalManager, title, message, bikes);
 				if (!bike) continue;
 				const bikeModelFiles = fs.readdirSync(bikeModel);
 				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "bikes", bike?.split(".pkz")[0]);
@@ -289,7 +283,7 @@ class ModInstaller {
 				const title = "Select a bike";
 				const message = "Which bike is " + mod.name + " for?";
 				const bikes = this.#getBikes();
-				const bike = await promptQuestion(title, message, bikes);
+				const bike = await promptQuestion(this.#modalManager, title, message, bikes);
 				if (!bike) continue;
 				const bikeModelFiles = fs.readdirSync(soundMod);
 				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "bikes", bike?.split(".pkz")[0]);
@@ -467,7 +461,7 @@ class ModInstaller {
 	/* ============================== Install by type ================================ */
 
 	async #installUnrecognizedEDF(mod: Mod, tmpSrc: string) {
-		const pkzType = await promptQuestion("Select mod type", `What type of mod is ${mod.name}?`, [
+		const pkzType = await promptQuestion(this.#modalManager, "Select mod type", `What type of mod is ${mod.name}?`, [
 			"helmets",
 			"boots",
 			"bikes",
@@ -487,15 +481,12 @@ class ModInstaller {
 		let paintType: string;
 		if (pnts?.length) {
 			log.info("installPNTs: prompting for paint type");
-			paintType = await promptQuestion("Select paint type", "What type of paints are you installing?", [
-				"helmets",
-				"goggles",
-				"boots",
-				"gloves",
-				"riders",
-				"bikes",
-				"protections",
-			]);
+			paintType = await promptQuestion(
+				this.#modalManager,
+				"Select paint type",
+				"What type of paints are you installing?",
+				["helmets", "goggles", "boots", "gloves", "riders", "bikes", "protections"]
+			);
 			log.info("installPNTs: paintType selected", paintType);
 		}
 
@@ -510,6 +501,7 @@ class ModInstaller {
 					throw new Error("Unable to install bike paints, no available bikes");
 				}
 				const bikeChoice = await promptQuestion(
+					this.#modalManager,
 					"Select a bike",
 					pnts.length === 1 ? "What bike does this paint belong to?" : "What bike do these paints belong to?",
 					bikes
@@ -527,6 +519,7 @@ class ModInstaller {
 					throw new Error("No helmets installed, unable to install helmet paints");
 				}
 				const helmetChoice = await promptQuestion(
+					this.#modalManager,
 					"Select a helmet",
 					pnts.length === 1 ? "Which helmet does this paint belong to?" : "What helmets do these paints belong to?",
 					Array.from(helmets)
@@ -545,6 +538,7 @@ class ModInstaller {
 					throw new Error("No helmets installed, unable to install goggles");
 				}
 				const gogHelmetChoice = await promptQuestion(
+					this.#modalManager,
 					"Select a helmet",
 					pnts.length === 1 ? "Which helmet are these goggles for?" : "What helmet is this pair of goggles for?",
 					Array.from(gogHelmets)
@@ -565,6 +559,7 @@ class ModInstaller {
 					throw new Error("No boots installed, unable to install boot paints");
 				}
 				const bootChoice = await promptQuestion(
+					this.#modalManager,
 					"Select a pair of boots",
 					pnts.length === 1 ? "Which boots does this paint belong to?" : "Which boots do these paints belong to?",
 					Array.from(bootSet)
@@ -579,6 +574,7 @@ class ModInstaller {
 				mod.type = "rider";
 				const riderChoices = this.#getRiders();
 				const riderChoice = await promptQuestion(
+					this.#modalManager,
 					"Select a rider",
 					"Which rider do these gloves belong to?",
 					riderChoices
@@ -592,6 +588,7 @@ class ModInstaller {
 				mod.type = "rider";
 				const riderPaintChoices = this.#getRiders();
 				const riderPaintChoice = await promptQuestion(
+					this.#modalManager,
 					"Select a rider",
 					pnts.length === 1 ? "Which rider does this paint belong to?" : "Which rider do these paints belong to?",
 					riderPaintChoices
@@ -605,6 +602,7 @@ class ModInstaller {
 				mod.type = "rider";
 				const protections = this.#getProtections();
 				const protectionChoice = await promptQuestion(
+					this.#modalManager,
 					"Select a protection",
 					pnts.length === 1 ? "Which protection is this paint for?" : "Which protection are these paints for?",
 					protections
@@ -641,7 +639,7 @@ class ModInstaller {
 		let pkzType: string;
 		if (pkzs?.length) {
 			log.info("installPKZs: prompting for pkz type");
-			pkzType = await promptQuestion("Select mod type", `What type of mod is ${mod.name}?`, [
+			pkzType = await promptQuestion(this.#modalManager, "Select mod type", `What type of mod is ${mod.name}?`, [
 				"helmets",
 				"boots",
 				"bikes",
@@ -713,7 +711,12 @@ class ModInstaller {
 	async #selectTrackFolder(trackName: string): Promise<string | null> {
 		log.info("selectTrackType: prompting for track type for", trackName);
 		const trackFolders: string[] = [...this.#getTrackFolders(), "Create New"];
-		let trackFolder = await promptQuestion("Select Track Type", `What kind of track is ${trackName}?`, trackFolders);
+		let trackFolder = await promptQuestion(
+			this.#modalManager,
+			"Select Track Type",
+			`What kind of track is ${trackName}?`,
+			trackFolders
+		);
 		log.info("selectTrackType: selected track folder", trackFolder);
 
 		if (trackFolder === "Create New") {

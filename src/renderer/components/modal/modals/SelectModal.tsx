@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../Modal.css"; // Shared modal styles
+import log from "electron-log/renderer";
 
 interface SelectModalProps {
 	title: string;
@@ -24,9 +25,15 @@ const SelectModal: React.FC<SelectModalProps> = ({
 	const [selectedValue, setSelectedValue] = useState<string>(options[0] || "");
 	const selectRef = useRef<HTMLSelectElement>(null);
 
+	log.info("SelectModal rendered");
+
 	// Focus the select element when the modal mounts
 	useEffect(() => {
+		log.info("SelectModal mounted");
 		selectRef.current?.focus();
+		return () => {
+			log.info("SelectModal unmounted");
+		};
 	}, []);
 
 	// Update state when the selection changes

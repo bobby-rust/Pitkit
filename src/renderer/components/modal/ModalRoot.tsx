@@ -5,6 +5,7 @@ import TextInputModal from "./modals/TextInputModal";
 import SelectModal from "./modals/SelectModal";
 
 import "./Modal.css";
+import log from "electron-log/renderer";
 
 // Define the response function type
 type SubmitHandler = (value: any) => void;
@@ -13,13 +14,15 @@ type CancelHandler = () => void;
 const ModalRoot: React.FC = () => {
 	const { isOpen, modalProps, hideModal } = useModal();
 
+	console.log("[ModalRoot] isOpen:", isOpen, "modalProps:", modalProps); // <--- Add this
+
 	if (!isOpen || !modalProps) {
 		return null; // Don't render anything if modal is closed or props are missing
 	}
 
 	// Function to handle submission/cancellation and send response to main
 	const handleResponse = (cancelled: boolean, value?: any) => {
-		console.log(`[Renderer] Sending response for ${modalProps.id}: Cancelled=${cancelled}, Value=${value}`);
+		log.info(`[Renderer] Sending response for ${modalProps.id}: Cancelled=${cancelled}, Value=${value}`);
 		window.modalAPI.sendModalResponse({
 			id: modalProps.id, // Include the ID!
 			cancelled: cancelled,

@@ -39,7 +39,8 @@ export function ModalProvider({ children }: ModalProviderProps) {
 		console.log("[Renderer] Hiding modal");
 		setIsOpen(false);
 		// Delay clearing props slightly for fade-out animations if needed
-		setTimeout(() => setModalProps(null), 300); // Adjust timeout as needed
+		// setTimeout(() => setModalProps(null), 300); // Adjust timeout as needed
+		setModalProps(null);
 	}, []);
 
 	// Effect to listen for modal requests from the main process

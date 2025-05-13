@@ -37,8 +37,8 @@ updateElectronApp({
 
 	// Custom changelog update notification
 	onNotifyUser: async ({ releaseNotes, releaseName }) => {
-		log.debug("releaseNotes: ", releaseNotes);
-		if (!releaseNotes) {
+		log.info("releaseNotes: ", releaseNotes);
+		if (!releaseNotes.trim()) {
 			const response = await fetch("https://api.github.com/repos/bobby-rust/Pitkit/releases/latest", {
 				headers: {
 					"Content-Type": "application/json",
@@ -50,7 +50,7 @@ updateElectronApp({
 				releaseNotes = json.body;
 			}
 		}
-		log.debug("releaseName: ", releaseName);
+		log.info("releaseName: ", releaseName);
 		dialog
 			.showMessageBox({
 				type: "info",
