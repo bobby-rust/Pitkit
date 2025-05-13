@@ -22,7 +22,7 @@ export async function promptQuestion(
 		...buttons.map((button) => button[0].toUpperCase() + button.slice(1)),
 	]);
 
-	return result.toLowerCase();
+	return result?.toLowerCase();
 }
 
 /**

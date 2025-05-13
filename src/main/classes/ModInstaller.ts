@@ -166,6 +166,8 @@ class ModInstaller {
 				...trackMaps.map((trackMap) => path.dirname(trackMap)),
 			]);
 
+			log.info("install: found unrecognized edfs", unrecognizedEdfs);
+
 			// Create a set to keep track of which mods have been installed
 			// A single mod can contain multiple EDFs in the same folder, so if EDFs
 			// are in the same folder, they belong to the same mod.
@@ -174,65 +176,7 @@ class ModInstaller {
 				const source = path.dirname(unrecognizedEdf);
 				if (unrecognizedEdfSourceSet.has(source)) continue;
 				unrecognizedEdfSourceSet.add(source);
-
-				log.info("install: handling unrecognized edf ", unrecognizedEdf);
-				const edfType = await promptQuestion(
-					this.#modalManager,
-					"Select mod type",
-					`What type of mod is ${path.basename(source)}?`,
-					["helmets", "boots", "bikes", "tracks", "tyres", "protections", "helmet addon"]
-				);
-				log.info("install: edfType selected", edfType);
-				let builtEdfsLocation: string;
-				switch (edfType) {
-					case "helmets":
-						log.info("installPKZs: handling pkzType 'helmets'");
-						mod.type = "rider";
-						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmets");
-						break;
-					case "boots":
-						log.info("installPKZs: handling pkzType 'boots'");
-						mod.type = "rider";
-						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "boots");
-						break;
-					case "riders":
-						log.info("installPKZs: handling pkzType 'riders'");
-						mod.type = "rider";
-						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "riders");
-						break;
-					case "tracks":
-						log.info("installPKZs: handling pkzType 'tracks'");
-						mod.type = "track";
-						const trackFolder = await this.#selectTrackFolder(mod.name);
-						log.info("installPKZs: track folder determined", trackFolder);
-						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "tracks", trackFolder);
-						break;
-					case "bikes":
-						log.info("installPKZs: handling pkzType 'bikes'");
-						mod.type = "bike";
-						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "bikes");
-						break;
-					case "tyres":
-						log.info("installPKZs: handling pkzType 'tyres'");
-						mod.type = "bike";
-						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "tyres");
-						break;
-					case "protections":
-						log.info("installPKZs: handling pkzType 'protections'");
-						mod.type = "other";
-						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "protections");
-						break;
-					case "helmet addon":
-						log.info("installPKZs: handling pkzType 'helmet addon'");
-						mod.type = "rider";
-						builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmetcams");
-						break;
-					default:
-						log.warn("installPKZs: no valid pkz type selected, skipping PKZ installation");
-						return;
-				}
-				log.info("install: unrecognized edf installing to location", builtEdfsLocation);
-				await cpRecurse(path.dirname(unrecognizedEdf), builtEdfsLocation);
+				await this.#installUnrecognizedEDF(mod, source, tmpSrc);
 			}
 
 			for (const trackMap of trackMaps) {
@@ -460,16 +404,65 @@ class ModInstaller {
 
 	/* ============================== Install by type ================================ */
 
-	async #installUnrecognizedEDF(mod: Mod, tmpSrc: string) {
-		const pkzType = await promptQuestion(this.#modalManager, "Select mod type", `What type of mod is ${mod.name}?`, [
-			"helmets",
-			"boots",
-			"bikes",
-			"tracks",
-			"tyres",
-			"protections",
-			"helmet addon",
-		]);
+	async #installUnrecognizedEDF(mod: Mod, source: string, tmpSrc: string) {
+		log.info("install: handling unrecognized edf ", source);
+		const edfType = await promptQuestion(
+			this.#modalManager,
+			"Select mod type",
+			`What type of mod is ${path.basename(source)}?`,
+			["helmets", "boots", "bikes", "tracks", "tyres", "protections", "helmet addon"]
+		);
+		log.info("install: edfType selected", edfType);
+		let builtEdfsLocation: string;
+		switch (edfType) {
+			case "helmets":
+				log.info("installPKZs: handling pkzType 'helmets'");
+				mod.type = "rider";
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmets");
+				break;
+			case "boots":
+				log.info("installPKZs: handling pkzType 'boots'");
+				mod.type = "rider";
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "boots");
+				break;
+			case "riders":
+				log.info("installPKZs: handling pkzType 'riders'");
+				mod.type = "rider";
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "riders");
+				break;
+			case "tracks":
+				log.info("installPKZs: handling pkzType 'tracks'");
+				mod.type = "track";
+				const trackFolder = await this.#selectTrackFolder(mod.name);
+				log.info("installPKZs: track folder determined", trackFolder);
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "tracks", trackFolder);
+				break;
+			case "bikes":
+				log.info("installPKZs: handling pkzType 'bikes'");
+				mod.type = "bike";
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "bikes");
+				break;
+			case "tyres":
+				log.info("installPKZs: handling pkzType 'tyres'");
+				mod.type = "bike";
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "tyres");
+				break;
+			case "protections":
+				log.info("installPKZs: handling pkzType 'protections'");
+				mod.type = "rider";
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "protections");
+				break;
+			case "helmet addon":
+				log.info("installPKZs: handling pkzType 'helmet addon'");
+				mod.type = "rider";
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmetcams");
+				break;
+			default:
+				log.warn("installPKZs: no valid pkz type selected, skipping PKZ installation");
+				return;
+		}
+		log.info("install: unrecognized edf installing to location", builtEdfsLocation);
+		await cpRecurse(path.dirname(source), builtEdfsLocation);
 	}
 
 	// Installs PNTs to tmp; still must be copied over later
