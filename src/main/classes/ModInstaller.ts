@@ -25,8 +25,9 @@ import { mainWindow } from "../main";
  * [ ] - Install Reshade presets
  * [ ] - Install UI mods
  * [ ] - Install translations
- * [ ] - Custom mod name
- * [ ] - Custom track folder
+ * [x] - Custom mod name
+ * [x] - Custom track folder
+ * [ ] - Attempt to convert pkz to zip to read contents to determine mod type
  */
 class ModInstaller {
 	#modsFolder: string;
@@ -85,10 +86,22 @@ class ModInstaller {
 						log.info("install: extraction successful");
 						break;
 					case ".pnt":
+						log.info("install: copying pnt/pkz file", source, "to", tmpSrc);
+						await cpRecurse(source, tmpSrc);
+						log.info("install: copy successful");
+						break;
 					case ".pkz":
 						log.info("install: copying pnt/pkz file", source, "to", tmpSrc);
 						await cpRecurse(source, tmpSrc);
 						log.info("install: copy successful");
+
+						// Sooo... we copy the pkz file to tmpdir/mod.name/filename.pkz
+						// Now we should create tmpdir/mod.name/filename.zip
+						// Then attempt to extract filename.zip to tmpdir/mod.name/filename/
+
+						const newTmpSrc = await this.#pkzToZip(path.join(tmpSrc, path.basename(source)));
+						log.info("pkz to zip result: ", newTmpSrc);
+						if (newTmpSrc) tmpSrc = newTmpSrc;
 						break;
 					default:
 						log.error("install: unknown file type", ft);
@@ -232,6 +245,35 @@ class ModInstaller {
 			log.error("install: encountered error", err);
 			throw err;
 		}
+	}
+
+	// Converts a pkz to a zip and returns the path of the new file
+	async #pkzToZip(source: string): Promise<string | null> {
+		log.info("src passed to pkzToZip: ", source);
+
+		// parse out directory, base name and extension
+		const { dir, name, ext } = path.parse(source);
+
+		// ensure it really was a .pkz (case-insensitive)
+		if (ext.toLowerCase() !== ".pkz") {
+			log.warn("non-pkz file passed to pkzToZip");
+			return null;
+		}
+
+		const zipPath = path.join(dir, `${name}.zip`);
+		fs.copyFileSync(source, zipPath);
+		const extractFolder = path.join(dir, name);
+		log.info("Zip path: ", zipPath);
+		log.info("Extract folder: ", extractFolder);
+		try {
+			// Extract zip file to folder
+			await this.#decompressor.extract(zipPath, extractFolder);
+		} catch (err) {
+			console.error("Error while extracting pkz file: ", err);
+			return null;
+		}
+
+		return extractFolder;
 	}
 
 	/* ============================== Get Available Mods By Type =========================== */
