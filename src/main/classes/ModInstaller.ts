@@ -712,7 +712,7 @@ class ModInstaller {
 		);
 		log.info("selectTrackType: selected track folder", trackFolder);
 
-		if (trackFolder === "Create New") {
+		if (trackFolder === "create new") {
 			trackFolder = await this.#modalManager.promptText(
 				mainWindow,
 				"Create new track folder",
