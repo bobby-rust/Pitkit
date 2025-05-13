@@ -28,6 +28,7 @@ import { mainWindow } from "../main";
  * [x] - Custom mod name
  * [x] - Custom track folder
  * [x] - Attempt to convert pkz to zip to read contents to determine mod type
+ * [ ] - Unable to install certain pkz tracks after new pkz to zip conversion technique (see Malvern / Marata [I forget which one of these has an issue])
  */
 class ModInstaller {
 	#modsFolder: string;
@@ -95,13 +96,13 @@ class ModInstaller {
 						await cpRecurse(source, tmpSrc);
 						log.info("install: copy successful");
 
-						// Sooo... we copy the pkz file to tmpdir/mod.name/filename.pkz
-						// Now we should create tmpdir/mod.name/filename.zip
-						// Then attempt to extract filename.zip to tmpdir/mod.name/filename/
-
 						const newTmpSrc = await this.#pkzToZip(path.join(tmpSrc, path.basename(source)));
 						log.info("pkz to zip result: ", newTmpSrc);
-						if (newTmpSrc) tmpSrc = newTmpSrc;
+
+						if (newTmpSrc) {
+							log.info("install: setting tmpSrc to ", newTmpSrc);
+							tmpSrc = newTmpSrc;
+						}
 						break;
 					default:
 						log.error("install: unknown file type", ft);
@@ -128,6 +129,7 @@ class ModInstaller {
 			}
 
 			log.info("install: proceeding with individual model installations");
+			log.info("install: temp src location", tmpSrc);
 
 			// Collect model files/directories
 			const bootModels = findDirectoriesContainingFileName(tmpSrc, "boots.edf");
@@ -153,6 +155,19 @@ class ModInstaller {
 
 			const protectionModels = findDirectoriesContainingFileName(tmpSrc, "protection.edf");
 			log.info("install: found protectionModels", protectionModels);
+
+			const trackMaps = findFilesByType(tmpSrc, "map");
+			log.info("install: found trackMaps", trackMaps);
+
+			for (const trackMap of trackMaps) {
+				log.info("tmpSrc with track map:", tmpSrc);
+				mod.type = "track";
+				const trackFolder = await this.#selectTrackFolder(mod.name);
+				const tmpdest = path.join(path.dirname(tmpSrc), "mods", "tracks", trackFolder);
+
+				log.info("install: copying to tmpdest", tmpdest);
+				await cpRecurse(path.dirname(trackMap), tmpdest);
+			}
 
 			// install all found edf files
 			for (const bootModel of bootModels) {
@@ -247,7 +262,7 @@ class ModInstaller {
 		}
 	}
 
-	// Converts a pkz to a zip and returns the path of the new file
+	// Converts a pkz to a zip and returns the path of the extracted folder, or null if extraction fails
 	async #pkzToZip(source: string): Promise<string | null> {
 		log.info("src passed to pkzToZip: ", source);
 

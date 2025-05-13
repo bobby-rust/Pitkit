@@ -30,12 +30,27 @@ autoUpdater.on("before-quit-for-update", () => {
 	log.info("Restarting application to apply update");
 });
 
+// TODO: figure out why release notes isn't showing up in user message dialog
 updateElectronApp({
 	// 10 minutes is the default and is a bit excessive.
 	updateInterval: "1 hour",
 
 	// Custom changelog update notification
-	onNotifyUser: ({ releaseNotes, releaseName }) => {
+	onNotifyUser: async ({ releaseNotes, releaseName }) => {
+		log.debug("releaseNotes: ", releaseNotes);
+		if (!releaseNotes) {
+			const response = await fetch("https://api.github.com/repos/bobby-rust/Pitkit/releases/latest", {
+				headers: {
+					"Content-Type": "application/json",
+					"User-Agent": "PitKit",
+				},
+			});
+			const json = await response.json();
+			if (json.body) {
+				releaseNotes = json.body;
+			}
+		}
+		log.debug("releaseName: ", releaseName);
 		dialog
 			.showMessageBox({
 				type: "info",
