@@ -462,7 +462,7 @@ class ModInstaller {
 				return;
 		}
 		log.info("install: unrecognized edf installing to location", builtEdfsLocation);
-		await cpRecurse(path.dirname(source), builtEdfsLocation);
+		await cpRecurse(source, builtEdfsLocation);
 	}
 
 	// Installs PNTs to tmp; still must be copied over later
