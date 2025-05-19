@@ -10,6 +10,7 @@ export interface Mod {
 	files: FolderStructure;
 	installDate: string;
 	type: ModType;
+	isGameFolderMod: boolean | null;
 }
 
 // Types and values live in separate namespaces
@@ -23,6 +24,7 @@ export const Mod = {
 			files: new FolderStructure(),
 			installDate: new Date().toLocaleString(),
 			type: null,
+			isGameFolderMod: false,
 		};
 	},
 };

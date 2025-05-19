@@ -37,7 +37,7 @@ export default class ModManager {
 
 		this.loadMods();
 
-		this.#installer = new ModInstaller(this.#config.modsFolder, this.sendProgressToRenderer);
+		this.#installer = new ModInstaller(this.#config.modsFolder, this.#config.baseGameFolder, this.sendProgressToRenderer);
 	}
 
 	public getExtractionProgress() {
@@ -70,6 +70,7 @@ export default class ModManager {
 		};
 
 		this.#installer.setModsFolder(this.#config.modsFolder);
+		this.#installer.setGameFolder(this.#config.baseGameFolder);
 
 		log.info("Loaded config: ", this.#config);
 	}

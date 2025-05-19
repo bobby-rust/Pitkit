@@ -13,10 +13,11 @@ import { mainWindow } from "../main";
 
 /**
  * TODO:
+ * [ ] - Implement move mods folder feature
  * [ ] - Recursive extraction
  * [ ] - Extract files with passwords
  * [ ] - Install fonts
- * [ ] - Install stands
+ * [x] - Install stands
  * [ ] - Install rider animations
  * [ ] - Install modpacks ( bike packs that contain multiple pnts for different bikes, need to ask if all pnts are for same object or different )
  * [ ] - Install menu backgrounds
@@ -27,12 +28,14 @@ import { mainWindow } from "../main";
  */
 class ModInstaller {
 	#modsFolder: string;
+	#gameFolder: string;
 	#tmpDir: string;
 	#decompressor: Decompressor;
 	#modalManager: ModalManager;
 
-	constructor(modsFolder: string, sendProgress: (progress: number) => void) {
+	constructor(modsFolder: string, gameFolder: string, sendProgress: (progress: number) => void) {
 		this.#modsFolder = modsFolder;
+		this.#gameFolder = gameFolder;
 		this.#tmpDir =
 			process.env.NODE_ENV === "development" ? path.join(__dirname, "tmp") : path.join(os.tmpdir(), "PitkitExtract");
 
@@ -49,14 +52,21 @@ class ModInstaller {
 		this.#modsFolder = modsFolder;
 		log.info("setModsFolder: modsFolder updated to", modsFolder);
 	}
+	public setGameFolder(gameFolder: string) {
+		this.#gameFolder = gameFolder;
+	}
 
 	async uninstall(mod: Mod) {
 		log.info("uninstall: deleting files for mod", mod.name);
-		mod.files.delete(this.#modsFolder);
+		if (mod.isGameFolderMod) {
+			mod.files.delete(this.#gameFolder);
+		} else {
+			mod.files.delete(this.#modsFolder);
+		}
 		log.info("uninstall: completed for mod", mod.name);
 	}
 
-	async install(source: string) {
+	async install(source: string): Promise<Mod> {
 		log.info("install: starting installation for source", source);
 		const mod: Mod = Mod.from(source);
 
@@ -125,6 +135,16 @@ class ModInstaller {
 
 			log.info("install: proceeding with individual model installations");
 			log.info("install: temp src location", tmpSrc);
+
+			const animations = findFilesByType(tmpSrc, "anm");
+			log.info("install: found animations", animations);
+
+			for (const anm of animations) {
+				mod.isGameFolderMod = true;
+				mod.type = "other";
+				const anmLocation = path.join(path.dirname(tmpSrc), "MX Bikes", "rider", "animations", "mx");
+				await cpRecurse(anm, anmLocation);
+			}
 
 			// Collect model files/directories
 			const bootModels = findDirectoriesContainingFileName(tmpSrc, "boots.edf");
@@ -261,10 +281,19 @@ class ModInstaller {
 			log.info("install: installPKZs completed");
 
 			const tmpModsLocation = path.join(path.dirname(tmpSrc), "mods");
+			const tmpGameModsLocation = path.join(path.dirname(tmpSrc), "MX Bikes");
 			log.info("install: final copy from", tmpModsLocation, "to", path.dirname(this.#modsFolder));
-			await cpRecurse(tmpModsLocation, path.dirname(this.#modsFolder));
 
-			const folderStruct = FolderStructure.build(tmpModsLocation);
+			let folderStruct;
+			if (fs.existsSync(tmpModsLocation)) {
+				await cpRecurse(tmpModsLocation, path.dirname(this.#modsFolder));
+				folderStruct = FolderStructure.build(tmpModsLocation);
+			}
+			if (fs.existsSync(tmpGameModsLocation)) {
+				await cpRecurse(tmpGameModsLocation, path.dirname(this.#gameFolder));
+				folderStruct = FolderStructure.build(tmpGameModsLocation);
+			}
+
 			mod.files = folderStruct;
 
 			try {
@@ -410,53 +439,67 @@ class ModInstaller {
 			this.#modalManager,
 			"Select mod type",
 			`What type of mod is ${path.basename(source)}?`,
-			["helmets", "boots", "bikes", "tracks", "tyres", "protections", "helmet addon"]
+			["helmets", "boots", "bikes", "tracks", "tyres", "protections", "helmet addon", "stand"]
 		);
 		log.info("install: edfType selected", edfType);
 		let builtEdfsLocation: string;
 		switch (edfType) {
 			case "helmets":
-				log.info("installPKZs: handling pkzType 'helmets'");
+				log.info("installUnrecognizedEDF: handling pkzType 'helmets'");
 				mod.type = "rider";
 				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmets");
 				break;
 			case "boots":
-				log.info("installPKZs: handling pkzType 'boots'");
+				log.info("installUnrecognizedEDF: handling pkzType 'boots'");
 				mod.type = "rider";
 				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "boots");
 				break;
 			case "riders":
-				log.info("installPKZs: handling pkzType 'riders'");
+				log.info("installUnrecognizedEDF: handling pkzType 'riders'");
 				mod.type = "rider";
 				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "riders");
 				break;
 			case "tracks":
-				log.info("installPKZs: handling pkzType 'tracks'");
+				log.info("installUnrecognizedEDF: handling pkzType 'tracks'");
 				mod.type = "track";
 				const trackFolder = await this.#selectTrackFolder(mod.name);
 				log.info("installPKZs: track folder determined", trackFolder);
 				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "tracks", trackFolder);
 				break;
 			case "bikes":
-				log.info("installPKZs: handling pkzType 'bikes'");
+				log.info("installUnrecognizedEDF: handling pkzType 'bikes'");
 				mod.type = "bike";
 				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "bikes");
 				break;
 			case "tyres":
-				log.info("installPKZs: handling pkzType 'tyres'");
+				log.info("installUnrecognizedEDF: handling pkzType 'tyres'");
 				mod.type = "bike";
 				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "tyres");
 				break;
 			case "protections":
-				log.info("installPKZs: handling pkzType 'protections'");
+				log.info("installUnrecognizedEDF: handling pkzType 'protections'");
 				mod.type = "rider";
 				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "protections");
 				break;
 			case "helmet addon":
-				log.info("installPKZs: handling pkzType 'helmet addon'");
+				log.info("installUnrecognizedEDF: handling pkzType 'helmet addon'");
 				mod.type = "rider";
 				builtEdfsLocation = path.join(path.dirname(tmpSrc), "mods", "rider", "helmetcams");
 				break;
+			case "stand":
+				log.info("installUnrecognizedEDFs: handling edf type 'stand'");
+				mod.type = "other";
+				// Create a temp dest to hold the game folder mods, under "MX Bikes"
+				builtEdfsLocation = path.join(path.dirname(tmpSrc), "MX Bikes", "misc", "stand");
+				mod.isGameFolderMod = true;
+
+				const edfs = findFilesByType(source, "edf");
+				// Install each edf found, could be multiple stands in 1 folder
+				for (const edf of edfs) {
+					await cpRecurse(edf, builtEdfsLocation);
+				}
+				// Stop here, no need to continue to copy below, we already copied
+				return;
 			default:
 				log.warn("installPKZs: no valid pkz type selected, skipping PKZ installation");
 				return;
