@@ -61,6 +61,7 @@
 		"dotenv": "^16.5.0",
 		"electron-log": "^5.4.0",
 		"electron-squirrel-startup": "^1.0.1",
+		"fast-xml-parser": "^5.2.3",
 		"ini": "^5.0.0",
 		"lucide-react": "^0.487.0",
 		"react": "^19.1.0",
@@ -68,6 +69,7 @@
 		"react-hook-form": "^7.56.4",
 		"react-router-dom": "^7.6.0",
 		"update-electron-app": "^3.1.1",
+		"uuid": "^11.1.0",
 		"yauzl": "^3.2.0"
 	}
 }

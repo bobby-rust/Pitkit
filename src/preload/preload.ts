@@ -39,6 +39,11 @@ export interface ModalAPI {
 	removeOpenModalListener: () => void;
 }
 
+export interface SupabaseAPI {
+	uploadTrainer: (args: { userId: string; map: string; lapTime: number; filePath: string; fileName: string }) => void;
+	getTrainers: () => any;
+}
+
 const electronAPI: ElectronAPI = {
 	// Functions callable from Renderer -> Main
 	minimizeWindow: () => ipcRenderer.send("minimize-window"),
@@ -93,8 +98,27 @@ const modalAPI: ModalAPI = {
 	},
 };
 
+const supabaseAPI = {
+	/**
+	 * args = {
+	 *   userId: string,
+	 *   map:    string,
+	 *   lapTime:number,
+	 *   filePath:string,  // full path on disk
+	 *   fileName:string,  // filename.ext
+	 * }
+	 */
+	uploadTrainer: (args: any) => ipcRenderer.invoke("supabase-upload-trainer", args),
+
+	/**
+	 * userId: string
+	 */
+	getTrainers: () => ipcRenderer.invoke("supabase-get-trainers"),
+};
+
 contextBridge.exposeInMainWorld("modalAPI", modalAPI);
 contextBridge.exposeInMainWorld("modManagerAPI", modManagerAPI);
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);
+contextBridge.exposeInMainWorld("supabaseAPI", supabaseAPI);
 
 console.log("Preload script loaded.");

@@ -30,7 +30,6 @@ autoUpdater.on("before-quit-for-update", () => {
 	log.info("Restarting application to apply update");
 });
 
-// TODO: figure out why release notes isn't showing up in user message dialog
 updateElectronApp({
 	// 10 minutes is the default and is a bit excessive.
 	updateInterval: "1 hour",
@@ -147,6 +146,7 @@ async function init() {
 	modManager = new ModManager();
 
 	await modManager.loadConfig();
+
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
 	});
@@ -183,8 +183,10 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 import ModManager from "./classes/ModManager";
 import { ipcMain } from "electron";
+import SupabaseService from "./classes/Supabase";
 
 let modManager: ModManager;
+const sb = new SupabaseService();
 
 ipcMain.handle("install-mod", async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
 	await modManager.installMod(filePaths || null);
@@ -206,6 +208,15 @@ const assetsPath = IS_DEV ? "src/renderer/assets" : path.join(process.resourcesP
 
 ipcMain.handle("get-assets-path", (_event: IpcMainInvokeEvent) => {
 	return assetsPath;
+});
+
+ipcMain.handle("supabase-upload-trainer", async (_, args) => {
+	// args should be { userId, map, lapTime, filePath, fileName }
+	return sb.uploadTrainer(args);
+});
+
+ipcMain.handle("supabase-get-trainers", async (_) => {
+	return sb.getTrainers();
 });
 
 export { mainWindow };
