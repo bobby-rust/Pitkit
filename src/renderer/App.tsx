@@ -6,6 +6,7 @@ import { FolderPlus } from "lucide-react";
 import ModsGrid from "./components/mods-grid/ModsGrid";
 import { setupWindowControls } from "./utils/windowControls";
 import log from "electron-log/renderer";
+import { Link } from "react-router-dom";
 
 export default function App() {
 	const [progress, setProgress] = useState(null);
@@ -105,7 +106,6 @@ export default function App() {
 		<div className="app-container" onDrop={handleDrop} onDragOver={handleDragOver}>
 			<div id="app" className="app">
 				<div className="app-heading">
-					<h1>PitKit</h1>
 					<button disabled={isInstalling} className="btn install-button" onClick={() => handleInstallMod()}>
 						<FolderPlus /> <span>Install Mod</span>
 					</button>

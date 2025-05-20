@@ -1,0 +1,40 @@
+.table-toolbar {
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 1rem;
+}
+
+.search-input,
+.map-select {
+	padding: 0.5rem;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	font-size: 1rem;
+}
+
+.leaderboard-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-family: sans-serif;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+	padding: 0.75rem;
+	border: 1px solid #ddd;
+	text-align: left;
+}
+
+.leaderboard-table th {
+	background-color: #f5f5f5;
+	cursor: pointer;
+	user-select: none;
+}
+
+.leaderboard-table tr:nth-child(even) {
+	background-color: #fafafa;
+}
+
+.leaderboard-table tr:hover {
+	background-color: #f1f1f1;
+}

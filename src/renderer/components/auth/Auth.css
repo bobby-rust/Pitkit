@@ -1,0 +1,46 @@
+.auth {
+	height: 100vh;
+	width: 100%;
+	margin-top: 32px;
+}
+
+.auth-form-container {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	padding-top: 1rem;
+}
+
+.auth-form {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	width: 30%;
+}
+
+@media (max-width: 600px) {
+	.auth-form {
+		width: 80%;
+	}
+}
+
+@media (max-width: 1024px) {
+	.auth-form {
+		width: 50%;
+	}
+}
+
+.input-wrapper {
+	display: flex;
+	flex-direction: column;
+}
+
+.auth-link-msg {
+	text-align: center;
+	padding-top: 1rem;
+}
+
+.auth-link-msg a {
+	text-decoration: underline;
+}
