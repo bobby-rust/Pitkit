@@ -33,6 +33,9 @@ export default function Ghosts() {
 	return (
 		<div className="ghosts">
 			<h1>Ghosts</h1>
+			<p style={{ textAlign: "center", paddingBottom: "1rem" }}>
+				When you create an account and sign in, your ghosts will become available here for everyone to use
+			</p>
 			<LeaderboardTable data={data} />
 		</div>
 	);
