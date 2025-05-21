@@ -6,12 +6,26 @@ import path from "path";
 export interface Trainer {
 	id: number;
 	user_id: string;
+	username: string;
 	map: string;
+	bike: string;
+	bike_category: string;
 	laptime: number;
 	recorded_at: string;
 	file_key: string;
 	file_url: string;
 }
+type TrainerRow = {
+	id: number;
+	user_id: string;
+	map: string;
+	laptime: number;
+	bike: string;
+	bike_category: string;
+	recorded_at: string;
+	file_key: string;
+	profiles: { username: string };
+};
 
 export default class SupabaseService {
 	public supabase: SupabaseClient;
@@ -66,11 +80,13 @@ export default class SupabaseService {
 		fileName: string;
 		fileHash: string;
 		recordedAt: Date;
+		bike: string;
+		bikeCategory: string;
 	}) {
 		const session = await this.getSession();
 		if (!session) throw new Error("Must be signed in to upload trainer");
 
-		const { userId, map, laptime, filePath, fileName, fileHash, recordedAt } = opts;
+		const { userId, map, laptime, filePath, fileName, fileHash, recordedAt, bike, bikeCategory } = opts;
 
 		// 1) Build a *deterministic* key based on user + hash
 		const s3Key = `trainers/${userId}/${fileHash}${path.extname(fileName)}`;
@@ -84,6 +100,8 @@ export default class SupabaseService {
 					map,
 					laptime,
 					recorded_at: recordedAt.toISOString(),
+					bike: bike,
+					bike_category: bikeCategory,
 					file_hash: fileHash,
 					file_key: s3Key,
 				},
@@ -115,13 +133,38 @@ export default class SupabaseService {
 	 * Fetches all trainers for a given user, with public URLs.
 	 */
 	async getTrainers(): Promise<Trainer[]> {
-		const { data, error } = await this.supabase.from("trainers").select("*").order("recorded_at", { ascending: false });
+		const { data, error } = await this.supabase
+			.from<"trainers", TrainerRow>("trainers") // TableName, RowType
+			.select(
+				`id,
+				user_id,
+				map,
+				laptime,
+				recorded_at,
+				bike,
+				bike_category,
+				file_key,
+				profiles ( username )`
+			)
+			.order("recorded_at", { ascending: false });
 
 		if (error) throw error;
 
-		return data.map((t) => ({
-			...t,
-			file_url: `https://${this.bucket}.s3.${this.region}.amazons3.com/${encodeURIComponent(t.file_key)}`,
+		// typescript is so dumb sometimes man
+		const rows = (data ?? []) as unknown as TrainerRow[]; // now correctly typed as TrainerRow[]
+		console.log("Raw data retrieved: ", rows);
+
+		return rows.map((t) => ({
+			id: t.id,
+			user_id: t.user_id,
+			username: t.profiles?.username ?? "",
+			map: t.map,
+			bike: t.bike,
+			bike_category: t.bike_category,
+			laptime: t.laptime,
+			recorded_at: t.recorded_at,
+			file_key: t.file_key,
+			file_url: `https://${this.bucket}.s3.${this.region}.amazonaws.com/${encodeURIComponent(t.file_key)}`,
 		}));
 	}
 }

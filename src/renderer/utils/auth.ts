@@ -62,6 +62,7 @@ export async function logout() {
  * Create an account.  If you also collect "username", you can stash it in user_metadata:
  */
 export async function signUp({ email, password, username }: AuthFormInput) {
+	console.log("Setting username in sign up: ", username);
 	const { data, error } = await supabase.auth.signUp({
 		email,
 		password,

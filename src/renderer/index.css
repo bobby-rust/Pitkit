@@ -415,3 +415,46 @@ html {
 	align-items: center;
 	text-align: center;
 }
+
+/** Scrollbar styles */
+/* Style the overall scrollbar */
+::-webkit-scrollbar {
+	width: 12px; /* Width of the vertical scrollbar */
+	height: 12px; /* Height of the horizontal scrollbar */
+}
+
+/* Style the track (the bar the thumb slides along) */
+::-webkit-scrollbar-track {
+	background: var(--background);
+	border-radius: 10px; /* Make the track rounded */
+	/* Add slight margin so track doesn't touch edge */
+	margin: 2px;
+}
+
+/* Style the thumb (the draggable part) */
+::-webkit-scrollbar-thumb {
+	background-color: var(--foreground);
+	border-radius: 10px; /* Make the thumb rounded */
+
+	/* Create the "smaller initial size" effect using a border that matches the track */
+	/* The border effectively shrinks the visible colored part of the thumb */
+	border: 3px solid var(--background);
+	background-clip: content-box; /* Ensure border is outside the background */
+
+	/* Add transition for smooth hover effect */
+	transition: background-color 0.2s ease-in-out, border-width 0.2s ease-in-out;
+}
+
+/* Style the thumb on hover */
+::-webkit-scrollbar-thumb:hover {
+	/* Alternative: Use filter if you don't define a specific hover variable */
+	filter: brightness(1.2);
+
+	/* Make the thumb appear larger by reducing the border size */
+	border-width: 2px;
+}
+
+/* Optional: Style the corner when both scrollbars are visible */
+::-webkit-scrollbar-corner {
+	background: transparent; /* Hide the corner */
+}

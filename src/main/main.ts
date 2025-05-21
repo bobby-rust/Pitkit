@@ -234,6 +234,8 @@ ipcMain.handle("upload-trainers", async (_) => {
 			userId: session.user.id,
 			map: trainer.map,
 			laptime: trainer.laptime,
+			bike: trainer.bike,
+			bikeCategory: trainer.bikeCategory,
 			filePath: trainer.filePath,
 			fileName: trainer.fileName,
 			fileHash: trainer.fileHash,
@@ -242,6 +244,10 @@ ipcMain.handle("upload-trainers", async (_) => {
 
 		await modManager.sb.uploadTrainer(opts);
 	}
+});
+
+ipcMain.handle("install-ghost", async (_, ghost) => {
+	await modManager.installGhost(ghost);
 });
 
 export { mainWindow };

@@ -301,4 +301,9 @@ export default class ModManager {
 	getTrainers() {
 		return this.trainerService.getTrainers();
 	}
+
+	async installGhost(ghost: any) {
+		console.log("installing ghost in backend:", ghost);
+		await this.trainerService.installTrainer(ghost);
+	}
 }

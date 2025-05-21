@@ -32,6 +32,7 @@ export interface ModManagerAPI {
 	requestExtractionProgress: () => Promise<number>;
 	onMessage: (channel: any, callback: any) => void;
 	uploadTrainers: () => void;
+	installGhost: (ghost: any) => any;
 }
 
 export interface ModalAPI {
@@ -83,6 +84,9 @@ const modManagerAPI: ModManagerAPI = {
 	},
 	uploadTrainers: () => {
 		ipcRenderer.invoke("upload-trainers");
+	},
+	installGhost: (ghost: any) => {
+		ipcRenderer.invoke("install-ghost", ghost);
 	},
 };
 

@@ -4,11 +4,14 @@ import os from "os";
 import { cpRecurse } from "../utils/FileSystemUtils";
 import SupabaseService from "./Supabase";
 import { computeFileHash } from "../utils/fileHash";
+import { downloadFile } from "../utils/downloadFile";
 
 interface TrainerRecord {
 	map: string;
 	laptime: number;
 	recordedAt: Date;
+	bike: string;
+	bikeCategory: string;
 	filePath: string;
 	fileHash: string;
 	fileName: string;
@@ -24,6 +27,13 @@ export default class TrainerService {
 		this.#tmpDir =
 			process.env.NODE_ENV === "development" ? path.join(__dirname, "tmp") : path.join(os.tmpdir(), "PitkitExtract");
 		this.#supabase = sb;
+	}
+
+	public async installTrainer(trainer: any) {
+		const fileName = trainer.mapName + "_" + trainer.bikeCategory + ".trn";
+		const trainersPath = path.join(this.getProfiles()?.[0], "trainers");
+		await downloadFile(trainer.fileUrl, path.join(trainersPath, fileName));
+		// await downloadFile(trainer.fileUrl, path.join(trainersPath, "test.trn"));
 	}
 
 	/**
@@ -146,11 +156,14 @@ export default class TrainerService {
 					continue;
 				}
 
+				const bike = recordKey;
 				const [lapStr, tsStr] = section[recordKey].split(" ");
 				allTrainers.push({
 					map: mapName,
 					laptime: parseFloat(lapStr),
 					recordedAt: new Date(Number(tsStr) * 1000),
+					bike: bike,
+					bikeCategory: bikeRaw,
 					filePath: file,
 					fileHash: await computeFileHash(file),
 					fileName: path.basename(file),

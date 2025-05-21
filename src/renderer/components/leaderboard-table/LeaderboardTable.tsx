@@ -1,10 +1,8 @@
-// src/components/LeaderboardTable.tsx
 import React, { useMemo, useState } from "react";
 import {
 	useReactTable,
 	ColumnDef,
 	FilterFn,
-	Row,
 	getCoreRowModel,
 	getFilteredRowModel,
 	getSortedRowModel,
@@ -17,6 +15,8 @@ export interface LapTime {
 	mapName: string;
 	lapTime: number; // in seconds
 	bike: string;
+	bikeCategory: string;
+	fileUrl: string;
 }
 
 interface Props {
@@ -24,26 +24,30 @@ interface Props {
 }
 
 export default function LeaderboardTable({ data }: Props) {
-	// 1) State for our two search inputs
-	const [globalFilter, setGlobalFilter] = useState<{
-		username: string;
-		mapName: string;
-	}>({ username: "", mapName: "" });
+	console.log("Leaderboard data: ", data);
+	if (!data) return <h1>No ghosts</h1>;
 
-	// 2) Custom global filter fn: returns true only if
-	//    row.username includes globalFilter.username AND
-	//    row.mapName    includes globalFilter.mapName
+	async function installGhost(row: any) {
+		console.log("Installing ghost: ", row);
+		await window.modManagerAPI.installGhost(row);
+		alert("Successfully installed ghost");
+	}
+
+	// 1) State for filters
+	const [globalFilter, setGlobalFilter] = useState({ username: "", mapName: "" });
+
+	// 2) Custom global filter fn
 	const multiSearchFilterFn = useMemo<FilterFn<LapTime>>(
 		() => (row, _columnId, filterValue) => {
 			const { username: uFilter, mapName: mFilter } = filterValue as typeof globalFilter;
-			const uname = row.getValue<string>("username").toLowerCase();
-			const mname = row.getValue<string>("mapName").toLowerCase();
+			const uname = row.getValue<string>("username")?.toLowerCase() || "";
+			const mname = row.getValue<string>("mapName")?.toLowerCase() || "";
 			return uname.includes(uFilter.toLowerCase()) && mname.includes(mFilter.toLowerCase());
 		},
 		[]
 	);
 
-	// 3) Column definitions
+	// 3) Column definitions, with a new "Install" column at the end
 	const columns = useMemo<ColumnDef<LapTime>[]>(
 		() => [
 			{ accessorKey: "username", header: "User" },
@@ -55,6 +59,20 @@ export default function LeaderboardTable({ data }: Props) {
 				sortingFn: "basic",
 			},
 			{ accessorKey: "bike", header: "Bike" },
+			{
+				id: "install",
+				header: "Install",
+				cell: ({ row }) => (
+					<button
+						className="install-btn"
+						onClick={() => {
+							installGhost(row.original);
+						}}
+					>
+						Install
+					</button>
+				),
+			},
 		],
 		[]
 	);
@@ -73,7 +91,7 @@ export default function LeaderboardTable({ data }: Props) {
 
 	return (
 		<div>
-			{/* Toolbar with two search boxes */}
+			{/* Toolbar */}
 			<div className="table-toolbar">
 				<input
 					className="search-input"
