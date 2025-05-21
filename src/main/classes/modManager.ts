@@ -40,8 +40,6 @@ export default class ModManager {
 		// Bind the function to ensure correct context when calling from other classes
 		this.sendProgressToRenderer = this.sendProgressToRenderer.bind(this);
 
-		this.loadMods();
-
 		this.#installer = new ModInstaller(this.#config.modsFolder, this.#config.baseGameFolder, this.sendProgressToRenderer);
 		this.sb = new SupabaseService();
 		this.trainerService = new TrainerService(this.sb, this.#config.modsFolder);

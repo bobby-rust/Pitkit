@@ -2,6 +2,7 @@
 import { createClient, Session, SupabaseClient, User } from "@supabase/supabase-js";
 import S3 from "./S3";
 import path from "path";
+import { SUPABASE_ANON_KEY, SUPABASE_URL, S3_BUCKET, S3_REGION } from "../utils/config";
 
 export interface Trainer {
 	id: number;
@@ -34,10 +35,10 @@ export default class SupabaseService {
 	private region: string;
 
 	constructor() {
-		const url = process.env.VITE_SUPABASE_URL;
-		const key = process.env.VITE_SUPABASE_ANON_KEY;
-		this.bucket = process.env.S3_BUCKET!;
-		this.region = process.env.S3_REGION!;
+		const url = SUPABASE_URL;
+		const key = SUPABASE_ANON_KEY;
+		this.bucket = S3_BUCKET;
+		this.region = S3_REGION;
 
 		if (!url || !key || !this.bucket || !this.region) {
 			throw new Error("Missing one of SUPABASE_URL, SUPABASE_ANON_KEY, S3_BUCKET or S3_REGION in env");

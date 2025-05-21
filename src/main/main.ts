@@ -4,6 +4,7 @@ import started from "electron-squirrel-startup";
 import { updateElectronApp } from "update-electron-app";
 import log from "electron-log/main";
 
+const modManager = new ModManager();
 const IS_DEV = !app.isPackaged;
 
 autoUpdater.on("update-not-available", () => {
@@ -143,9 +144,8 @@ const createWindow = () => {
 };
 
 async function init() {
-	modManager = new ModManager();
-
 	await modManager.loadConfig();
+	modManager.loadMods();
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
 	});
@@ -183,21 +183,23 @@ app.on("activate", () => {
 import ModManager from "./classes/ModManager";
 import { ipcMain } from "electron";
 
-let modManager: ModManager;
-
 ipcMain.handle("install-mod", async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
+	if (!modManager) return;
 	await modManager.installMod(filePaths || null);
 });
 
 ipcMain.handle("uninstall-mod", async (_event: IpcMainInvokeEvent, modName: string) => {
+	if (!modManager) return;
 	modManager.uninstallMod(modName);
 });
 
 ipcMain.handle("request-mods-data", (_event: IpcMainInvokeEvent) => {
+	if (!modManager) return;
 	return modManager.getMods();
 });
 
 ipcMain.handle("request-extraction-progress", (_event: IpcMainInvokeEvent) => {
+	if (!modManager) return;
 	return modManager.getExtractionProgress();
 });
 
@@ -209,18 +211,22 @@ ipcMain.handle("get-assets-path", (_event: IpcMainInvokeEvent) => {
 
 ipcMain.handle("supabase-upload-trainer", async (_, args) => {
 	// args should be { userId, map, lapTime, filePath, fileName }
+	if (!modManager) return;
 	return modManager.sb.uploadTrainer(args);
 });
 
 ipcMain.handle("supabase-get-trainers", async (_) => {
+	if (!modManager) return;
 	return modManager.sb.getTrainers();
 });
 
 ipcMain.handle("supabase-set-auth", async (_, session: { access_token: string; refresh_token: string }) => {
+	if (!modManager) return;
 	modManager.sb.setSession(session);
 });
 
 ipcMain.handle("upload-trainers", async (_) => {
+	if (!modManager) return;
 	console.log("Uploading trainers!");
 
 	const trainers = await modManager.getTrainers();
@@ -247,6 +253,7 @@ ipcMain.handle("upload-trainers", async (_) => {
 });
 
 ipcMain.handle("install-ghost", async (_, ghost) => {
+	if (!modManager) return;
 	await modManager.installGhost(ghost);
 });
 

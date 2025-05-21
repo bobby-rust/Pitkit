@@ -1,8 +1,6 @@
 import { promises as fs } from "fs";
 import { XMLParser } from "fast-xml-parser";
-import dotenv from "dotenv";
-dotenv.config();
-
+import { S3_BUCKET, S3_REGION } from "../utils/config";
 export default class S3 {
 	private bucket: string;
 	private region: string;
@@ -12,8 +10,8 @@ export default class S3 {
 	});
 
 	constructor() {
-		this.bucket = process.env.S3_BUCKET!;
-		this.region = process.env.S3_REGION!;
+		this.bucket = S3_BUCKET;
+		this.region = S3_REGION;
 
 		if (!this.bucket || !this.region) {
 			throw new Error("Missing S3_BUCKET or S3_REGION in process.env");

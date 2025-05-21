@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import "./Ghosts.css";
 import LeaderboardTable, { LapTime } from "../leaderboard-table/LeaderboardTable";
+import { UserContext } from "../../main";
 
 export default function Ghosts() {
 	const [data, setData] = useState<LapTime[]>(null);
+	const username = useContext(UserContext);
 
 	useEffect(() => {
 		async function fetchData() {
@@ -33,10 +35,13 @@ export default function Ghosts() {
 	return (
 		<div className="ghosts">
 			<h1>Ghosts</h1>
-			<p style={{ textAlign: "center", paddingBottom: "1rem" }}>
-				When you create an account and sign in, your ghosts will become available here for everyone to use
-			</p>
-			<LeaderboardTable data={data} />
+			{!username ? (
+				<h2 style={{ textAlign: "center", paddingBottom: "1rem", marginTop: "2rem" }}>
+					You must be signed in to view this page
+				</h2>
+			) : (
+				<LeaderboardTable data={data} />
+			)}
 		</div>
 	);
 }
