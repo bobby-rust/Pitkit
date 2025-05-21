@@ -15,6 +15,7 @@ declare global {
 		modManagerAPI: import("../preload").ModManagerAPI;
 		electronAPI: import("../preload").ElectronAPI;
 		modalAPI: import("../preload").ModalAPI;
+		supabaseAPI: import("../preload").SupabaseAPI;
 	}
 }
 

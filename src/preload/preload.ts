@@ -31,6 +31,7 @@ export interface ModManagerAPI {
 	requestModsData: () => Promise<ModsData>;
 	requestExtractionProgress: () => Promise<number>;
 	onMessage: (channel: any, callback: any) => void;
+	uploadTrainers: () => void;
 }
 
 export interface ModalAPI {
@@ -42,6 +43,7 @@ export interface ModalAPI {
 export interface SupabaseAPI {
 	uploadTrainer: (args: { userId: string; map: string; lapTime: number; filePath: string; fileName: string }) => void;
 	getTrainers: () => any;
+	setSupabaseAuth: (session: { access_token: string; refresh_token: string }) => void;
 }
 
 const electronAPI: ElectronAPI = {
@@ -79,6 +81,9 @@ const modManagerAPI: ModManagerAPI = {
 	onMessage: (channel: any, callback: any) => {
 		ipcRenderer.on(channel, (_event, data) => callback(data));
 	},
+	uploadTrainers: () => {
+		ipcRenderer.invoke("upload-trainers");
+	},
 };
 
 const modalAPI: ModalAPI = {
@@ -114,6 +119,8 @@ const supabaseAPI = {
 	 * userId: string
 	 */
 	getTrainers: () => ipcRenderer.invoke("supabase-get-trainers"),
+	setSupabaseAuth: (session: { access_token: string; refresh_token: string }) =>
+		ipcRenderer.invoke("supabase-set-auth", session),
 };
 
 contextBridge.exposeInMainWorld("modalAPI", modalAPI);

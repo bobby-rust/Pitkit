@@ -10,7 +10,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import SignUp from "./components/auth/SignUp";
 import SignIn from "./components/auth/SignIn";
 import Profile from "./components/profile/Profile";
-import { supabase } from "./utils/auth";
+import { logout, supabase } from "./utils/auth";
 import Ghosts from "./components/ghosts/Ghosts";
 
 const root = createRoot(document.getElementById("root"));
@@ -32,6 +32,7 @@ function Main() {
 
 			if (error) {
 				console.error("Failed to fetch user:", error);
+				await logout();
 				return;
 			}
 
@@ -45,8 +46,14 @@ function Main() {
 		} = supabase.auth.onAuthStateChange((_event, session) => {
 			if (session?.user) {
 				fetchUser(); // user just signed in
+				window.supabaseAPI.setSupabaseAuth({
+					access_token: session.access_token,
+					refresh_token: session.refresh_token,
+				});
+				window.modManagerAPI.uploadTrainers();
 			} else {
 				setUsername(null); // user just signed out
+				window.supabaseAPI.setSupabaseAuth(null);
 			}
 		});
 

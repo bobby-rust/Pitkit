@@ -8,6 +8,7 @@ import ModInstaller from "./ModInstaller";
 import { promptSelectFile } from "../utils/dialogHelper";
 
 import log from "electron-log/main";
+import TrainerService from "./TrainerService";
 
 interface Config {
 	modsFolder: string;
@@ -19,8 +20,10 @@ export default class ModManager {
 		modsFolder: "",
 		baseGameFolder: "",
 	};
+
 	#mods: ModsData;
 	#installer: ModInstaller;
+	#trainerService: TrainerService;
 	#extractionProgress: number;
 	#dataFile: string;
 
@@ -38,6 +41,7 @@ export default class ModManager {
 		this.loadMods();
 
 		this.#installer = new ModInstaller(this.#config.modsFolder, this.#config.baseGameFolder, this.sendProgressToRenderer);
+		this.#trainerService = new TrainerService(this.#config.modsFolder);
 	}
 
 	public getExtractionProgress() {
@@ -71,6 +75,8 @@ export default class ModManager {
 
 		this.#installer.setModsFolder(this.#config.modsFolder);
 		this.#installer.setGameFolder(this.#config.baseGameFolder);
+
+		this.#trainerService.setProfilesFolder(path.join(path.dirname(this.#config.modsFolder), "profiles"));
 
 		log.info("Loaded config: ", this.#config);
 	}
@@ -282,5 +288,9 @@ export default class ModManager {
 	async #selectMod() {
 		const modPath = await promptSelectFile("Select A Mod To Install", ["zip", "pkz", "pnt", "rar"]);
 		return modPath;
+	}
+
+	getTrainers() {
+		return this.#trainerService.getTrainers();
 	}
 }

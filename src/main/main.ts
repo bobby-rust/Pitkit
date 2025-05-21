@@ -219,4 +219,31 @@ ipcMain.handle("supabase-get-trainers", async (_) => {
 	return sb.getTrainers();
 });
 
+ipcMain.handle("supabase-set-auth", async (_, session: { access_token: string; refresh_token: string }) => {
+	sb.setSession(session);
+});
+
+ipcMain.handle("upload-trainers", async (_) => {
+	console.log("Uploading trainers!");
+
+	const trainers = await modManager.getTrainers();
+
+	console.log("Got trainers: ", trainers);
+
+	const session = await sb.getSession();
+
+	// for (const trainer of trainers) {
+	// 	const map = trainer.split("_")[0];
+	// 	const opts = {
+	// 		userId: session.user.id,
+	// 		map: map,
+	// 		lapTime: 90,
+	// 		filePath: trainer,
+	// 		fileName: path.parse(trainer).name,
+	// 	};
+
+	// 	await sb.uploadTrainer(opts);
+	// }
+});
+
 export { mainWindow };

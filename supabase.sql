@@ -1,3 +1,7 @@
+DROP TABLE IF EXISTS trainers;
+DROP TABLE IF EXISTS profiles;
+
+
 -- Create a table for public profiles, linked to the auth.users table.
 -- It's common practice to name this table 'profiles'.
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -62,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.trainers (
   id BIGSERIAL PRIMARY KEY,
   user_id  UUID REFERENCES public.profiles(id) ON DELETE SET NULL, -- Reference the new profiles table
   map TEXT NOT NULL,
+  file_key TEXT NOT NULL,
   laptime  DOUBLE PRECISION NOT NULL,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

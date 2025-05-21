@@ -1,5 +1,5 @@
 // src/services/SupabaseService.ts
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient, Session, SupabaseClient, User } from "@supabase/supabase-js";
 import S3 from "./S3";
 import { v4 as uuidv4 } from "uuid";
 
@@ -20,8 +20,8 @@ export default class SupabaseService {
 	private region: string;
 
 	constructor() {
-		const url = process.env.SUPABASE_URL;
-		const key = process.env.SUPABASE_ANON_KEY;
+		const url = process.env.VITE_SUPABASE_URL;
+		const key = process.env.VITE_SUPABASE_ANON_KEY;
 		this.bucket = process.env.S3_BUCKET!;
 		this.region = process.env.S3_REGION!;
 
@@ -33,10 +33,37 @@ export default class SupabaseService {
 		this.s3 = new S3();
 	}
 
+	setSession(session: { access_token: string; refresh_token: string }) {
+		console.log("Setting session: ", session);
+		this.supabase.auth.setSession(session);
+	}
+
+	async getSession(): Promise<Session | null> {
+		const {
+			data: { session },
+			error,
+		} = await this.supabase.auth.getSession();
+		console.log("Got session: ", session);
+		if (error) throw error;
+		return session;
+	}
+
+	/** Returns the current User or null */
+	async getUser(): Promise<User | null> {
+		const {
+			data: { user },
+			error,
+		} = await this.supabase.auth.getUser();
+		if (error) throw error;
+		return user;
+	}
+
 	/**
 	 * Uploads the file at `filePath` → S3, then inserts a trainers row.
 	 */
 	async uploadTrainer(opts: { userId: string; map: string; lapTime: number; filePath: string; fileName: string }) {
+		const session = await this.getSession();
+		if (!session) throw new Error("Must be signed in to upload trainer");
 		const { userId, map, lapTime, filePath, fileName } = opts;
 		const key = `trainers/${uuidv4()}_${fileName}`;
 
@@ -54,6 +81,7 @@ export default class SupabaseService {
 			})
 			.single();
 
+		console.log("Error: ", error);
 		if (error) throw error;
 	}
 
