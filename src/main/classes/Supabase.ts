@@ -1,7 +1,7 @@
 // src/services/SupabaseService.ts
 import { createClient, Session, SupabaseClient, User } from "@supabase/supabase-js";
 import S3 from "./S3";
-import { v4 as uuidv4 } from "uuid";
+import path from "path";
 
 export interface Trainer {
 	id: number;
@@ -14,7 +14,7 @@ export interface Trainer {
 }
 
 export default class SupabaseService {
-	private supabase: SupabaseClient;
+	public supabase: SupabaseClient;
 	private s3: S3;
 	private bucket: string;
 	private region: string;
@@ -58,31 +58,57 @@ export default class SupabaseService {
 		return user;
 	}
 
-	/**
-	 * Uploads the file at `filePath` → S3, then inserts a trainers row.
-	 */
-	async uploadTrainer(opts: { userId: string; map: string; lapTime: number; filePath: string; fileName: string }) {
+	async uploadTrainer(opts: {
+		userId: string;
+		map: string;
+		laptime: number;
+		filePath: string;
+		fileName: string;
+		fileHash: string;
+		recordedAt: Date;
+	}) {
 		const session = await this.getSession();
 		if (!session) throw new Error("Must be signed in to upload trainer");
-		const { userId, map, lapTime, filePath, fileName } = opts;
-		const key = `trainers/${uuidv4()}_${fileName}`;
 
-		// 1) upload bytes to S3 anonymously
-		await this.s3.uploadLocalFile(filePath, key);
+		const { userId, map, laptime, filePath, fileName, fileHash, recordedAt } = opts;
 
-		// 2) insert metadata to Supabase
-		const { error } = await this.supabase
+		// 1) Build a *deterministic* key based on user + hash
+		const s3Key = `trainers/${userId}/${fileHash}${path.extname(fileName)}`;
+
+		// 2) Try inserting the metadata row, but do NOTHING on conflict (same user_id+file_hash)
+		const { data, error } = await this.supabase
 			.from("trainers")
-			.insert({
-				user_id: userId,
-				map,
-				laptime: lapTime,
-				file_key: key,
-			})
-			.single();
+			.upsert(
+				{
+					user_id: userId,
+					map,
+					laptime,
+					recorded_at: recordedAt.toISOString(),
+					file_hash: fileHash,
+					file_key: s3Key,
+				},
+				{
+					onConflict: "user_id,file_hash",
+					ignoreDuplicates: true,
+				}
+			)
+			.select("*");
 
-		console.log("Error: ", error);
-		if (error) throw error;
+		if (error) {
+			// only real errors (e.g. FK violations) should bubble
+			throw error;
+		}
+
+		// 3) If `data` is empty, it meant a conflict happened → skip S3
+		if (!data || data?.length === 0) {
+			console.log(`↩️  Trainer ${fileName} already exists; skipping S3 upload.`);
+			return;
+		}
+
+		// 4) Otherwise *upload* to S3 now that the row is safely in your DB
+		await this.s3.uploadLocalFile(filePath, s3Key);
+
+		console.log(`✅  Uploaded ${fileName} → S3 and recorded in DB.`);
 	}
 
 	/**

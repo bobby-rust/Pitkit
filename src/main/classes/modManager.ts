@@ -9,6 +9,7 @@ import { promptSelectFile } from "../utils/dialogHelper";
 
 import log from "electron-log/main";
 import TrainerService from "./TrainerService";
+import SupabaseService from "./Supabase";
 
 interface Config {
 	modsFolder: string;
@@ -23,7 +24,8 @@ export default class ModManager {
 
 	#mods: ModsData;
 	#installer: ModInstaller;
-	#trainerService: TrainerService;
+	trainerService: TrainerService;
+	sb: SupabaseService;
 	#extractionProgress: number;
 	#dataFile: string;
 
@@ -41,11 +43,16 @@ export default class ModManager {
 		this.loadMods();
 
 		this.#installer = new ModInstaller(this.#config.modsFolder, this.#config.baseGameFolder, this.sendProgressToRenderer);
-		this.#trainerService = new TrainerService(this.#config.modsFolder);
+		this.sb = new SupabaseService();
+		this.trainerService = new TrainerService(this.sb, this.#config.modsFolder);
 	}
 
 	public getExtractionProgress() {
 		return this.#extractionProgress;
+	}
+
+	public getModsFolder() {
+		return this.#config.modsFolder;
 	}
 
 	public async loadConfig() {
@@ -76,7 +83,8 @@ export default class ModManager {
 		this.#installer.setModsFolder(this.#config.modsFolder);
 		this.#installer.setGameFolder(this.#config.baseGameFolder);
 
-		this.#trainerService.setProfilesFolder(path.join(path.dirname(this.#config.modsFolder), "profiles"));
+		this.trainerService.setProfilesFolder(path.join(path.dirname(this.#config.modsFolder), "profiles"));
+		console.log("Setting trainer service profile path: ", path.join(path.dirname(this.#config.modsFolder), "profiles"));
 
 		log.info("Loaded config: ", this.#config);
 	}
@@ -291,6 +299,6 @@ export default class ModManager {
 	}
 
 	getTrainers() {
-		return this.#trainerService.getTrainers();
+		return this.trainerService.getTrainers();
 	}
 }

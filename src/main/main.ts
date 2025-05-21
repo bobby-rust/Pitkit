@@ -146,7 +146,6 @@ async function init() {
 	modManager = new ModManager();
 
 	await modManager.loadConfig();
-
 	mainWindow.webContents.on("did-finish-load", () => {
 		mainWindow.webContents.send("mods-data", modManager.getMods());
 	});
@@ -157,8 +156,8 @@ async function init() {
 // Some APIs can only be used after this event occurs.
 app.on("ready", async () => {
 	createWindow();
-	await init();
 
+	await init();
 	log.info(`Started PitKit version ${app.getVersion()}`);
 });
 
@@ -183,10 +182,8 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 import ModManager from "./classes/ModManager";
 import { ipcMain } from "electron";
-import SupabaseService from "./classes/Supabase";
 
 let modManager: ModManager;
-const sb = new SupabaseService();
 
 ipcMain.handle("install-mod", async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
 	await modManager.installMod(filePaths || null);
@@ -212,15 +209,15 @@ ipcMain.handle("get-assets-path", (_event: IpcMainInvokeEvent) => {
 
 ipcMain.handle("supabase-upload-trainer", async (_, args) => {
 	// args should be { userId, map, lapTime, filePath, fileName }
-	return sb.uploadTrainer(args);
+	return modManager.sb.uploadTrainer(args);
 });
 
 ipcMain.handle("supabase-get-trainers", async (_) => {
-	return sb.getTrainers();
+	return modManager.sb.getTrainers();
 });
 
 ipcMain.handle("supabase-set-auth", async (_, session: { access_token: string; refresh_token: string }) => {
-	sb.setSession(session);
+	modManager.sb.setSession(session);
 });
 
 ipcMain.handle("upload-trainers", async (_) => {
@@ -230,20 +227,21 @@ ipcMain.handle("upload-trainers", async (_) => {
 
 	console.log("Got trainers: ", trainers);
 
-	const session = await sb.getSession();
+	const session = await modManager.sb.getSession();
 
-	// for (const trainer of trainers) {
-	// 	const map = trainer.split("_")[0];
-	// 	const opts = {
-	// 		userId: session.user.id,
-	// 		map: map,
-	// 		lapTime: 90,
-	// 		filePath: trainer,
-	// 		fileName: path.parse(trainer).name,
-	// 	};
+	for (const trainer of trainers) {
+		const opts = {
+			userId: session.user.id,
+			map: trainer.map,
+			laptime: trainer.laptime,
+			filePath: trainer.filePath,
+			fileName: trainer.fileName,
+			fileHash: trainer.fileHash,
+			recordedAt: trainer.recordedAt,
+		};
 
-	// 	await sb.uploadTrainer(opts);
-	// }
+		await modManager.sb.uploadTrainer(opts);
+	}
 });
 
 export { mainWindow };

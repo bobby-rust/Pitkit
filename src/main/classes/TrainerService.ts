@@ -2,22 +2,28 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { cpRecurse } from "../utils/FileSystemUtils";
+import SupabaseService from "./Supabase";
+import { computeFileHash } from "../utils/fileHash";
 
 interface TrainerRecord {
 	map: string;
-	lapTime: number;
+	laptime: number;
 	recordedAt: Date;
 	filePath: string;
+	fileHash: string;
+	fileName: string;
 }
 
 type Records = Record<string, Record<string, string>>;
 export default class TrainerService {
 	#profilesFolder: string;
 	#tmpDir: string;
-	constructor(modsFolder: string) {
+	#supabase: SupabaseService;
+	constructor(sb: SupabaseService, modsFolder: string) {
 		this.#profilesFolder = path.join(path.dirname(modsFolder), "profiles");
 		this.#tmpDir =
 			process.env.NODE_ENV === "development" ? path.join(__dirname, "tmp") : path.join(os.tmpdir(), "PitkitExtract");
+		this.#supabase = sb;
 	}
 
 	/**
@@ -61,6 +67,7 @@ export default class TrainerService {
 	}
 
 	public setProfilesFolder(profilesFolder: string) {
+		console.log("Setting profiles folder: ", profilesFolder);
 		this.#profilesFolder = profilesFolder;
 	}
 
@@ -72,7 +79,36 @@ export default class TrainerService {
 			.map((e) => path.join(this.#profilesFolder, e));
 	}
 
+	/**
+	 * Given a string array of absolute paths to .trn files, compute the file hash and check if the file
+	 * has already been uploaded.
+	 * Returns the list of file paths that have not been uploaded
+	 * @param files
+	 */
+	async #filterExistingFiles(userId: string, files: string[]) {
+		const uniqueFiles: string[] = [];
+		console.log("Filtering files: ", files);
+		for (const file of files) {
+			const fileHash = await computeFileHash(file);
+			const { data: existing, error: selectErr } = await this.#supabase.supabase
+				.from("trainers")
+				.select("id")
+				.eq("user_id", userId)
+				.eq("file_hash", fileHash)
+				.maybeSingle();
+
+			if (selectErr) throw selectErr;
+
+			if (!existing) {
+				uniqueFiles.push(file);
+			}
+		}
+
+		return uniqueFiles;
+	}
+
 	public async getTrainers(): Promise<TrainerRecord[]> {
+		console.log("profiles dir: ", this.#profilesFolder);
 		const profiles = this.getProfiles(); // array of profile dirs
 		const allTrainers: TrainerRecord[] = [];
 
@@ -81,10 +117,17 @@ export default class TrainerService {
 			const trainersDir = path.join(profileDir, "trainers");
 			if (!fs.existsSync(trainersDir)) continue;
 
-			const files = fs.readdirSync(trainersDir).filter((f) => f.endsWith(".trn"));
+			const files = fs
+				.readdirSync(trainersDir)
+				.filter((f) => f.endsWith(".trn"))
+				.map((file) => path.join(trainersDir, file));
 
-			for (const file of files) {
-				const fullPath = path.join(trainersDir, file);
+			const session = await this.#supabase.getSession();
+
+			// These are the files that do not already exist in s3
+			const uniqueFiles = await this.#filterExistingFiles(session?.user?.id, files);
+
+			for (const file of uniqueFiles) {
 				const base = path.parse(file).name; // e.g. "Farm14_MX1 OEM"
 				const idx = base.lastIndexOf("_");
 				const mapName = base.slice(0, idx); // "Farm14"
@@ -106,9 +149,11 @@ export default class TrainerService {
 				const [lapStr, tsStr] = section[recordKey].split(" ");
 				allTrainers.push({
 					map: mapName,
-					lapTime: parseFloat(lapStr),
+					laptime: parseFloat(lapStr),
 					recordedAt: new Date(Number(tsStr) * 1000),
-					filePath: fullPath,
+					filePath: file,
+					fileHash: await computeFileHash(file),
+					fileName: path.basename(file),
 				});
 			}
 		}
