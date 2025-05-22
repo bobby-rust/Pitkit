@@ -85,6 +85,8 @@ const createWindow = () => {
 		frame: false,
 		webPreferences: {
 			preload: path.join(__dirname, "preload.js"),
+			nodeIntegration: false,
+			webviewTag: true,
 		},
 		autoHideMenuBar: true,
 	});
@@ -95,6 +97,25 @@ const createWindow = () => {
 	} else {
 		mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
 	}
+
+	mainWindow.webContents.on("did-attach-webview", (_event, viewWebContents: Electron.WebContents) => {
+		viewWebContents.session.on("will-download", async (downloadEvent, item) => {
+			const url = item.getURL();
+			log.info(`Intercepted download from ${url}`);
+
+			try {
+				// Hand it off to your ModManager
+				await modManager.installFromUrl(url);
+				// prevent the default saving behavior
+				downloadEvent.preventDefault();
+				log.info("Mod install kicked off, download canceled in webview.");
+			} catch (err) {
+				log.error("Error installing mod:", err);
+				// you could choose to let the download proceed or show an error dialog
+			}
+		});
+	});
+
 	// --- IPC Handlers for Window Controls ---
 	ipcMain.on("minimize-window", (event) => {
 		const webContents = event.sender;

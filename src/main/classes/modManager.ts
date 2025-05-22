@@ -53,6 +53,10 @@ export default class ModManager {
 		return this.#config.modsFolder;
 	}
 
+	public async installFromUrl(url: string) {
+		console.log("Installing from url : ", url);
+	}
+
 	public async loadConfig() {
 		if (!fs.existsSync("config.ini")) {
 			fs.writeFileSync("config.ini", "mods_folder=\nbase_game_folder=");

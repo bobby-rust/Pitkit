@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import "./Sidebar.css";
 import Logo from "../../Logo";
-import { Folder, Ghost, User } from "lucide-react";
+import { Folder, Ghost, Globe, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../../main";
 
@@ -30,12 +30,12 @@ export default function Sidebar() {
 								Ghosts
 							</button>
 						</li>
-						{/* <li>
-							<button className="sidebar-button">
-								<Folder /> Tracks
+						<li>
+							<button className="sidebar-button" onClick={() => navigate("/browse")}>
+								<Globe /> Browse
 							</button>
 						</li>
-						<li>
+						{/* <li>
 							<button className="sidebar-button">
 								<Folder /> Rider
 							</button>

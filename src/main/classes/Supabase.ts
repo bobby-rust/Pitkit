@@ -134,6 +134,7 @@ export default class SupabaseService {
 	 * Fetches all trainers for a given user, with public URLs.
 	 */
 	async getTrainers(): Promise<Trainer[]> {
+		console.log("Getting trainers");
 		const { data, error } = await this.supabase
 			.from<"trainers", TrainerRow>("trainers") // TableName, RowType
 			.select(

@@ -12,6 +12,7 @@ import SignIn from "./components/auth/SignIn";
 import Profile from "./components/profile/Profile";
 import { logout, supabase } from "./utils/auth";
 import Ghosts from "./components/ghosts/Ghosts";
+import MXBModsView from "./components/mxb-mods/MXBModsView";
 
 const root = createRoot(document.getElementById("root"));
 
@@ -76,6 +77,7 @@ function Main() {
 							<Route path="/signin" element={<SignIn />} />
 							<Route path="/profile" element={<Profile />} />
 							<Route path="/ghosts" element={<Ghosts />} />
+							<Route path="/browse" element={<MXBModsView />} />
 						</Routes>
 					</HashRouter>
 					<ModalRoot />
