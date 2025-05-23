@@ -12,6 +12,7 @@ interface ModCardProps {
 }
 
 function capitalize(str: string): string {
+	if (!str) return "";
 	return str[0].toUpperCase() + str.slice(1);
 }
 
@@ -19,13 +20,7 @@ function abbreviateTrackType(trackType: string): "MX" | "SX" {
 	return trackType === "supercross" ? "SX" : "MX";
 }
 
-export default function ModCard({
-	name,
-	installDate,
-	modType,
-	trackType,
-	uninstall,
-}: ModCardProps) {
+export default function ModCard({ name, installDate, modType, trackType, uninstall }: ModCardProps) {
 	return (
 		<div className="mod-card-wrapper">
 			<div className="mod-card-container">
@@ -33,17 +28,13 @@ export default function ModCard({
 					<h3 className="mod-card-name">{name}</h3>
 					<p className="mod-card-type">
 						<span>
-							{trackType && abbreviateTrackType(trackType)}{" "}
-							{capitalize(modType)}
+							{trackType && abbreviateTrackType(trackType)} {capitalize(modType)}
 						</span>
 					</p>
 				</div>
 				<div className="mod-card-footer">
 					<p>Installed {formatDate(installDate)}</p>
-					<button
-						className="delete-button"
-						onClick={() => uninstall(name)}
-					>
+					<button className="delete-button" onClick={() => uninstall(name)}>
 						<Trash2 />
 					</button>
 				</div>
