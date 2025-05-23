@@ -111,6 +111,11 @@ class ModInstaller {
 						break;
 					default:
 						log.error("install: unknown file type", ft);
+						if (ft === ".psd") {
+							throw new Error(
+								"PSD files are photoshop files. They are not mods for MX Bikes. They are used by mod creators."
+							);
+						}
 						throw new Error("Unknown file type for mod: '" + ft + "'");
 				}
 			} else {

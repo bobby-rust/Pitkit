@@ -13,14 +13,13 @@ export default function App() {
 	const [isInstalling, setIsInstalling] = useState(false);
 
 	async function installModWithProgress(filePaths?: string[]) {
-		/**
-		 * TODO: Display a success / failure message to the user after mod installation
-		 */
 		try {
 			await window.modManagerAPI.installMod(filePaths);
+			alert("Mod successfully installed");
 			log.info("Installation complete");
 		} catch (error) {
 			log.error("Installation failed:", error);
+			alert(error);
 		}
 	}
 
