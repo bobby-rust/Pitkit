@@ -18,14 +18,15 @@ const MXBModsView: React.FC = () => {
 		});
 	}, []);
 
-	return (
-		<webview
-			ref={webviewRef}
-			src="https://mxb-mods.com"
-			partition="persist:mods"
-			style={{ width: "100%", height: "100%" }}
-		/>
-	);
+        return (
+                <webview
+                        ref={webviewRef}
+                        src="https://mxb-mods.com"
+                        allowpopups
+                        partition="persist:mods"
+                        style={{ width: "100%", height: "100%" }}
+                />
+        );
 };
 
 export default MXBModsView;
