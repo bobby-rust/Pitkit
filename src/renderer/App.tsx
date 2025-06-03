@@ -88,7 +88,7 @@ export default function App() {
 
 		// Listen for main context sending mods data
 		window.modManagerAPI.onMessage("send-mods-data", (data: ModsData) => {
-			log.info("Recieved mods data message: ", data);
+                        log.info("Received mods data message: ", data);
 			// Can't receive a Map, we receive an object, so convert it to a Map
 			setModsData(new Map(Object.entries(data)));
 		});
