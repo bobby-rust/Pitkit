@@ -131,9 +131,10 @@ const createWindow = async () => {
                         }
                 });
 
-                // Open popup links in the same webview
-                viewWebContents.setWindowOpenHandler(({ url }) => {
-                        viewWebContents.loadURL(url);
+                // Prevent new windows from opening; the renderer handles
+                // navigation via its own `new-window` listener
+                viewWebContents.setWindowOpenHandler(() => {
+
                         return { action: "deny" };
                 });
         });
