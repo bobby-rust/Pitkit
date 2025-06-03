@@ -113,10 +113,11 @@ const createWindow = async () => {
 		mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
 	}
 
-	mainWindow.webContents.on("did-attach-webview", (_event, viewWebContents: Electron.WebContents) => {
-		viewWebContents.session.on("will-download", async (downloadEvent, item) => {
-			const url = item.getURL();
-			log.info(`Intercepted download from ${url}`);
+        mainWindow.webContents.on("did-attach-webview", (_event, viewWebContents: Electron.WebContents) => {
+                // Handle file downloads triggered within the webview
+                viewWebContents.session.on("will-download", async (downloadEvent, item) => {
+                        const url = item.getURL();
+                        log.info(`Intercepted download from ${url}`);
 
 			try {
 				// Hand it off to your ModManager
@@ -127,9 +128,15 @@ const createWindow = async () => {
 			} catch (err) {
 				log.error("Error installing mod:", err);
 				// you could choose to let the download proceed or show an error dialog
-			}
-		});
-	});
+                        }
+                });
+
+                // Open popup links in the same webview
+                viewWebContents.setWindowOpenHandler(({ url }) => {
+                        viewWebContents.loadURL(url);
+                        return { action: "deny" };
+                });
+        });
 
 	// --- IPC Handlers for Window Controls ---
 	ipcMain.on("minimize-window", (event) => {
