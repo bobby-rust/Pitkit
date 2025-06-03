@@ -1,11 +1,13 @@
 import ini from "ini";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { dialog, app } from "electron";
 import { mainWindow } from "../main";
 import { Mod, ModsData } from "src/types";
 import ModInstaller from "./ModInstaller";
 import { promptSelectFile } from "../utils/dialogHelper";
+import { downloadFile } from "../utils/downloadFile";
 
 import log from "electron-log/main";
 import TrainerService from "./TrainerService";
@@ -53,9 +55,29 @@ export default class ModManager {
 		return this.#config.modsFolder;
 	}
 
-	public async installFromUrl(url: string) {
-		console.log("Installing from url : ", url);
-	}
+        public async installFromUrl(url: string) {
+                log.info("installFromUrl: starting download of", url);
+                try {
+                        const tmpDir =
+                                process.env.NODE_ENV === "development"
+                                        ? path.join(__dirname, "tmp")
+                                        : path.join(os.tmpdir(), "PitkitDownloads");
+                        if (!fs.existsSync(tmpDir)) {
+                                fs.mkdirSync(tmpDir, { recursive: true });
+                        }
+                        const fileName = path.basename(new URL(url).pathname);
+                        const dest = path.join(tmpDir, fileName);
+                        await downloadFile(url, dest);
+                        log.info("installFromUrl: download complete", dest);
+                        await this.installMod([dest]);
+                        fs.unlink(dest, () => {
+                                log.info("installFromUrl: cleaned up", dest);
+                        });
+                } catch (err) {
+                        log.error("installFromUrl error:", err);
+                        throw err;
+                }
+        }
 
 	public async loadConfig() {
 		if (!fs.existsSync("config.ini")) {
