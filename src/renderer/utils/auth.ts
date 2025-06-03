@@ -6,7 +6,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "../../main/utils/config";
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /**
- * Hook to redirect to /login if no session is found.
+ * Hook to redirect to /signin if no session is found.
  */
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
