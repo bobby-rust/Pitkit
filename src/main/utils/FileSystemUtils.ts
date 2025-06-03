@@ -87,9 +87,16 @@ function findFilesByType(source: string, ft: string, excludeDirs?: string[], exc
 
 	entries.forEach((entry) => {
 		const fullPath = path.join(source, entry);
-		if (fs.statSync(fullPath).isDirectory()) {
-			files.push(...findFilesByType(fullPath, ft, excludeDirs));
-		} else {
+                if (fs.statSync(fullPath).isDirectory()) {
+                        files.push(
+                                ...findFilesByType(
+                                        fullPath,
+                                        ft,
+                                        excludeDirs,
+                                        excludeFiles
+                                )
+                        );
+                } else {
 			const entryFt = path.extname(entry);
 			if (entryFt === ft) {
 				files.push(fullPath);
