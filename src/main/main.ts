@@ -134,6 +134,7 @@ const createWindow = async () => {
                 // Prevent new windows from opening; the renderer handles
                 // navigation via its own `new-window` listener
                 viewWebContents.setWindowOpenHandler(() => {
+
                         return { action: "deny" };
                 });
         });
