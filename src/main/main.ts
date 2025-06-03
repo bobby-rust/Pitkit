@@ -1,4 +1,4 @@
-import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog } from "electron";
+import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog, session } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
 import { updateElectronApp } from "update-electron-app";
@@ -74,10 +74,25 @@ log.initialize();
 if (started) {
 	app.quit();
 }
+async function setupAdblock() {
+	// 1) Create the blocker from EasyList/EasyPrivacy URLs
+	const blocker = await ElectronBlocker.fromLists(
+		fetch,
+		["https://easylist.to/easylist/easylist.txt", "https://easylist.to/easyprivacy/easyprivacy.txt"]
+		// {
+		//   // optional: cache lists to disk for faster startup
+		//   cache: path.resolve(__dirname, IS_DEV ? '../../filters-cache' : path.join(process.resourcesPath, 'filters-cache')),
+		// }
+	);
 
+	// 2) Enable blocking in your webview session
+	const modsSession = session.fromPartition("persist:mods");
+	blocker.enableBlockingInSession(modsSession);
+}
 let mainWindow: BrowserWindow;
 
-const createWindow = () => {
+const createWindow = async () => {
+	await setupAdblock();
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
 		width: 800,
@@ -176,7 +191,7 @@ async function init() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", async () => {
-	createWindow();
+	await createWindow();
 
 	await init();
 	log.info(`Started PitKit version ${app.getVersion()}`);
@@ -201,8 +216,9 @@ app.on("activate", () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
-import ModManager from "./classes/ModManager";
 import { ipcMain } from "electron";
+import ModManager from "./classes/ModManager";
+import { ElectronBlocker } from "@cliqz/adblocker-electron";
 
 ipcMain.handle("install-mod", async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
 	if (!modManager) return;

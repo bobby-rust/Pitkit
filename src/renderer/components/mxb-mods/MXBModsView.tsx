@@ -1,25 +1,30 @@
+// In your MXBModsView React component
 import React, { useRef, useEffect } from "react";
 
 const MXBModsView: React.FC = () => {
 	const webviewRef = useRef<Electron.WebviewTag>(null);
 
 	useEffect(() => {
-		const webview = webviewRef.current!;
-		// you can also listen here if you need to—for example:
-		webview.addEventListener("did-finish-load", () => {
-			console.log("mod site loaded:", webview.getURL());
+		const wv = webviewRef.current!;
+		// intercept any link clicks that would open a popup
+		wv.addEventListener("new-window", (e: any) => {
+			e.preventDefault();
+			wv.loadURL(e.url); // load in the same webview
+		});
+		// intercept regular navigations if you’ve previously blocked them
+		wv.addEventListener("will-navigate", (e) => {
+			// if you had prevented external before, now just let it go:
+			// do nothing, and the webview will navigate
 		});
 	}, []);
 
 	return (
-		<div style={{ width: "100%", height: "100%", marginTop: "32px" }}>
-			<webview
-				ref={webviewRef}
-				src="https://mxb-mods.com"
-				style={{ width: "100%", height: "100%", border: 0 }}
-				partition="persist:mods"
-			/>
-		</div>
+		<webview
+			ref={webviewRef}
+			src="https://mxb-mods.com"
+			partition="persist:mods"
+			style={{ width: "100%", height: "100%" }}
+		/>
 	);
 };
 
