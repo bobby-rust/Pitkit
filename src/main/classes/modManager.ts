@@ -55,29 +55,29 @@ export default class ModManager {
 		return this.#config.modsFolder;
 	}
 
-        public async installFromUrl(url: string) {
-                log.info("installFromUrl: starting download of", url);
-                try {
-                        const tmpDir =
-                                process.env.NODE_ENV === "development"
-                                        ? path.join(__dirname, "tmp")
-                                        : path.join(os.tmpdir(), "PitkitDownloads");
-                        if (!fs.existsSync(tmpDir)) {
-                                fs.mkdirSync(tmpDir, { recursive: true });
-                        }
-                        const fileName = path.basename(new URL(url).pathname);
-                        const dest = path.join(tmpDir, fileName);
-                        await downloadFile(url, dest);
-                        log.info("installFromUrl: download complete", dest);
-                        await this.installMod([dest]);
-                        fs.unlink(dest, () => {
-                                log.info("installFromUrl: cleaned up", dest);
-                        });
-                } catch (err) {
-                        log.error("installFromUrl error:", err);
-                        throw err;
-                }
-        }
+	public async installFromUrl(url: string) {
+		log.info("installFromUrl: starting download of", url);
+		try {
+			const tmpDir =
+				process.env.NODE_ENV === "development"
+					? path.join(__dirname, "tmp")
+					: path.join(os.tmpdir(), "PitkitDownloads");
+			if (!fs.existsSync(tmpDir)) {
+				fs.mkdirSync(tmpDir, { recursive: true });
+			}
+			const fileName = path.basename(new URL(url).pathname);
+			const dest = path.join(tmpDir, fileName);
+			await downloadFile(url, dest);
+			log.info("installFromUrl: download complete", dest);
+			await this.installMod([dest]);
+			fs.unlink(dest, () => {
+				log.info("installFromUrl: cleaned up", dest);
+			});
+		} catch (err) {
+			log.error("installFromUrl error:", err);
+			throw err;
+		}
+	}
 
 	public async loadConfig() {
 		if (!fs.existsSync("config.ini")) {
@@ -190,6 +190,7 @@ export default class ModManager {
 		this.#setExtractionProgress(0);
 		this.#writeModsToDisk();
 
+		mainWindow.webContents.send("send-mods-data", this.getMods());
 		return mod;
 	}
 

@@ -6,12 +6,25 @@ import { MakerRpm } from "@electron-forge/maker-rpm";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import { resolve } from "path";
 
 const config: ForgeConfig = {
 	packagerConfig: {
 		asar: true,
-		extraResource: ["./src/renderer/assets", "./public/resources/bin"],
+		extraResource: ["./src/renderer/assets", "./bin"],
 		icon: "./src/renderer/assets/favicon.ico",
+	},
+	hooks: {
+		packageAfterCopy: async (_, buildPath) => {
+			const fs = await import("fs-extra");
+			const path = await import("path");
+
+			const modulePath = resolve("./node_modules/@ghostery");
+			const targetPath = path.join(buildPath, "node_modules/@ghostery");
+
+			await fs.ensureDir(path.dirname(targetPath));
+			await fs.copy(modulePath, targetPath);
+		},
 	},
 	rebuildConfig: {},
 	makers: [

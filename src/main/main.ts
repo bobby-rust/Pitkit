@@ -1,10 +1,11 @@
-import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog, session } from "electron";
+import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog, session, WebContentsView, Event } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
 import { updateElectronApp } from "update-electron-app";
 import log from "electron-log/main";
 
 const modManager = new ModManager();
+
 const IS_DEV = !app.isPackaged;
 
 autoUpdater.on("update-not-available", () => {
@@ -74,25 +75,13 @@ log.initialize();
 if (started) {
 	app.quit();
 }
-async function setupAdblock() {
-	// 1) Create the blocker from EasyList/EasyPrivacy URLs
-	const blocker = await ElectronBlocker.fromLists(
-		fetch,
-		["https://easylist.to/easylist/easylist.txt", "https://easylist.to/easyprivacy/easyprivacy.txt"]
-		// {
-		//   // optional: cache lists to disk for faster startup
-		//   cache: path.resolve(__dirname, IS_DEV ? '../../filters-cache' : path.join(process.resourcesPath, 'filters-cache')),
-		// }
-	);
 
-	// 2) Enable blocking in your webview session
-	const modsSession = session.fromPartition("persist:mods");
-	blocker.enableBlockingInSession(modsSession);
-}
 let mainWindow: BrowserWindow;
 
+import { ElectronBlocker } from "@ghostery/adblocker-electron";
 const createWindow = async () => {
-	await setupAdblock();
+	const blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking(fetch);
+	blocker.enableBlockingInSession(session.defaultSession);
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
 		width: 800,
@@ -106,38 +95,50 @@ const createWindow = async () => {
 		autoHideMenuBar: true,
 	});
 
+	mxbModsView = new WebContentsView();
+
+	mainWindow.on("resize", () => {
+		if (!mainWindow || !mxbModsView) {
+			return;
+		}
+		const bounds = mainWindow.getBounds();
+
+		const titlebarHeight = 32;
+		const sidebarWidth = 32;
+
+		mxbModsView.setBounds({
+			x: sidebarWidth * 3,
+			y: titlebarHeight,
+			width: bounds.width,
+			height: bounds.height,
+		});
+	});
+
+	mxbModsView.webContents.setWindowOpenHandler(({ url }) => {
+		console.log("Window open handler called");
+		mxbModsView.webContents.loadURL(url);
+		return { action: "deny" };
+	});
+
+	mxbModsView.webContents.session.on("will-download", (evt, item, wc) => {
+		console.log("Dl evt: ", evt);
+		console.log("dl item: ", item);
+		item.on("done", (evt, state) => {
+			if (state === "completed") {
+				mainWindow.contentView.removeChildView(mxbModsView);
+				modManager.installMod([item.getSavePath()]);
+				const route = "/";
+				mainWindow.webContents.send("navigate-to", route);
+			}
+		});
+	});
+
 	// and load the index.html of the app.
 	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 		mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
 	} else {
 		mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
 	}
-
-        mainWindow.webContents.on("did-attach-webview", (_event, viewWebContents: Electron.WebContents) => {
-                // Handle file downloads triggered within the webview
-                viewWebContents.session.on("will-download", async (downloadEvent, item) => {
-                        const url = item.getURL();
-                        log.info(`Intercepted download from ${url}`);
-
-			try {
-				// Hand it off to your ModManager
-				await modManager.installFromUrl(url);
-				// prevent the default saving behavior
-				downloadEvent.preventDefault();
-				log.info("Mod install kicked off, download canceled in webview.");
-			} catch (err) {
-				log.error("Error installing mod:", err);
-				// you could choose to let the download proceed or show an error dialog
-                        }
-                });
-
-                // Prevent new windows from opening; the renderer handles
-                // navigation via its own `new-window` listener
-                viewWebContents.setWindowOpenHandler(() => {
-
-                        return { action: "deny" };
-                });
-        });
 
 	// --- IPC Handlers for Window Controls ---
 	ipcMain.on("minimize-window", (event) => {
@@ -226,7 +227,7 @@ app.on("activate", () => {
 // code. You can also put them in separate files and import them here.
 import { ipcMain } from "electron";
 import ModManager from "./classes/ModManager";
-import { ElectronBlocker } from "@cliqz/adblocker-electron";
+import fetch from "cross-fetch";
 
 ipcMain.handle("install-mod", async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
 	if (!modManager) return;
@@ -262,6 +263,8 @@ ipcMain.handle("supabase-upload-trainer", async (_, args) => {
 
 ipcMain.handle("supabase-get-trainers", async (_) => {
 	if (!modManager) return;
+	const session = await modManager.sb.getSession();
+	if (!session) return;
 	return modManager.sb.getTrainers();
 });
 
@@ -279,6 +282,7 @@ ipcMain.handle("upload-trainers", async (_) => {
 	console.log("Got trainers: ", trainers);
 
 	const session = await modManager.sb.getSession();
+	if (!session) return;
 
 	for (const trainer of trainers) {
 		const opts = {
@@ -300,6 +304,28 @@ ipcMain.handle("upload-trainers", async (_) => {
 ipcMain.handle("install-ghost", async (_, ghost) => {
 	if (!modManager) return;
 	await modManager.installGhost(ghost);
+});
+
+let mxbModsView: WebContentsView;
+ipcMain.handle("open-mxb-mods-view", (_) => {
+	console.log("Opening mxb mods");
+	mainWindow.contentView.addChildView(mxbModsView);
+	const bounds = mainWindow.getBounds();
+
+	const titlebarHeight = 32;
+	const sidebarWidth = 32;
+
+	mxbModsView.setBounds({
+		x: sidebarWidth * 3,
+		y: titlebarHeight,
+		width: bounds.width,
+		height: bounds.height,
+	});
+	mxbModsView.webContents.loadURL("https://mxb-mods.com");
+});
+ipcMain.handle("close-mxb-mods-view", (_) => {
+	console.log("Closing mxb mods view");
+	mainWindow.contentView.removeChildView(mxbModsView);
 });
 
 export { mainWindow };

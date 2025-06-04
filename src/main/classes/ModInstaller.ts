@@ -277,7 +277,16 @@ class ModInstaller {
 			// Now install PNTs and PKZs
 			await this.#installPNTs(mod, tmpSrc, [...bootModels, ...riderModels, ...helmetModels, ...protectionModels]);
 			log.info("install: installPNTs completed");
-			await this.#installPKZs(mod, tmpSrc);
+			await this.#installPKZs(mod, tmpSrc, [
+				...bootModels,
+				...riderModels,
+				...helmetModels,
+				...bikeModels,
+				...wheelModels,
+				...protectionModels,
+				// Track maps are absolute file paths, we want to exclude the whole directory
+				...trackMaps.map((trackMap) => path.dirname(trackMap)),
+			]);
 			log.info("install: installPKZs completed");
 
 			const tmpModsLocation = path.join(path.dirname(tmpSrc), "mods");
@@ -667,9 +676,9 @@ class ModInstaller {
 		log.info("installPNTs: completed for mod", mod.name);
 	}
 
-	async #installPKZs(mod: Mod, tmpSrc: string) {
+	async #installPKZs(mod: Mod, tmpSrc: string, excludeDirs: string[]) {
 		log.info("installPKZs: starting for mod", mod.name);
-		const pkzs = findFilesByType(tmpSrc, "pkz");
+		const pkzs = findFilesByType(tmpSrc, "pkz", excludeDirs);
 		log.info("installPKZs: found pkz files", pkzs);
 
 		let pkzType: string;

@@ -1,0 +1,9 @@
+.mxb-mods {
+	margin-top: 32px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	overflow-y: auto;
+	padding: 1rem 0 2rem 0;
+}

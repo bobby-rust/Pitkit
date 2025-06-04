@@ -15,13 +15,7 @@ export default function ModsGrid({ modsData, uninstall }: ModsGridProps) {
 				Array.from(modsData.entries()).map(([id, mod]) => {
 					return (
 						<div key={id} className="mod-item">
-							<ModCard
-								name={mod.name}
-								modType={mod.type}
-								trackType={mod.trackType}
-								installDate={mod.installDate}
-								uninstall={uninstall}
-							/>
+							<ModCard name={mod.name} modType={mod.type} installDate={mod.installDate} uninstall={uninstall} />
 						</div>
 					);
 				})
