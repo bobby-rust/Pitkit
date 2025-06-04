@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import "./App.css";
-import { ModsData } from "src/types";
+import { Mod, ModsData } from "src/types";
 import { FolderPlus } from "lucide-react";
 import ModsGrid from "./components/mods-grid/ModsGrid";
 import { setupWindowControls } from "./utils/windowControls";
@@ -31,7 +31,7 @@ export default function App() {
 		} finally {
 			setIsInstalling(false);
 			setProgress(100);
-			await fetchModsData();
+			// await fetchModsData();
 		}
 	};
 
@@ -88,9 +88,20 @@ export default function App() {
 
 		// Listen for main context sending mods data
 		window.modManagerAPI.onMessage("send-mods-data", (data: ModsData) => {
-			log.info("Recieved mods data message: ", data);
-			// Can't receive a Map, we receive an object, so convert it to a Map
-			setModsData(new Map(Object.entries(data)));
+			let modsMap: Map<string, Mod>;
+
+			if (data instanceof Map) {
+				// Already a Map, so just use it directly
+				modsMap = data;
+			} else {
+				// Plain object (JSON) ⇒ convert to Map
+				modsMap = new Map(Object.entries(data));
+			}
+
+			log.info("Mods map received:", modsMap);
+			setModsData(modsMap);
+			setProgress(100);
+			setIsInstalling(false);
 		});
 
 		window.modManagerAPI.onMessage("install-progress", (data: number) => {
@@ -98,7 +109,9 @@ export default function App() {
 		});
 	}, []);
 
-	useEffect(() => {}, [modsData]);
+	useEffect(() => {
+		console.log("Retrieved mods data: ", modsData);
+	}, [modsData]);
 
 	return (
 		<div className="app-container" onDrop={handleDrop} onDragOver={handleDragOver}>

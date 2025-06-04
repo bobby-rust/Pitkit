@@ -15,6 +15,10 @@ export interface ElectronAPI {
 	getFilePath: (file: any) => string;
 	// notifyDrop: (filePaths: string[]) => void;
 	removeAllListeners: () => void; // Optional alternative cleanup
+	openMXBModsView: () => void;
+	closeMXBModsView: () => void;
+	onNavigate: (callback: (route: string) => void) => void;
+	removeNavigateListener: () => Electron.IpcRenderer;
 }
 
 export interface ModManagerAPI {
@@ -70,6 +74,10 @@ const electronAPI: ElectronAPI = {
 	},
 	// Function to remove all listeners (e.g., on unload)
 	removeAllListeners: () => ipcRenderer.removeAllListeners("window-state-changed"),
+	openMXBModsView: () => ipcRenderer.invoke("open-mxb-mods-view"),
+	closeMXBModsView: () => ipcRenderer.invoke("close-mxb-mods-view"),
+	onNavigate: (callback) => ipcRenderer.on("navigate-to", (_event, route) => callback(route)),
+	removeNavigateListener: () => ipcRenderer.removeAllListeners("navigate-to"),
 };
 
 const modManagerAPI: ModManagerAPI = {

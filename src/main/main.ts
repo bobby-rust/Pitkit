@@ -1,10 +1,11 @@
-import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog } from "electron";
+import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog, session, WebContentsView, Event } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
 import { updateElectronApp } from "update-electron-app";
 import log from "electron-log/main";
 
 const modManager = new ModManager();
+
 const IS_DEV = !app.isPackaged;
 
 autoUpdater.on("update-not-available", () => {
@@ -77,7 +78,10 @@ if (started) {
 
 let mainWindow: BrowserWindow;
 
-const createWindow = () => {
+import { ElectronBlocker } from "@ghostery/adblocker-electron";
+const createWindow = async () => {
+	const blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking(fetch);
+	blocker.enableBlockingInSession(session.defaultSession);
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
 		width: 800,
@@ -91,30 +95,50 @@ const createWindow = () => {
 		autoHideMenuBar: true,
 	});
 
+	mxbModsView = new WebContentsView();
+
+	mainWindow.on("resize", () => {
+		if (!mainWindow || !mxbModsView) {
+			return;
+		}
+		const bounds = mainWindow.getBounds();
+
+		const titlebarHeight = 32;
+		const sidebarWidth = 32;
+
+		mxbModsView.setBounds({
+			x: sidebarWidth * 3,
+			y: titlebarHeight,
+			width: bounds.width,
+			height: bounds.height,
+		});
+	});
+
+	mxbModsView.webContents.setWindowOpenHandler(({ url }) => {
+		console.log("Window open handler called");
+		mxbModsView.webContents.loadURL(url);
+		return { action: "deny" };
+	});
+
+	mxbModsView.webContents.session.on("will-download", (evt, item, wc) => {
+		console.log("Dl evt: ", evt);
+		console.log("dl item: ", item);
+		item.on("done", (evt, state) => {
+			if (state === "completed") {
+				mainWindow.contentView.removeChildView(mxbModsView);
+				modManager.installMod([item.getSavePath()]);
+				const route = "/";
+				mainWindow.webContents.send("navigate-to", route);
+			}
+		});
+	});
+
 	// and load the index.html of the app.
 	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 		mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
 	} else {
 		mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
 	}
-
-	mainWindow.webContents.on("did-attach-webview", (_event, viewWebContents: Electron.WebContents) => {
-		viewWebContents.session.on("will-download", async (downloadEvent, item) => {
-			const url = item.getURL();
-			log.info(`Intercepted download from ${url}`);
-
-			try {
-				// Hand it off to your ModManager
-				await modManager.installFromUrl(url);
-				// prevent the default saving behavior
-				downloadEvent.preventDefault();
-				log.info("Mod install kicked off, download canceled in webview.");
-			} catch (err) {
-				log.error("Error installing mod:", err);
-				// you could choose to let the download proceed or show an error dialog
-			}
-		});
-	});
 
 	// --- IPC Handlers for Window Controls ---
 	ipcMain.on("minimize-window", (event) => {
@@ -176,7 +200,7 @@ async function init() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", async () => {
-	createWindow();
+	await createWindow();
 
 	await init();
 	log.info(`Started PitKit version ${app.getVersion()}`);
@@ -202,7 +226,8 @@ app.on("activate", () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 import { ipcMain } from "electron";
-import ModManager from "./classes/modManager";
+import ModManager from "./classes/ModManager";
+import fetch from "cross-fetch";
 
 ipcMain.handle("install-mod", async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
 	if (!modManager) return;
@@ -238,6 +263,8 @@ ipcMain.handle("supabase-upload-trainer", async (_, args) => {
 
 ipcMain.handle("supabase-get-trainers", async (_) => {
 	if (!modManager) return;
+	const session = await modManager.sb.getSession();
+	if (!session) return;
 	return modManager.sb.getTrainers();
 });
 
@@ -255,6 +282,7 @@ ipcMain.handle("upload-trainers", async (_) => {
 	console.log("Got trainers: ", trainers);
 
 	const session = await modManager.sb.getSession();
+	if (!session) return;
 
 	for (const trainer of trainers) {
 		const opts = {
@@ -276,6 +304,28 @@ ipcMain.handle("upload-trainers", async (_) => {
 ipcMain.handle("install-ghost", async (_, ghost) => {
 	if (!modManager) return;
 	await modManager.installGhost(ghost);
+});
+
+let mxbModsView: WebContentsView;
+ipcMain.handle("open-mxb-mods-view", (_) => {
+	console.log("Opening mxb mods");
+	mainWindow.contentView.addChildView(mxbModsView);
+	const bounds = mainWindow.getBounds();
+
+	const titlebarHeight = 32;
+	const sidebarWidth = 32;
+
+	mxbModsView.setBounds({
+		x: sidebarWidth * 3,
+		y: titlebarHeight,
+		width: bounds.width,
+		height: bounds.height,
+	});
+	mxbModsView.webContents.loadURL("https://mxb-mods.com");
+});
+ipcMain.handle("close-mxb-mods-view", (_) => {
+	console.log("Closing mxb mods view");
+	mainWindow.contentView.removeChildView(mxbModsView);
 });
 
 export { mainWindow };

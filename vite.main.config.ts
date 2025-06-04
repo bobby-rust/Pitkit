@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from "vite";
 
-// https://vitejs.dev/config
+// Vite configuration for Electron main process
 export default defineConfig({});
