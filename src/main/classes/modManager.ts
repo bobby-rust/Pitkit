@@ -18,6 +18,10 @@ interface Config {
 	baseGameFolder: string;
 }
 
+/**
+ * TODO:
+ * [ ] - Add feature to change mods folder location
+ */
 export default class ModManager {
 	#config: Config = {
 		modsFolder: "",
