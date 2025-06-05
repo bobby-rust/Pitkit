@@ -1,18 +1,7 @@
 import { ipcMain, BrowserWindow, IpcMainEvent } from "electron";
 import { IPC_CHANNELS } from "../../shared/ipcChannels";
 import log from "electron-log/main";
-
-// Interfaces remain the same
-interface ModalOptions {
-	type: "confirm" | "textInput" | "select" | "notify";
-	title: string;
-	message: string;
-	defaultValue?: string;
-	placeholder?: string;
-	options?: string[];
-	okLabel?: string;
-	cancelLabel?: string;
-}
+import { ModalOptions } from "src/shared/types";
 
 interface ModalResponse {
 	cancelled: boolean;

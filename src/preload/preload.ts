@@ -3,17 +3,7 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { ModsData } from "src/types";
 import { IPC_CHANNELS } from "../shared/ipcChannels";
-
-export interface ModalOptions {
-	type: "confirm" | "textInput" | "select" | "notify";
-	title: string;
-	message: string;
-	defaultValue?: string;
-	placeholder?: string;
-	options?: string[];
-	okLabel?: string;
-	cancelLabel?: string;
-}
+import { ModalOptions } from "src/shared/types";
 
 export interface ElectronAPI {
 	minimizeWindow: () => void;
