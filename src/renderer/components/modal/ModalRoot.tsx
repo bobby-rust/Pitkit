@@ -15,7 +15,7 @@ type CancelHandler = () => void;
 const ModalRoot: React.FC = () => {
 	const { isOpen, modalProps, hideModal } = useModal();
 
-	console.log("[ModalRoot] isOpen:", isOpen, "modalProps:", modalProps); // <--- Add this
+	console.log("[ModalRoot] isOpen:", isOpen, "modalProps:", modalProps);
 
 	if (!isOpen || !modalProps) {
 		return null; // Don't render anything if modal is closed or props are missing
