@@ -1,10 +1,11 @@
-import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog, session, WebContentsView, Event } from "electron";
+import { app, BrowserWindow, IpcMainInvokeEvent, autoUpdater, dialog, session, WebContentsView } from "electron";
 import path from "path";
 import started from "electron-squirrel-startup";
 import { updateElectronApp } from "update-electron-app";
 import log from "electron-log/main";
 
-const modManager = new ModManager();
+const modalManager = new ModalManager();
+const modManager = new ModManager(modalManager);
 
 const IS_DEV = !app.isPackaged;
 
@@ -124,11 +125,20 @@ const createWindow = async () => {
 		console.log("Dl evt: ", evt);
 		console.log("dl item: ", item);
 
+		// As soon as a download starts, remove the view and navigate home
 		mainWindow.contentView.removeChildView(mxbModsView);
 		mainWindow.webContents.send("navigate-to", "/");
+
+		// 1) Track progress
 		item.on("updated", (event, state) => {
 			if (state === "interrupted") {
 				console.log("Download interrupted");
+				// Immediately tell renderer it failed, if you want:
+				mainWindow.webContents.send("download-progress", {
+					url: item.getURL(),
+					percent: 0,
+				});
+				mainWindow.webContents.send("install-failed", "Download was interrupted.");
 			} else if (state === "progressing") {
 				if (item.isPaused()) {
 					console.log("Download is paused");
@@ -137,23 +147,48 @@ const createWindow = async () => {
 					const total = item.getTotalBytes();
 					if (total > 0) {
 						const percent = Math.round((received / total) * 100);
-						// You can send this over IPC so your renderer can show a progress bar:
 						mainWindow.webContents.send("download-progress", {
 							url: item.getURL(),
 							percent,
 						});
-						// For quick debugging:
 						console.log(`Download progress: ${percent}%`);
 					}
 				}
 			}
 		});
 
-		item.on("done", (evt, state) => {
+		// 2) When the download finishes (either completed, cancelled, or interrupted)
+		item.on("done", async (evt, state) => {
 			if (state === "completed") {
-				mainWindow.contentView.removeChildView(mxbModsView);
-				modManager.installMod([item.getSavePath()]);
-				mainWindow.webContents.send("navigate-to", "/");
+				try {
+					// Still remove the view if not already removed
+					mainWindow.contentView.removeChildView(mxbModsView);
+
+					// Now actually install the mod from the saved file path:
+					// Wrap this in try/catch so if installMod throws, we catch and inform the renderer
+					await modManager.installMod([item.getSavePath()]);
+
+					// console.log("sending complete message to renderer");
+					// mainWindow.webContents.send("install-complete", "Mod successfully installed");
+
+					// You can also navigate back to “/” if needed
+					mainWindow.webContents.send("navigate-to", "/");
+					return;
+				} catch (installError: any) {
+					console.error("Error during installMod:", installError);
+					// Send the raw error message (or a custom string) to renderer:
+					mainWindow.webContents.send("install-failed", installError?.message || "Unknown install error");
+				}
+			} else if (state === "cancelled") {
+				console.log("Download cancelled");
+				mainWindow.webContents.send("install-failed", "Download was cancelled by the user.");
+			} else if (state === "interrupted") {
+				console.log("Download interrupted (done event)");
+				mainWindow.webContents.send("install-failed", "Download was interrupted before completion.");
+			} else {
+				// catch all:
+				console.log(`Download ended with state: ${state}`);
+				mainWindow.webContents.send("install-failed", `Download ended unexpectedly: ${state}`);
 			}
 		});
 	});
@@ -253,10 +288,17 @@ app.on("activate", () => {
 import { ipcMain } from "electron";
 import ModManager from "./classes/ModManager";
 import fetch from "cross-fetch";
+import { IPC_CHANNELS } from "../shared/ipcChannels";
+import { ModalManager } from "./classes/ModalManager";
 
-ipcMain.handle("install-mod", async (_event: IpcMainInvokeEvent, filePaths?: string[]) => {
+ipcMain.handle("install-mod", async (event: IpcMainInvokeEvent, filePaths?: string[]) => {
 	if (!modManager) return;
-	await modManager.installMod(filePaths || null);
+	try {
+		await modManager.installMod(filePaths || null);
+		// event.sender.send("install-complete", "Mod successfully installed");
+	} catch (err) {
+		event.sender.send("install-failed", "Error installing mod: " + err);
+	}
 });
 
 ipcMain.handle("uninstall-mod", async (_event: IpcMainInvokeEvent, modName: string) => {
@@ -351,6 +393,60 @@ ipcMain.handle("open-mxb-mods-view", (_) => {
 ipcMain.handle("close-mxb-mods-view", (_) => {
 	console.log("Closing mxb mods view");
 	mainWindow.contentView.removeChildView(mxbModsView);
+});
+
+ipcMain.handle(IPC_CHANNELS.SHOW_MODAL, async (event, options) => {
+	// `event.sender` is the WebContents of the renderer that sent the request.
+	// We can get the BrowserWindow instance from the WebContents.
+	const senderWindow = BrowserWindow.fromWebContents(event.sender);
+
+	if (!senderWindow) {
+		console.error("Could not find the sender window for the modal request.");
+		return null;
+	}
+
+	// Use a switch to call the correct ModalManager method based on the type
+	// sent from the renderer.
+	switch (options.type) {
+		case "notify":
+			return await modalManager.notify(
+				senderWindow,
+				options.title,
+				options.message,
+				options.okLabel,
+				options.cancelLabel
+			);
+		case "confirm":
+			return await modalManager.confirm(
+				senderWindow,
+				options.title,
+				options.message,
+				options.okLabel,
+				options.cancelLabel
+			);
+		case "textInput":
+			return await modalManager.promptText(
+				senderWindow,
+				options.title,
+				options.message,
+				options.defaultValue,
+				options.placeholder,
+				options.okLabel,
+				options.cancelLabel
+			);
+		case "select":
+			return await modalManager.selectOption(
+				senderWindow,
+				options.title,
+				options.message,
+				options.options,
+				options.okLabel,
+				options.cancelLabel
+			);
+		default:
+			console.error(`Unknown modal type received: ${options.type}`);
+			return null;
+	}
 });
 
 export { mainWindow };

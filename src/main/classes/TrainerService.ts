@@ -5,6 +5,8 @@ import { cpRecurse } from "../utils/FileSystemUtils";
 import SupabaseService from "./Supabase";
 import { computeFileHash } from "../utils/fileHash";
 import { downloadFile } from "../utils/downloadFile";
+import { ModalManager } from "./ModalManager";
+import { mainWindow } from "../main";
 
 interface TrainerRecord {
 	map: string;
@@ -22,7 +24,9 @@ export default class TrainerService {
 	#profilesFolder: string;
 	#tmpDir: string;
 	#supabase: SupabaseService;
-	constructor(sb: SupabaseService, modsFolder: string) {
+	#modalManager: ModalManager;
+	constructor(sb: SupabaseService, modalManager: ModalManager, modsFolder: string) {
+		this.#modalManager = modalManager;
 		this.#profilesFolder = path.join(path.dirname(modsFolder), "profiles");
 		this.#tmpDir =
 			process.env.NODE_ENV === "development" ? path.join(__dirname, "tmp") : path.join(os.tmpdir(), "PitkitExtract");
@@ -31,7 +35,33 @@ export default class TrainerService {
 
 	public async installTrainer(trainer: any) {
 		const fileName = trainer.mapName + "_" + trainer.bikeCategory + ".trn";
-		const trainersPath = path.join(this.getProfiles()?.[0], "trainers");
+
+		const profiles = this.getProfiles();
+		let profile: string;
+		if (profiles.length === 1) {
+			profile = profiles[0];
+		} else {
+			profile = await this.#modalManager.selectOption(
+				mainWindow,
+				"Select a profile",
+				"Which profile would you like the trainer to be on?",
+				this.getProfiles().map((profile) => path.basename(profile))
+			);
+		}
+
+		let profileIdx = -1;
+		for (let i = 0; i < profiles.length; ++i) {
+			if (path.basename(profiles[i]) === profile) {
+				profileIdx = i;
+				break;
+			}
+		}
+
+		if (profileIdx === -1 || profileIdx > profiles.length - 1) {
+			throw new Error("Error installing ghost: could not find selected profile");
+		}
+
+		const trainersPath = path.join(profiles[profileIdx], "trainers");
 		await downloadFile(trainer.fileUrl, path.join(trainersPath, fileName));
 		// await downloadFile(trainer.fileUrl, path.join(trainersPath, "test.trn"));
 	}

@@ -4,6 +4,17 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { ModsData } from "src/types";
 import { IPC_CHANNELS } from "../shared/ipcChannels";
 
+export interface ModalOptions {
+	type: "confirm" | "textInput" | "select" | "notify";
+	title: string;
+	message: string;
+	defaultValue?: string;
+	placeholder?: string;
+	options?: string[];
+	okLabel?: string;
+	cancelLabel?: string;
+}
+
 export interface ElectronAPI {
 	minimizeWindow: () => void;
 	maximizeWindow: () => void;
@@ -44,6 +55,7 @@ export interface ModManagerAPI {
 export interface ModalAPI {
 	onOpenModal: (callback: (event: Electron.IpcRendererEvent, args: any) => void) => void;
 	sendModalResponse: (response: any) => void;
+	showModal: <T>(options: ModalOptions) => Promise<T | null>;
 	removeOpenModalListener: () => void;
 }
 
@@ -89,14 +101,23 @@ const modManagerAPI: ModManagerAPI = {
 	},
 	requestModsData: (): Promise<ModsData> => ipcRenderer.invoke("request-mods-data"),
 	requestExtractionProgress: (): Promise<number> => ipcRenderer.invoke("request-extraction-progress"),
-	onMessage: (channel: any, callback: any) => {
-		ipcRenderer.on(channel, (_event, data) => callback(data));
+	onMessage: (channel: string, callback: (...args: any[]) => void) => {
+		// Create a subscription function that wraps the callback
+		const subscription = (_event: Electron.IpcRendererEvent, ...args: any[]) => callback(...args);
+
+		// Register the listener
+		ipcRenderer.on(channel, subscription);
+
+		// Return a cleanup function that removes that specific listener
+		return () => {
+			ipcRenderer.removeListener(channel, subscription);
+		};
 	},
 	uploadTrainers: () => {
 		ipcRenderer.invoke("upload-trainers");
 	},
 	installGhost: (ghost: any) => {
-		ipcRenderer.invoke("install-ghost", ghost);
+		return ipcRenderer.invoke("install-ghost", ghost);
 	},
 	onDownloadProgress: (cb: (event: any, data: { url: string; percent: number }) => void) => {
 		ipcRenderer.on("download-progress", cb);
@@ -117,6 +138,11 @@ const modalAPI: ModalAPI = {
 	sendModalResponse: (response) => {
 		ipcRenderer.send(IPC_CHANNELS.MODAL_RESPONSE, response);
 	},
+
+	showModal: <T>(options: ModalOptions): Promise<T | null> => {
+		return ipcRenderer.invoke(IPC_CHANNELS.SHOW_MODAL, options);
+	},
+
 	// Cleanup function
 	removeOpenModalListener: () => {
 		ipcRenderer.removeAllListeners(IPC_CHANNELS.OPEN_MODAL);

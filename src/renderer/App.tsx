@@ -17,11 +17,9 @@ export default function App() {
 	async function installModWithProgress(filePaths?: string[]) {
 		try {
 			await window.modManagerAPI.installMod(filePaths);
-			alert("Mod successfully installed");
 			log.info("Installation complete");
 		} catch (error) {
 			log.error("Installation failed:", error);
-			alert(error);
 		}
 	}
 
@@ -88,8 +86,26 @@ export default function App() {
 		// Initial data fetch only when component mounts
 		fetchModsData();
 
-		// Listen for main context sending mods data
-		window.modManagerAPI.onMessage("send-mods-data", (data: ModsData) => {
+		const cleanupInstallComplete = window.modManagerAPI.onMessage("install-complete", async (message: string) => {
+			await window.modalAPI.showModal<boolean>({
+				type: "notify",
+				title: "Success",
+				message,
+			});
+			fetchModsData();
+		});
+
+		const cleanupInstallFailed = window.modManagerAPI.onMessage("install-failed", async (message: string) => {
+			setIsInstalling(false);
+			setProgress(0);
+			await window.modalAPI.showModal<boolean>({
+				type: "notify",
+				title: "Error",
+				message,
+			});
+		});
+
+		const cleanupModsData = window.modManagerAPI.onMessage("send-mods-data", (data: ModsData) => {
 			let modsMap: Map<string, Mod>;
 
 			if (data instanceof Map) {
@@ -100,15 +116,23 @@ export default function App() {
 				modsMap = new Map(Object.entries(data));
 			}
 
-			log.info("Mods map received:", modsMap);
 			setModsData(modsMap);
 			setProgress(100);
 			setIsInstalling(false);
 		});
 
-		window.modManagerAPI.onMessage("install-progress", (data: number) => {
+		const cleanupInstallProgress = window.modManagerAPI.onMessage("install-progress", (data: number) => {
 			setProgress(data);
 		});
+
+		// This function will be called when the component unmounts
+		return () => {
+			console.log("Cleaning up App listeners");
+			cleanupInstallComplete();
+			cleanupInstallFailed();
+			cleanupModsData();
+			cleanupInstallProgress();
+		};
 	}, []);
 
 	useEffect(() => {

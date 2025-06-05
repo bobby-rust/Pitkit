@@ -6,6 +6,7 @@ import SelectModal from "./modals/SelectModal";
 
 import "./Modal.css";
 import log from "electron-log/renderer";
+import NotifyModal from "./modals/NotifyModal";
 
 // Define the response function type
 type SubmitHandler = (value: any) => void;
@@ -42,6 +43,8 @@ const ModalRoot: React.FC = () => {
 	// Render the correct modal based on type
 	const renderModalContent = () => {
 		switch (modalProps.type) {
+			case "notify":
+				return <NotifyModal {...modalProps} onSubmit={() => handleSubmit(true)} />;
 			case "confirm":
 				return (
 					<ConfirmModal

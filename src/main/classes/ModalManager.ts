@@ -4,7 +4,7 @@ import log from "electron-log/main";
 
 // Interfaces remain the same
 interface ModalOptions {
-	type: "confirm" | "textInput" | "select";
+	type: "confirm" | "textInput" | "select" | "notify";
 	title: string;
 	message: string;
 	defaultValue?: string;
@@ -92,7 +92,22 @@ export class ModalManager {
 		});
 		return result === true;
 	}
-
+	public async notify(
+		window: BrowserWindow,
+		title: string,
+		message: string,
+		okLabel?: string,
+		cancelLabel?: string
+	): Promise<boolean> {
+		const result = await this.#requestModal<boolean>(window, {
+			type: "notify",
+			title,
+			message,
+			okLabel,
+			cancelLabel,
+		});
+		return result === true;
+	}
 	// Convenience method for text input prompts
 	public promptText(
 		window: BrowserWindow,

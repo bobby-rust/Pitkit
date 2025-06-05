@@ -1,7 +1,7 @@
 {
 	"name": "pitkit",
 	"productName": "PitKit",
-	"version": "0.5.0",
+	"version": "0.5.1",
 	"description": "The MX Bikes Mod Manager",
 	"main": ".vite/build/main.js",
 	"scripts": {

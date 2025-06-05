@@ -12,6 +12,7 @@ import { downloadFile } from "../utils/downloadFile";
 import log from "electron-log/main";
 import TrainerService from "./TrainerService";
 import SupabaseService from "./Supabase";
+import { ModalManager } from "./ModalManager";
 
 interface Config {
 	modsFolder: string;
@@ -35,7 +36,7 @@ export default class ModManager {
 	#extractionProgress: number;
 	#dataFile: string;
 
-	constructor() {
+	constructor(modalManager: ModalManager) {
 		this.#extractionProgress = 0;
 
 		this.#dataFile =
@@ -46,9 +47,14 @@ export default class ModManager {
 		// Bind the function to ensure correct context when calling from other classes
 		this.sendProgressToRenderer = this.sendProgressToRenderer.bind(this);
 
-		this.#installer = new ModInstaller(this.#config.modsFolder, this.#config.baseGameFolder, this.sendProgressToRenderer);
+		this.#installer = new ModInstaller(
+			this.#config.modsFolder,
+			this.#config.baseGameFolder,
+			this.sendProgressToRenderer,
+			modalManager
+		);
 		this.sb = new SupabaseService();
-		this.trainerService = new TrainerService(this.sb, this.#config.modsFolder);
+		this.trainerService = new TrainerService(this.sb, this.#installer.modalManager, this.#config.modsFolder);
 	}
 
 	public getExtractionProgress() {
@@ -195,6 +201,7 @@ export default class ModManager {
 		this.#writeModsToDisk();
 
 		mainWindow.webContents.send("send-mods-data", this.getMods());
+		mainWindow.webContents.send("install-complete", "Mod successfully installed");
 		return mod;
 	}
 

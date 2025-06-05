@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useCallback, useEffect, Rea
 
 interface ModalComponentProps {
 	id: string; // The unique ID from the main process request
-	type: "confirm" | "textInput" | "select";
+	type: "confirm" | "textInput" | "select" | "notify";
 	title: string;
 	message: string;
 	defaultValue?: string;
