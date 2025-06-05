@@ -37,6 +37,8 @@ export interface ModManagerAPI {
 	onMessage: (channel: any, callback: any) => void;
 	uploadTrainers: () => void;
 	installGhost: (ghost: any) => any;
+	onDownloadProgress: (cb: (event: any, data: { url: string; percent: number }) => void) => void;
+	removeDownloadListener: (cbName: string) => void;
 }
 
 export interface ModalAPI {
@@ -95,6 +97,12 @@ const modManagerAPI: ModManagerAPI = {
 	},
 	installGhost: (ghost: any) => {
 		ipcRenderer.invoke("install-ghost", ghost);
+	},
+	onDownloadProgress: (cb: (event: any, data: { url: string; percent: number }) => void) => {
+		ipcRenderer.on("download-progress", cb);
+	},
+	removeDownloadListener: (cbName: string) => {
+		ipcRenderer.removeAllListeners("download-progress");
 	},
 };
 

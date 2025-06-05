@@ -6,6 +6,8 @@ import { FolderPlus } from "lucide-react";
 import ModsGrid from "./components/mods-grid/ModsGrid";
 import { setupWindowControls } from "./utils/windowControls";
 import log from "electron-log/renderer";
+import { ToastContainer } from "react-toastify";
+import DownloadToast from "./components/toast/DownloadToast";
 
 export default function App() {
 	const [progress, setProgress] = useState(null);
@@ -116,6 +118,16 @@ export default function App() {
 	return (
 		<div className="app-container" onDrop={handleDrop} onDragOver={handleDragOver}>
 			<div id="app" className="app">
+				<DownloadToast />
+				<ToastContainer
+					position="top-right"
+					autoClose={false} // we’ll manage when it closes
+					hideProgressBar={false} // show a progress bar in the toast itself
+					newestOnTop={false}
+					closeOnClick={false}
+					pauseOnHover
+					draggable={false}
+				/>
 				<div className="app-heading">
 					<button disabled={isInstalling} className="btn install-button" onClick={() => handleInstallMod()}>
 						<FolderPlus /> <span>Install Mod</span>

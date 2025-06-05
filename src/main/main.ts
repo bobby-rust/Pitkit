@@ -123,12 +123,37 @@ const createWindow = async () => {
 	mxbModsView.webContents.session.on("will-download", (evt, item, wc) => {
 		console.log("Dl evt: ", evt);
 		console.log("dl item: ", item);
+
+		mainWindow.contentView.removeChildView(mxbModsView);
+		mainWindow.webContents.send("navigate-to", "/");
+		item.on("updated", (event, state) => {
+			if (state === "interrupted") {
+				console.log("Download interrupted");
+			} else if (state === "progressing") {
+				if (item.isPaused()) {
+					console.log("Download is paused");
+				} else {
+					const received = item.getReceivedBytes();
+					const total = item.getTotalBytes();
+					if (total > 0) {
+						const percent = Math.round((received / total) * 100);
+						// You can send this over IPC so your renderer can show a progress bar:
+						mainWindow.webContents.send("download-progress", {
+							url: item.getURL(),
+							percent,
+						});
+						// For quick debugging:
+						console.log(`Download progress: ${percent}%`);
+					}
+				}
+			}
+		});
+
 		item.on("done", (evt, state) => {
 			if (state === "completed") {
 				mainWindow.contentView.removeChildView(mxbModsView);
 				modManager.installMod([item.getSavePath()]);
-				const route = "/";
-				mainWindow.webContents.send("navigate-to", route);
+				mainWindow.webContents.send("navigate-to", "/");
 			}
 		});
 	});
