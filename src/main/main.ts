@@ -110,8 +110,8 @@ const createWindow = async () => {
 		mxbModsView.setBounds({
 			x: sidebarWidth * 3,
 			y: titlebarHeight,
-			width: bounds.width,
-			height: bounds.height,
+			width: bounds.width - sidebarWidth * 3,
+			height: bounds.height - titlebarHeight,
 		});
 	});
 
@@ -385,8 +385,8 @@ ipcMain.handle("open-mxb-mods-view", (_) => {
 	mxbModsView.setBounds({
 		x: sidebarWidth * 3,
 		y: titlebarHeight,
-		width: bounds.width,
-		height: bounds.height,
+		width: bounds.width - sidebarWidth * 3,
+		height: bounds.height - titlebarHeight,
 	});
 	mxbModsView.webContents.loadURL("https://mxb-mods.com");
 });
