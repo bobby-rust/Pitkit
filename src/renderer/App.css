@@ -42,8 +42,8 @@
 
 .btn:hover {
 	box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
-	background-color: var(--foreground);
-	color: var(--background);
+	/* background-color: var(--d-);
+	color: var(--d-bg); */
 }
 
 .progress-percent {
@@ -78,10 +78,10 @@ body {
 button,
 input[type="submit"],
 input[type="reset"] {
-	color: #000;
+	color: var(--text);
 	/* border: 1px solid black; */
 	border-radius: 0.5rem;
-	background: none;
+	background: var(--bg-light);
 	padding: 0.5rem 1rem;
 	font: inherit;
 	cursor: pointer;
@@ -90,10 +90,11 @@ input[type="reset"] {
 
 input {
 	border-radius: 0.2rem;
-	border: 1px solid #ccc;
+	/* border: 1px solid #ccc; */
 	height: 2rem;
 	padding-left: 0.5rem;
 	padding-right: 0.5rem;
+	background: var(--bg-light);
 }
 
 .input-wrapper {
@@ -116,9 +117,9 @@ input[type="checkbox"] {
 
 a {
 	text-decoration: none;
-	color: var(--foreground);
+	color: var(--text);
 }
 
 a:hover {
-	color: #777;
+	color: var(--text-muted);
 }
